@@ -361,7 +361,7 @@ export default function StatusPage() {
               <div className="flex flex-col gap-2">
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-16 bg-black-card border border-border-dim rounded-lg animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                    <div key={i} className="h-16 bg-black-card border border-border-dim rounded-xl animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
                   ))
                 ) : visibleGames.length > 0 ? (
                   visibleGames.map((game, i) => {
@@ -369,7 +369,7 @@ export default function StatusPage() {
                     return (
                       <div
                         key={game.id}
-                        className="admin-stagger flex items-center justify-between gap-4 bg-black-card border border-border-dim rounded-lg px-5 py-4 transition-all duration-200 hover:border-silver-faint hover:bg-black-elevated"
+                        className="admin-stagger flex items-center justify-between gap-4 bg-black-card border border-border-dim rounded-xl px-5 py-4 transition-all duration-200 hover:border-silver-faint hover:bg-black-elevated hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
                         style={{ animationDelay: `${Math.min(i * 60, 480)}ms` }}
                       >
                         <div className="flex items-center gap-4 min-w-0">
@@ -406,7 +406,7 @@ export default function StatusPage() {
                     )
                   })
                 ) : (
-                  <div className="text-center py-12 bg-black-card border border-border-dim rounded-lg">
+                  <div className="text-center py-12 bg-black-card border border-border-dim rounded-xl">
                     <p className="font-body text-silver-muted text-sm">
                       {query.trim() || filter !== 'all' ? 'No scripts match your search.' : 'No scripts found. Check back soon.'}
                     </p>
@@ -442,71 +442,72 @@ export default function StatusPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {supportedExecs.map((exec, i) => {
                     const live = weaoFor(exec.name)
+                    const hasLinks = exec.websiteUrl || exec.discordUrl
                     return (
                       <div
                         key={exec.name}
-                        className="admin-stagger group flex items-center justify-between bg-black-card border border-border-dim rounded-lg px-4 py-3 transition-all duration-200 hover:border-success/40 hover:-translate-y-0.5"
+                        className="admin-stagger group bg-black-card border border-border-dim rounded-xl px-4 py-3 transition-all duration-200 hover:border-success/40 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,255,136,0.08)]"
                         style={{ animationDelay: `${Math.min(i * 50, 400)}ms` }}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <ExecutorIcon name={exec.name} icon={exec.icon} size={36} />
-                          <div className="min-w-0">
-                            <p className="font-body text-sm text-white truncate">{exec.name}</p>
-                            {live ? (
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span
-                                  className={`inline-flex items-center gap-1 font-body text-[11px] ${
-                                    live.updateStatus ? 'text-success' : 'text-danger'
-                                  }`}
-                                >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <ExecutorIcon name={exec.name} icon={exec.icon} size={36} />
+                            <div className="min-w-0">
+                              <p className="font-body text-sm text-white truncate">{exec.name}</p>
+                              {live ? (
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                   <span
-                                    className={`h-1.5 w-1.5 rounded-full ${live.updateStatus ? 'bg-success' : 'bg-danger'}`}
-                                    aria-hidden="true"
-                                  />
-                                  {live.updateStatus ? 'Updated' : 'Down'}
-                                </span>
-                                {live.version && (
-                                  <span className="font-body text-[11px] text-silver-faint font-mono">v{live.version}</span>
-                                )}
-                              </div>
-                            ) : (
-                              <p className="font-body text-xs text-silver-faint">Verified compatible</p>
-                            )}
+                                    className={`inline-flex items-center gap-1 font-body text-[11px] ${
+                                      live.updateStatus ? 'text-success' : 'text-danger'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`h-1.5 w-1.5 rounded-full ${live.updateStatus ? 'bg-success' : 'bg-danger'}`}
+                                      aria-hidden="true"
+                                    />
+                                    {live.updateStatus ? 'Updated' : 'Down'}
+                                  </span>
+                                  {live.version && (
+                                    <span className="font-body text-[11px] text-silver-faint font-mono">v{live.version}</span>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="font-body text-xs text-silver-faint">Verified compatible</p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {exec.websiteUrl && (
-                            <a
-                              href={exec.websiteUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`${exec.name} website`}
-                              title="Website"
-                              className="p-1.5 rounded-md text-silver-muted hover:text-white hover:bg-black-elevated transition-colors duration-200"
-                              onClick={e => e.stopPropagation()}
-                            >
-                              <GlobeIcon size={14} />
-                            </a>
-                          )}
-                          {exec.discordUrl && (
-                            <a
-                              href={exec.discordUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`${exec.name} Discord`}
-                              title="Discord"
-                              className="p-1.5 rounded-md text-silver-muted hover:text-white hover:bg-black-elevated transition-colors duration-200"
-                              onClick={e => e.stopPropagation()}
-                            >
-                              <DiscordIcon size={14} />
-                            </a>
-                          )}
                           {live && !live.updateStatus ? (
                             <AlertIcon size={16} className="text-danger shrink-0 opacity-80" />
                           ) : (
                             <CheckIcon size={16} className="text-success shrink-0 opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
                           )}
                         </div>
+                        {hasLinks && (
+                          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border-dim">
+                            {exec.websiteUrl && (
+                              <a
+                                href={exec.websiteUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 font-body text-xs text-silver-muted hover:text-info transition-colors duration-200"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                <GlobeIcon size={12} /> Website
+                              </a>
+                            )}
+                            {exec.discordUrl && (
+                              <a
+                                href={exec.discordUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 font-body text-xs text-silver-muted hover:text-info transition-colors duration-200"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                <DiscordIcon size={12} /> Discord
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -524,7 +525,7 @@ export default function StatusPage() {
                     {unsupportedExecs.map((exec, i) => (
                       <div
                         key={exec.name}
-                        className="admin-stagger flex items-center justify-between bg-black-card border border-border-dim rounded-lg px-4 py-3 opacity-60 transition-all duration-200 hover:opacity-90 hover:border-danger/30"
+                        className="admin-stagger flex items-center justify-between bg-black-card border border-border-dim rounded-xl px-4 py-3 opacity-60 transition-all duration-200 hover:opacity-90 hover:border-danger/30"
                         style={{ animationDelay: `${Math.min(i * 50, 400)}ms` }}
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -541,21 +542,31 @@ export default function StatusPage() {
                 </div>
               )}
 
-              <div className="bg-black-card border border-border-dim rounded-lg p-4 text-center">
-                <p className="font-body text-xs text-silver-mid mb-1">
-                  Tip: the safest site to get your executors from is{' '}
-                  <a
-                    href="https://whatexpsare.online/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-white underline underline-offset-2 hover:text-silver-bright transition-colors duration-200"
-                  >
-                    whatexpsare.online
-                  </a>
-                </p>
-                <p className="font-body text-xs text-silver-faint">
-                  Using an executor that isn&apos;t listed? Confirm whether it works with the script in our Discord and we&apos;ll add it.
-                </p>
+              <div className="relative overflow-hidden flex flex-col sm:flex-row items-center sm:items-start gap-3 bg-black-card border border-border-dim rounded-xl p-5 text-center sm:text-left">
+                <div
+                  className="absolute inset-x-0 top-0 h-[2px] opacity-70"
+                  style={{ background: 'linear-gradient(90deg, var(--accent-violet), var(--accent-cyber))' }}
+                  aria-hidden="true"
+                />
+                <span className="shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-black-elevated border border-border-mid text-accent-cyber">
+                  <TerminalIcon size={16} />
+                </span>
+                <div>
+                  <p className="font-body text-sm text-silver-light mb-1">
+                    The safest site to get your executors from is{' '}
+                    <a
+                      href="https://whatexpsare.online/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white underline underline-offset-2 hover:text-accent-cyber transition-colors duration-200"
+                    >
+                      whatexpsare.online
+                    </a>
+                  </p>
+                  <p className="font-body text-xs text-silver-faint">
+                    Using an executor that isn&apos;t listed? Confirm whether it works with the script in our Discord and we&apos;ll add it.
+                  </p>
+                </div>
               </div>
             </section>
           </div>
