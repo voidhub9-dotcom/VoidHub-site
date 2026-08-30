@@ -493,3 +493,16 @@ export function MailIcon({ size = 20, ...props }: IconProps) {
     </svg>
   )
 }
+
+export function FilterIcon({ size = 20, ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...defaultProps} {...props}>
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <circle cx="9" cy="6" r="2" fill="currentColor" stroke="none" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <circle cx="16" cy="12" r="2" fill="currentColor" stroke="none" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+      <circle cx="11" cy="18" r="2" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
