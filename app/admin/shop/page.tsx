@@ -67,7 +67,7 @@ export default function AdminShopPage() {
   const [testingProduct, setTestingProduct] = useState<ShopProduct | null>(null)
   const [testEmail, setTestEmail] = useState('')
   const [testSubmitting, setTestSubmitting] = useState(false)
-  const [testResult, setTestResult] = useState<{ sessionId: string; emailSent: boolean } | null>(null)
+  const [testResult, setTestResult] = useState<{ sessionId: string; emailSent: boolean; emailError?: string } | null>(null)
 
   const loadProducts = useCallback(async () => {
     setLoading(true)
@@ -115,10 +115,10 @@ export default function AdminShopPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
-      setTestResult({ sessionId: data.sessionId, emailSent: data.emailSent })
+      setTestResult({ sessionId: data.sessionId, emailSent: data.emailSent, emailError: data.emailError })
       showToast(
         testEmail.trim()
-          ? (data.emailSent ? 'Test order created — email sent' : 'Test order created — email did NOT send (check Resend config)')
+          ? (data.emailSent ? 'Test order created — email sent' : `Email did NOT send: ${data.emailError || 'unknown error'}`)
           : 'Test order created',
         data.emailSent || !testEmail.trim() ? 'success' : 'error',
       )
@@ -299,12 +299,21 @@ export default function AdminShopPage() {
             </>
           ) : (
             <>
-              <div className="bg-black-surface border border-border-mid rounded-lg p-3 flex items-center gap-2">
-                <CheckIcon size={16} className="text-success shrink-0" />
+              <div className="bg-black-surface border border-border-mid rounded-lg p-3 flex items-start gap-2">
+                <CheckIcon size={16} className="text-success shrink-0 mt-0.5" />
                 <p className="font-body text-xs text-silver-mid">
-                  Test order created.{testEmail.trim() && (testResult.emailSent ? ' Email sent — check your inbox.' : ' Email did not send — check RESEND_API_KEY is set.')}
+                  Test order created.{testEmail.trim() && testResult.emailSent && ' Email sent — check your inbox.'}
                 </p>
               </div>
+              {testEmail.trim() && !testResult.emailSent && (
+                <div className="bg-danger/10 border border-danger/30 rounded-lg p-3 flex items-start gap-2">
+                  <AlertIcon size={16} className="text-danger shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-body text-xs text-danger font-semibold mb-0.5">Email did not send</p>
+                    <p className="font-body text-xs text-silver-mid break-words">{testResult.emailError || 'Unknown error'}</p>
+                  </div>
+                </div>
+              )}
               <a
                 href={`/shop/success?session_id=${testResult.sessionId}`}
                 target="_blank"

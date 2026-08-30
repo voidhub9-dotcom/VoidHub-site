@@ -46,14 +46,17 @@ export async function POST(req: Request) {
   const orderId = `test_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 
   let emailSent = false
+  let emailError: string | undefined
   if (email) {
-    emailSent = await sendKeyDeliveryEmail({
+    const emailResult = await sendKeyDeliveryEmail({
       to: email,
       productName: product.name,
       durationLabel: product.durationLabel,
       keyValue: testKey,
       orderId,
     })
+    emailSent = emailResult.ok
+    emailError = emailResult.error
   }
 
   const now = new Date().toISOString()
@@ -75,5 +78,5 @@ export async function POST(req: Request) {
   }
   await appendShopOrder(order)
 
-  return Response.json({ sessionId: orderId, deliveredKey: testKey, emailSent })
+  return Response.json({ sessionId: orderId, deliveredKey: testKey, emailSent, emailError })
 }

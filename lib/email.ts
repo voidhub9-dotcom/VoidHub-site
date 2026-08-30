@@ -66,10 +66,19 @@ Order reference: ${orderId}`
   return { html, text }
 }
 
+export interface EmailSendResult {
+  ok: boolean
+  /** Human-readable failure reason — surfaced to the admin test-delivery UI for debugging. */
+  error?: string
+}
+
 /**
  * Sends the delivered key to the buyer's email. Never throws — returns
- * false on any failure (missing config, network error, non-2xx response)
- * so a delivery email issue never blocks Stripe webhook fulfillment.
+ * { ok: false, error } on any failure (missing config, network error,
+ * non-2xx response) so a delivery email issue never blocks Stripe webhook
+ * fulfillment. The error string is for admin debugging (surfaced in the
+ * test-delivery UI) — never shown to buyers, since the on-page key reveal
+ * is the primary delivery path either way.
  */
 export async function sendKeyDeliveryEmail(params: {
   to: string
@@ -77,8 +86,8 @@ export async function sendKeyDeliveryEmail(params: {
   durationLabel: string
   keyValue: string
   orderId: string
-}): Promise<boolean> {
-  if (!RESEND_API_KEY) return false
+}): Promise<EmailSendResult> {
+  if (!RESEND_API_KEY) return { ok: false, error: 'RESEND_API_KEY is not set' }
 
   try {
     const { html, text } = buildEmail(params)
@@ -97,12 +106,20 @@ export async function sendKeyDeliveryEmail(params: {
       }),
     })
     if (!res.ok) {
-      console.error('[email] Resend send failed:', res.status, await res.text().catch(() => ''))
-      return false
+      const bodyText = await res.text().catch(() => '')
+      let message = bodyText
+      try {
+        const parsed = JSON.parse(bodyText)
+        message = parsed?.message || bodyText
+      } catch {
+        // not JSON — use raw text
+      }
+      console.error('[email] Resend send failed:', res.status, bodyText)
+      return { ok: false, error: `Resend ${res.status}: ${message || 'request failed'}` }
     }
-    return true
-  } catch (error) {
+    return { ok: true }
+  } catch (error: any) {
     console.error('[email] send error:', error)
-    return false
+    return { ok: false, error: error?.message || 'Network error reaching Resend' }
   }
 }

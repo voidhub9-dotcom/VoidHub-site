@@ -76,13 +76,14 @@ export async function POST(req: Request) {
 
       let emailSent = false
       if (deliveredKey && recipientEmail) {
-        emailSent = await sendKeyDeliveryEmail({
+        const emailResult = await sendKeyDeliveryEmail({
           to: recipientEmail,
           productName: product.name,
           durationLabel: product.durationLabel,
           keyValue: deliveredKey,
           orderId: session.id,
         })
+        emailSent = emailResult.ok
       }
 
       orders[orderIndex] = {
