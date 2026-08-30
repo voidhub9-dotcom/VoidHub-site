@@ -8,6 +8,7 @@ import {
 } from '@/components/Icons'
 import Modal from '@/components/Modal'
 import ShopProductModal, { ShopProductFormData } from '@/components/ShopProductModal'
+import StripeSetupGuide from '@/components/StripeSetupGuide'
 import { useToast } from '@/components/Toast'
 import type { ShopProduct } from '@/lib/shop'
 
@@ -141,6 +142,8 @@ export default function AdminShopPage() {
           </button>
         </div>
       </div>
+
+      <StripeSetupGuide />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
