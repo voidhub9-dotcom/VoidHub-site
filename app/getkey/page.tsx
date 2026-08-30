@@ -69,7 +69,12 @@ function GetKeyContent() {
   if (!data || !data.enabled) {
     return (
       <div className="max-w-md mx-auto px-4 py-24 text-center">
-        <div className="void-card p-8">
+        <div className="relative overflow-hidden void-card p-8">
+          <div
+            className="absolute inset-x-0 top-0 h-[2px] opacity-60"
+            style={{ background: 'linear-gradient(90deg, var(--accent-violet), var(--accent-cyber))' }}
+            aria-hidden="true"
+          />
           <KeyIcon size={32} className="text-silver-faint mx-auto mb-4" />
           <h1 className="font-heading text-lg text-white tracking-wider text-balance">
             KEY SYSTEM NOT AVAILABLE
@@ -97,12 +102,19 @@ function GetKeyContent() {
   if (data.requireDiscord && !gatePassed) {
     return (
       <div className="max-w-md mx-auto px-4 py-24">
-        <div className="void-card p-8 text-center">
-          <div className="w-14 h-14 rounded-xl bg-black-elevated flex items-center justify-center mx-auto mb-5">
-            <DiscordIcon size={28} className="text-silver-mid" />
+        <div className="relative overflow-hidden void-card p-8 text-center">
+          <div
+            className="absolute inset-x-0 top-0 h-[2px]"
+            style={{ background: 'linear-gradient(90deg, var(--accent-violet), var(--accent-cyber))' }}
+            aria-hidden="true"
+          />
+          <div className="relative w-14 h-14 rounded-2xl mx-auto mb-5 p-[1.5px]" style={{ background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-cyber))' }}>
+            <div className="w-full h-full rounded-2xl bg-black-card flex items-center justify-center">
+              <DiscordIcon size={26} className="text-white" />
+            </div>
           </div>
           <h1 className="font-heading text-xl text-white tracking-wider text-balance">
-            JOIN OUR <span className="text-success">DISCORD</span>
+            JOIN OUR <span className="text-glow">DISCORD</span>
           </h1>
           <p className="font-body text-sm text-silver-muted mt-3 leading-relaxed text-pretty">
             {data.discordGateText}
@@ -132,14 +144,16 @@ function GetKeyContent() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-16 sm:py-24">
       {data.bannerImageUrl && (
-        <div className="rounded-xl overflow-hidden border border-border-dim mb-8">
+        <div className="rounded-2xl overflow-hidden border border-border-dim mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={data.bannerImageUrl} alt="" className="w-full max-h-48 object-cover" />
         </div>
       )}
       <div className="text-center mb-10">
-        <div className="w-14 h-14 rounded-xl bg-black-elevated flex items-center justify-center mx-auto mb-5">
-          <KeyIcon size={28} className="text-success" />
+        <div className="relative w-14 h-14 rounded-2xl mx-auto mb-5 p-[1.5px]" style={{ background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-cyber))' }}>
+          <div className="w-full h-full rounded-2xl bg-black-card flex items-center justify-center">
+            <KeyIcon size={26} className="text-success" />
+          </div>
         </div>
         <h1 className="font-heading text-2xl sm:text-3xl text-white tracking-wider text-balance">
           {data.title}
@@ -148,7 +162,7 @@ function GetKeyContent() {
           {data.subtitle}
         </p>
         {data.instructions && (
-          <div className="mt-5 inline-flex items-start gap-2 rounded-md border border-border-dim bg-black-card px-4 py-3 text-left max-w-md">
+          <div className="mt-5 inline-flex items-start gap-2 rounded-xl border border-border-dim bg-black-card px-4 py-3 text-left max-w-md">
             <CheckIcon size={15} className="text-success shrink-0 mt-0.5" />
             <p className="font-body text-xs text-silver-mid leading-relaxed">{data.instructions}</p>
           </div>
@@ -169,15 +183,17 @@ function GetKeyContent() {
               href={p.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="void-card p-4 sm:p-5 flex items-center gap-4 group hover:border-success/40 transition-all duration-200"
+              className="price-card group relative flex items-center gap-4 p-4 sm:p-5 admin-stagger"
               style={{ animationDelay: `${i * 60}ms` }}
             >
               {p.iconUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.iconUrl} alt="" className="w-11 h-11 rounded-md object-cover shrink-0" />
+                <img src={p.iconUrl} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
               ) : (
-                <div className="w-11 h-11 rounded-md bg-black-elevated text-white font-heading text-lg flex items-center justify-center shrink-0">
-                  {p.name.charAt(0).toUpperCase()}
+                <div className="relative w-12 h-12 rounded-xl shrink-0 p-[1.5px]" style={{ background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-cyber))' }}>
+                  <div className="w-full h-full rounded-xl bg-black-card text-white font-heading text-lg flex items-center justify-center">
+                    {p.name.charAt(0).toUpperCase()}
+                  </div>
                 </div>
               )}
               <div className="flex-1 min-w-0">
@@ -212,10 +228,10 @@ function GetKeyContent() {
                 )}
               </div>
               <span
-                className="font-heading text-xs text-silver-muted group-hover:text-success tracking-wider transition-colors duration-200 shrink-0"
+                className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-heading text-xs tracking-wider border border-border-mid text-silver-light transition-all duration-200 group-hover:border-transparent group-hover:text-white group-hover:bg-gradient-to-br group-hover:from-[var(--accent-violet)] group-hover:to-[var(--accent-cyber)]"
                 aria-hidden="true"
               >
-                {(p.buttonText || 'GET KEY').toUpperCase()} →
+                {(p.buttonText || 'GET KEY').toUpperCase()}
               </span>
             </a>
           ))}
