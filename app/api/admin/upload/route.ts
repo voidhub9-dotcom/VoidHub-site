@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
  * /api/uploads/[id].
  */
 
-const ADMIN_KEY = process.env.ADMIN_KEY || 'voidhub123'
+const ADMIN_KEY = process.env.ADMIN_PASSWORD || 'voidhub123'
 const MAX_BYTES = 4 * 1024 * 1024 // 4MB is plenty for logos/banners
 
 const ALLOWED_TYPES: Record<string, string> = {
