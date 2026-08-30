@@ -16,6 +16,19 @@ const navLinks = [
   { href: '/about', label: 'About', icon: AboutIcon },
 ]
 
+// Primary tabs live in the mobile bottom bar — the "More" sheet only needs
+// what's left over, so it doesn't just duplicate the tab bar.
+const tabBarLinks = [
+  { href: '/', label: 'Home', icon: HomeIcon },
+  { href: '/games', label: 'Games', icon: GamesIcon },
+  { href: '/shop', label: 'Shop', icon: ShopIcon },
+  { href: '/status', label: 'Status', icon: ActivityIcon },
+]
+const moreSheetLinks = [
+  { href: '/faq', label: 'FAQ', icon: HelpIcon },
+  { href: '/about', label: 'About', icon: AboutIcon },
+]
+
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -158,17 +171,48 @@ export default function Navbar() {
             </a>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="md:hidden p-2 text-silver-mid hover:text-white transition-colors"
-          >
-            <MenuIcon size={24} />
-          </button>
         </div>
       </nav>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Bottom Tab Bar — primary nav, always in thumb reach */}
+      <div
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black-deep/95 backdrop-blur-xl border-t border-border-dim"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="grid grid-cols-5 h-16">
+          {tabBarLinks.map(link => {
+            const Icon = link.icon
+            const isActive = pathname === link.href
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`relative flex flex-col items-center justify-center gap-1 transition-colors duration-200 ${
+                  isActive ? 'text-white' : 'text-silver-muted active:text-silver-light'
+                }`}
+              >
+                <Icon size={20} className={isActive ? 'text-glow' : ''} />
+                <span className="font-body text-[0.65rem]">{link.label}</span>
+                {isActive && (
+                  <span className="absolute top-0 w-8 h-0.5 bg-white rounded-full" />
+                )}
+              </Link>
+            )
+          })}
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className={`relative flex flex-col items-center justify-center gap-1 transition-colors duration-200 ${
+              isMobileMenuOpen || moreSheetLinks.some(l => l.href === pathname)
+                ? 'text-white' : 'text-silver-muted active:text-silver-light'
+            }`}
+          >
+            <MenuIcon size={20} />
+            <span className="font-body text-[0.65rem]">More</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu Overlay ("More" sheet) */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[60] md:hidden">
           <div
@@ -185,7 +229,7 @@ export default function Navbar() {
               </button>
             </div>
             <div className="flex flex-col px-6 py-4 gap-2">
-              {navLinks.map(link => {
+              {moreSheetLinks.map(link => {
                 const Icon = link.icon
                 const isActive = pathname === link.href
                 return (

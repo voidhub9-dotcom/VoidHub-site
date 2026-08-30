@@ -152,9 +152,9 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Lower Footer */}
+      {/* Lower Footer — extra bottom clearance on mobile so the fixed tab bar never covers it */}
       <div className="border-t border-border-dim">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 pt-6 pb-24 md:py-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-silver-muted text-xs font-body">
             &copy; {new Date().getFullYear()} {links.siteName}. All rights reserved.
           </p>
