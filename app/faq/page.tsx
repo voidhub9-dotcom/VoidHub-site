@@ -32,12 +32,12 @@ const faqs: Faq[] = [
   },
   {
     q: 'Do I need a key to use VoidHub?',
-    a: 'No. VoidHub is completely keyless. There are no key systems, link shorteners, checkpoints, or ads. Copy the loadstring, execute it, and you are in.',
+    a: 'No — the free scripts don\'t require a key. Copy the loadstring, execute it, and you are in. Prefer instant delivery without any steps? Premium keys are available in the Shop.',
     category: 'getting-started',
   },
   {
     q: 'Is VoidHub free?',
-    a: 'Yes, 100% free — forever. There are no premium tiers, subscriptions, or paid features. Everything on the site is available to everyone.',
+    a: 'The core scripts are 100% free — forever, no subscription. The Shop also sells optional premium keys for instant delivery, but they\'re never required to use the free scripts.',
     category: 'getting-started',
   },
   {

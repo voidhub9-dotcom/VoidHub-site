@@ -88,11 +88,11 @@ export default function GamesPage() {
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-black-card border border-border-dim rounded-full mb-4">
                 <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" aria-hidden="true" />
-                <span className="font-body text-xs text-silver-mid tracking-wide">Keyless · Free · One universal loader</span>
+                <span className="font-body text-xs text-silver-mid tracking-wide">Free · One universal loader</span>
               </div>
               <h1 className="font-heading text-[clamp(2rem,4vw,3.5rem)] text-white mb-3 text-balance">SUPPORTED GAMES</h1>
               <p className="font-body text-silver-mid text-sm md:text-base text-pretty max-w-xl mx-auto">
-                Free keyless scripts for the most popular Roblox games. Copy one loadstring and it works in every game below.
+                Free scripts for the most popular Roblox games. Copy one loadstring and it works in every game below.
               </p>
             </div>
 

@@ -60,7 +60,7 @@ print("[VoidHub] Loader started for place " .. tostring(placeId))
 
 const SEED_DEFAULTS: Record<string, string> = {
   [KV_KEYS.DISCORD]: 'https://discord.gg/kPPsdZtndn',
-  [KV_KEYS.TAGLINE]: 'Free. Keyless. No Limits.',
+  [KV_KEYS.TAGLINE]: 'Free. Powerful. No Limits.',
   [KV_KEYS.MAINTENANCE]: 'false',
   [KV_KEYS.LOADER_SCRIPT]: DEFAULT_LOADER_SCRIPT,
   [KV_KEYS.ENDPOINT_URL]: '',

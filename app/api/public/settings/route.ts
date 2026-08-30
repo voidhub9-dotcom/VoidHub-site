@@ -13,7 +13,7 @@ export async function GET() {
 
   return Response.json({
     discord: discord || 'https://discord.gg/kPPsdZtndn',
-    tagline: tagline || 'Free. Keyless. No Limits.',
+    tagline: tagline || 'Free. Powerful. No Limits.',
     maintenance: maintenance === 'true',
     links,
   }, {

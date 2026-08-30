@@ -26,15 +26,15 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.voidon.top'),
   title: {
-    default: 'VoidHub | Free Keyless Roblox Scripts',
+    default: 'VoidHub | Free Roblox Scripts & Premium Keys',
     template: '%s | VoidHub',
   },
   description:
-    'Free. Keyless. No Limits. VoidHub provides 100% free and keyless Roblox scripts for the most popular games. No paywalls, no key systems.',
+    'VoidHub provides free Roblox scripts for the most popular games, plus premium keys in the Shop for instant delivery. No paywall on the free tier.',
   keywords: [
-    'Roblox scripts', 'free Roblox scripts', 'keyless Roblox', 'VoidHub',
+    'Roblox scripts', 'free Roblox scripts', 'VoidHub', 'Roblox key shop',
     'Roblox executor', 'Roblox exploits', 'Blox Fruits script', 'free script hub',
-    'no key script', 'Roblox hack free',
+    'premium Roblox scripts', 'Roblox hack free',
   ],
   authors: [{ name: 'VoidHub' }],
   creator: 'VoidHub',
@@ -47,9 +47,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'VoidHub',
-    title: 'VoidHub | Free Keyless Roblox Scripts',
+    title: 'VoidHub | Free Roblox Scripts & Premium Keys',
     description:
-      'Free. Keyless. No Limits. 100% free Roblox scripts for the most popular games — no key system, no paywalls.',
+      'Free Roblox scripts for the most popular games, plus premium keys in the Shop for instant delivery.',
     images: [
       {
         url: '/logo.png',
@@ -61,9 +61,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'VoidHub | Free Keyless Roblox Scripts',
+    title: 'VoidHub | Free Roblox Scripts & Premium Keys',
     description:
-      'Free. Keyless. No Limits. 100% free Roblox scripts — no key system, no paywalls.',
+      'Free Roblox scripts for the most popular games, plus premium keys in the Shop.',
     images: ['/logo.png'],
   },
 }

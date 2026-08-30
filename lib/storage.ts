@@ -160,7 +160,7 @@ export function initializeStorage() {
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.TAGLINE)) {
-    localStorage.setItem(STORAGE_KEYS.TAGLINE, 'Free. Keyless. No Limits.')
+    localStorage.setItem(STORAGE_KEYS.TAGLINE, 'Free. Powerful. No Limits.')
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.ACTIVITY_LOG)) {
@@ -272,9 +272,9 @@ export function setDiscordLink(value: string) {
 
 // Tagline
 export function getTagline(): string {
-  if (!isBrowser) return 'Free. Keyless. No Limits.'
+  if (!isBrowser) return 'Free. Powerful. No Limits.'
   initializeStorage()
-  return localStorage.getItem(STORAGE_KEYS.TAGLINE) || 'Free. Keyless. No Limits.'
+  return localStorage.getItem(STORAGE_KEYS.TAGLINE) || 'Free. Powerful. No Limits.'
 }
 
 export function setTagline(value: string) {

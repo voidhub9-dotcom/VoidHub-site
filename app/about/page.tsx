@@ -14,7 +14,7 @@ import {
   CopyIcon,
   TerminalIcon,
   SparkleIcon,
-  KeyOffIcon,
+  CartIcon,
   GlobeIcon,
   CheckIcon,
 } from '@/components/Icons'
@@ -33,9 +33,9 @@ const values = [
     accent: 'success' as const,
   },
   {
-    icon: KeyOffIcon,
-    title: 'Keyless Forever',
-    body: 'No key systems, no link shorteners, no checkpoints, no ads. Copy the loadstring, execute, done. That will never change.',
+    icon: CartIcon,
+    title: 'Free, No Ads',
+    body: 'The free scripts stay completely free — no link shorteners, no checkpoints, no ads, ever. Premium keys in the Shop are always optional, never required.',
     accent: 'info' as const,
   },
   {
@@ -116,14 +116,15 @@ export default function AboutPage() {
             >
               <div className="inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/5 px-4 py-1.5 mb-6">
                 <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                <span className="font-body text-xs text-success tracking-wider">FREE. KEYLESS. NO LIMITS.</span>
+                <span className="font-body text-xs text-success tracking-wider">FREE. POWERFUL. NO LIMITS.</span>
               </div>
               <h1 className="font-heading text-[clamp(2rem,5vw,3.75rem)] text-white mb-4 text-balance">
                 BUILT FOR THE COMMUNITY
               </h1>
               <p className="font-body text-silver-mid text-base md:text-lg max-w-2xl mx-auto leading-relaxed text-pretty">
                 VoidHub exists for one reason — every Roblox player deserves powerful,
-                free, keyless scripts without paywalls, key systems, or sketchy websites.
+                free scripts without paywalls or sketchy websites, with premium keys
+                available for instant delivery.
               </p>
             </div>
 
@@ -139,7 +140,7 @@ export default function AboutPage() {
             <div className="mb-20">
               <div className="text-center mb-10">
                 <h2 className="font-heading text-2xl text-white mb-2">HOW IT WORKS</h2>
-                <p className="font-body text-sm text-silver-muted">Three steps. Under a minute. No keys.</p>
+                <p className="font-body text-sm text-silver-muted">Three steps. Under a minute. Free.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {steps.map((s, idx) => {
@@ -229,7 +230,7 @@ export default function AboutPage() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 w-full md:w-auto shrink-0">
-                  {['No key systems, ever', 'No paywalls or premium tiers', 'No link shorteners or ads', 'No data collection'].map(item => (
+                  {['Free scripts stay free, forever', 'No link shorteners or ads', 'No data collection', 'Premium keys, always optional'].map(item => (
                     <div key={item} className="flex items-center gap-2.5">
                       <span className="w-5 h-5 rounded-full border border-success/40 bg-success/10 flex items-center justify-center shrink-0">
                         <CheckIcon size={11} className="text-success" />

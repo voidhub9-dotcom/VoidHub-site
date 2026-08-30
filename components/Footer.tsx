@@ -33,7 +33,7 @@ const footerLinks = [
 
 export default function Footer() {
   const [discordLink, setDiscordLink] = useState('https://discord.gg/kPPsdZtndn')
-  const [tagline, setTagline] = useState('Free. Keyless. No Limits.')
+  const [tagline, setTagline] = useState('Free. Powerful. No Limits.')
   const [links, setLinks] = useState<FooterLinks>(DEFAULT_FOOTER_LINKS)
 
   useEffect(() => {
@@ -159,7 +159,7 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} {links.siteName}. All rights reserved.
           </p>
           <p className="text-silver-muted text-xs font-body">
-            Free forever. No keys. No BS.
+            Free scripts. Premium keys. No BS.
           </p>
         </div>
       </div>

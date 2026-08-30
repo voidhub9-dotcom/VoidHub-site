@@ -49,13 +49,13 @@ const OutputSchema = z.object({
 
 function fallback(name: string) {
   return {
-    description: `VoidHub brings you free, keyless Roblox scripts for ${name}. Undetected, auto-updating, and safe to use. No key system — just paste and execute.`,
+    description: `VoidHub brings you a free Roblox script for ${name}. Undetected, auto-updating, and safe to use — just paste the loadstring and execute.`,
     features: ['Auto Farm', 'ESP', 'Teleport', 'Speed Hack', 'God Mode'],
     tags: [
       name.toLowerCase(),
       `${name.toLowerCase()} script`,
       `${name.toLowerCase()} free script`,
-      `${name.toLowerCase()} keyless`,
+      `${name.toLowerCase()} loadstring`,
       'roblox script',
       'roblox exploit',
       'voidhub',
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
       model: gateway('google/gemini-3.5-flash'),
       output: Output.object({ schema: OutputSchema }),
       prompt: [
-        `You write copy for VoidHub, a free keyless Roblox script hub.`,
+        `You write copy for VoidHub, a Roblox script hub with free scripts and premium keys available in the Shop for instant delivery.`,
         `Game: "${name}"`,
         robloxDesc ? `Official Roblox description of the game: "${robloxDesc}"` : '',
         ``,

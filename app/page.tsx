@@ -12,7 +12,7 @@ import {
   GamesIcon,
   ChevronDownIcon,
   BoltIcon,
-  KeyOffIcon,
+  CheckIcon,
   UsersIcon,
   RefreshIcon,
   ShieldIcon,
@@ -31,8 +31,8 @@ const whyCards = [
   },
   {
     icon: BoltIcon,
-    title: 'Zero Key System',
-    body: 'No keys, no checkpoints, no waiting. Paste the loadstring and execute — it just works, every time.',
+    title: 'Instant, No Waiting',
+    body: 'Paste the loadstring and execute — no checkpoints, no ads, no waiting around. It just works, every time.',
   },
   {
     icon: CodeIcon,
@@ -59,7 +59,7 @@ const whyCards = [
 const faqItems = [
   {
     q: 'Is VoidHub really free?',
-    a: 'Yes — completely. VoidHub has no key system, no premium tier, and no paywalls of any kind. Every script is free forever. Just paste the loadstring and execute.',
+    a: 'Yes — the core scripts are 100% free, forever, with no paywall. Just paste the loadstring and execute. Prefer instant delivery without the free-key steps? Premium keys are available in the Shop.',
   },
   {
     q: 'Do scripts work on mobile?',
@@ -89,7 +89,7 @@ const faqItems = [
 
 export default function HomePage() {
   const [discordLink, setDiscordLink] = useState('https://discord.gg/kPPsdZtndn')
-  const [tagline, setTagline] = useState('Free. Keyless. No Limits.')
+  const [tagline, setTagline] = useState('Free. Powerful. No Limits.')
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
   const [titleVisible, setTitleVisible] = useState(false)
   const [glitching, setGlitching] = useState(false)
@@ -181,12 +181,12 @@ export default function HomePage() {
               >
                 Free Roblox Scripts.
                 <br />
-                <span className="text-glow">Zero Keys.</span> Zero Waiting.
+                <span className="text-glow">Premium</span> When You Want It.
               </h1>
 
               <p className="mt-5 font-body text-silver-mid text-base md:text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed text-pretty">
-                One universal loadstring covers every supported game. No key systems, no link
-                shorteners, no paywalls — copy it, paste it, execute.
+                One universal loadstring covers every supported game — completely free, no link
+                shorteners, no ads. Want instant delivery? Grab a premium key in the Shop.
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
@@ -222,7 +222,7 @@ export default function HomePage() {
                   {heroStats.executors || '—'} Executors
                 </span>
                 <span className="stat-pill">
-                  <KeyOffIcon size={13} className="text-cyber" />
+                  <CheckIcon size={13} className="text-cyber" />
                   100% Free
                 </span>
               </div>
@@ -279,7 +279,7 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0 md:divide-x md:divide-silver-faint/20">
               <StatItem icon={BoltIcon} label="100% FREE" sub="No paywalls" />
-              <StatItem icon={KeyOffIcon} label="KEYLESS" sub="No key system" />
+              <StatItem icon={CartIcon} label="SHOP" sub="Premium Keys" />
               <StatItem icon={UsersIcon} label="ACTIVE" sub="COMMUNITY" />
               <StatItem icon={RefreshIcon} label="ALWAYS" sub="UPDATED" />
             </div>
