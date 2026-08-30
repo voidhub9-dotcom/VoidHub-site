@@ -224,7 +224,7 @@ export default function AdminGamesPage() {
             <RefreshIcon size={16} className={loading ? 'animate-spin' : ''} /><span className="hidden sm:inline">Refresh</span>
           </button>
           <button onClick={() => { setEditingGame(null); setIsModalOpen(true) }}
-            className="flex items-center gap-2 px-4 h-10 bg-white text-black rounded-lg font-body text-sm font-semibold hover:shadow-[0_0_18px_rgba(255,255,255,0.35)] hover:scale-[1.02] transition-all">
+            className="btn-primary !h-10 !py-0 text-sm">
             <PlusIcon size={16} /><span>ADD GAME</span>
           </button>
         </div>
@@ -337,7 +337,7 @@ export default function AdminGamesPage() {
           </p>
           {!searchQuery && statusFilter === 'all' && (
             <button onClick={() => { setEditingGame(null); setIsModalOpen(true) }}
-              className="flex items-center gap-2 px-4 h-10 bg-white text-black rounded-lg font-body text-sm font-semibold hover:scale-[1.02] transition-all">
+              className="btn-primary !h-10 !py-0 text-sm">
               <PlusIcon size={16} /><span>ADD GAME</span>
             </button>
           )}

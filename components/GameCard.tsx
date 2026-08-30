@@ -156,7 +156,7 @@ export default function GameCard({ game }: GameCardProps) {
             className={`flex-1 h-9 flex items-center justify-center gap-1.5 rounded-lg font-body text-xs transition-all duration-200 ${
               copied
                 ? 'bg-success/20 text-success border border-success/40'
-                : 'bg-white text-black hover:shadow-[0_0_12px_rgba(255,255,255,0.25)] hover:scale-[1.02]'
+                : 'btn-primary !h-9 !py-0 !rounded-lg'
             }`}
           >
             {copied ? (

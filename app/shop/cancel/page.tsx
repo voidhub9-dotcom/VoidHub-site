@@ -19,7 +19,7 @@ export default function ShopCancelPage() {
             </p>
             <Link
               href="/shop"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-black rounded-lg font-body text-sm transition-all duration-200 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+              className="btn-primary !px-5 !py-2.5"
             >
               Back to shop
             </Link>

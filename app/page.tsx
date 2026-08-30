@@ -207,11 +207,7 @@ export default function HomePage() {
                 href={discordLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="
-                  flex-1 h-11 flex items-center justify-center gap-2
-                  bg-white text-black rounded-lg font-body text-sm
-                  transition-all duration-200 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-[1.02]
-                "
+                className="btn-primary flex-1 !h-11 !py-0 !rounded-lg"
               >
                 <DiscordIcon size={18} />
                 <span>JOIN DISCORD</span>
@@ -369,11 +365,7 @@ export default function HomePage() {
               href={discordLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="
-                inline-flex items-center gap-2 px-8 py-3
-                bg-white text-black rounded-lg font-body
-                transition-all duration-200 hover:shadow-[0_0_25px_rgba(255,255,255,0.4)] hover:scale-[1.02]
-              "
+              className="btn-primary !px-8"
             >
               <DiscordIcon size={20} />
               <span>JOIN DISCORD</span>

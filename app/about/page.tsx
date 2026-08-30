@@ -165,7 +165,7 @@ export default function AboutPage() {
               <div className="text-center mt-8">
                 <Link
                   href="/games"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-lg font-body text-sm transition-all duration-200 hover:shadow-[0_0_25px_rgba(255,255,255,0.4)] hover:scale-[1.02]"
+                  className="btn-primary"
                 >
                   <GlobeIcon size={16} />
                   <span>BROWSE THE GAMES</span>
@@ -256,7 +256,7 @@ export default function AboutPage() {
                     href={discordLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-8 py-3 bg-white text-black rounded-lg font-body text-sm transition-all duration-200 hover:shadow-[0_0_25px_rgba(255,255,255,0.4)] hover:scale-[1.02]"
+                    className="btn-primary !px-8"
                   >
                     <DiscordIcon size={18} />
                     <span>JOIN THE DISCORD</span>

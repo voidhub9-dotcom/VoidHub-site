@@ -91,12 +91,17 @@
     transform: translateY(-4px);
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-3 text-sm font-semibold text-black;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-semibold text-white;
+    background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyber));
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .btn-primary:hover {
+  .btn-primary:hover:not(:disabled) {
     transform: scale(1.02);
-    box-shadow: 0 0 20px rgba(0, 255, 200, 0.25);
+    box-shadow: 0 0 24px rgba(168, 85, 247, 0.35);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-md border px-6 py-3 text-sm font-semibold;

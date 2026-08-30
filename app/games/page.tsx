@@ -279,7 +279,7 @@ export default function GamesPage() {
                   href={discordLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-lg font-body text-sm transition-all duration-200 hover:shadow-[0_0_25px_rgba(255,255,255,0.4)] hover:scale-[1.02]"
+                  className="btn-primary"
                 >
                   <DiscordIcon size={18} />
                   <span>SUGGEST A GAME</span>

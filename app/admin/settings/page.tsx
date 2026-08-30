@@ -366,7 +366,7 @@ export default function SettingsPage() {
         )}
         <button
           onClick={handleSaveSettings}
-          className="mt-5 inline-flex items-center gap-2 rounded-lg border border-silver-faint px-5 py-2.5 font-body text-sm text-silver-mid transition-all hover:border-white hover:text-white"
+          className="btn-primary mt-5 !px-5 !py-2.5"
         >
           Save Settings
         </button>

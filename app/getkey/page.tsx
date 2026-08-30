@@ -82,7 +82,7 @@ function GetKeyContent() {
               href={data.discord}
               target="_blank"
               rel="noopener noreferrer"
-              className="void-btn-primary inline-flex items-center gap-2 mt-6"
+              className="btn-primary inline-flex items-center gap-2 mt-6"
             >
               <DiscordIcon size={16} />
               JOIN DISCORD
@@ -112,7 +112,7 @@ function GetKeyContent() {
             target="_blank"
             rel="noopener noreferrer"
             onClick={passGate}
-            className="void-btn-primary w-full mt-6 flex items-center justify-center gap-2"
+            className="btn-primary w-full mt-6 flex items-center justify-center gap-2"
           >
             <DiscordIcon size={16} />
             JOIN DISCORD SERVER

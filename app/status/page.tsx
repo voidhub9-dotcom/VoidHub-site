@@ -258,6 +258,12 @@ export default function StatusPage() {
 
             {/* Command-center overview */}
             <div className="bg-black-card border border-border-mid rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden">
+              {/* signature gradient accent bar */}
+              <div
+                className="absolute inset-x-0 top-0 h-[2px]"
+                style={{ background: 'linear-gradient(90deg, var(--accent-violet), var(--accent-cyber))' }}
+                aria-hidden="true"
+              />
               {/* subtle scanline texture */}
               <div
                 className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -283,7 +289,7 @@ export default function StatusPage() {
                     <button
                       onClick={() => loadAll()}
                       disabled={loading}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black rounded-md text-sm font-body font-medium transition-all duration-200 hover:bg-silver-bright disabled:opacity-50 disabled:pointer-events-none"
+                      className="btn-primary !rounded-md !px-4 !py-2 text-sm font-medium disabled:pointer-events-none"
                     >
                       <RefreshIcon size={16} className={loading ? 'animate-spin' : ''} />
                       <span>Refresh Now</span>
@@ -292,8 +298,12 @@ export default function StatusPage() {
                     <div className="hidden sm:flex items-center gap-2" aria-hidden="true">
                       <div className="w-24 h-1 bg-black-elevated rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-silver-muted rounded-full"
-                          style={{ width: `${((REFRESH_INTERVAL - countdown) / REFRESH_INTERVAL) * 100}%`, transition: 'width 1s linear' }}
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${((REFRESH_INTERVAL - countdown) / REFRESH_INTERVAL) * 100}%`,
+                            background: 'linear-gradient(90deg, var(--accent-violet), var(--accent-cyber))',
+                            transition: 'width 1s linear',
+                          }}
                         />
                       </div>
                       <span className="font-body text-xs text-silver-faint tabular-nums">{countdown}s</span>

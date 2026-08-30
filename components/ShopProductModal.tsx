@@ -240,7 +240,7 @@ export default function ShopProductModal({ product, onSave, onCancel }: ShopProd
         </button>
         <button
           onClick={handleSave}
-          className="px-6 h-10 rounded-lg bg-white text-black font-body text-sm font-semibold hover:shadow-[0_0_18px_rgba(255,255,255,0.35)] transition-all"
+          className="btn-primary !h-10 !py-0"
         >
           {isEdit ? 'SAVE CHANGES' : 'ADD PRODUCT'}
         </button>

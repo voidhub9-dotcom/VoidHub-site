@@ -302,7 +302,7 @@ export default function GameModal({ game, onSave, onCancel }: GameModalProps) {
               <button
                 onClick={fetchAndAdvance}
                 disabled={fetching || !fetchUrl.trim()}
-                className="flex items-center gap-2 px-5 h-10 bg-white text-black rounded-lg font-body text-sm font-semibold hover:shadow-[0_0_18px_rgba(255,255,255,0.35)] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex-shrink-0"
+                className="btn-primary !h-10 !py-0 flex-shrink-0"
               >
                 <RefreshIcon size={15} className={fetching ? 'animate-spin' : ''} />
                 {fetching ? 'Importing…' : 'IMPORT'}
@@ -657,14 +657,14 @@ export default function GameModal({ game, onSave, onCancel }: GameModalProps) {
           {step < STEPS.length - 1 ? (
             <button
               onClick={goNext}
-              className="px-6 h-10 rounded-lg bg-white text-black font-body text-sm font-semibold hover:shadow-[0_0_18px_rgba(255,255,255,0.35)] transition-all"
+              className="btn-primary !h-10 !py-0"
             >
               {step === 0 ? 'Skip →' : 'Next →'}
             </button>
           ) : (
             <button
               onClick={handleSave}
-              className="px-6 h-10 rounded-lg bg-white text-black font-body text-sm font-semibold hover:shadow-[0_0_18px_rgba(255,255,255,0.35)] transition-all"
+              className="btn-primary !h-10 !py-0"
             >
               {isEdit ? 'SAVE CHANGES' : 'ADD GAME'}
             </button>

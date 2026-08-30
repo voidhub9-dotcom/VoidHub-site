@@ -191,7 +191,7 @@ export default function AdminKeysPage() {
           <a href="/getkey" target="_blank" rel="noopener noreferrer" className="void-btn-secondary">
             VIEW PAGE
           </a>
-          <button onClick={openAdd} className="void-btn-primary flex items-center gap-2">
+          <button onClick={openAdd} className="btn-primary flex items-center gap-2">
             <PlusIcon size={16} />
             ADD OPTION
           </button>
@@ -366,7 +366,7 @@ export default function AdminKeysPage() {
         <button
           onClick={() => persist(config, 'Page settings saved')}
           disabled={saving}
-          className="void-btn-primary self-end disabled:opacity-50"
+          className="btn-primary self-end disabled:opacity-50"
         >
           {saving ? 'SAVING...' : 'SAVE SETTINGS'}
         </button>
@@ -386,7 +386,7 @@ export default function AdminKeysPage() {
           <p className="font-body text-xs text-silver-faint mt-1">
             Add options like Linkvertise, Work.ink, Lootlabs, or a direct Discord link.
           </p>
-          <button onClick={openAdd} className="void-btn-primary mt-4 inline-flex items-center gap-2">
+          <button onClick={openAdd} className="btn-primary mt-4 inline-flex items-center gap-2">
             <PlusIcon size={16} />
             ADD YOUR FIRST OPTION
           </button>
@@ -605,7 +605,7 @@ export default function AdminKeysPage() {
             <button onClick={() => setModalOpen(false)} className="void-btn-secondary">
               CANCEL
             </button>
-            <button onClick={submitProvider} className="void-btn-primary flex items-center gap-2">
+            <button onClick={submitProvider} className="btn-primary flex items-center gap-2">
               <CheckIcon size={15} />
               {editIndex === null ? 'ADD OPTION' : 'SAVE CHANGES'}
             </button>

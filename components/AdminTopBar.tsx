@@ -13,12 +13,14 @@ import {
   TerminalIcon,
   ActivityIcon,
   SettingsIcon,
+  ShopIcon,
 } from '@/components/Icons'
 import { logout } from '@/lib/storage'
 
 const mobileLinks = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: BarChartIcon },
   { href: '/admin/games', label: 'Games', icon: GamesIcon },
+  { href: '/admin/shop', label: 'Shop', icon: ShopIcon },
   { href: '/admin/loader', label: 'Loader', icon: TerminalIcon },
   { href: '/admin/activity', label: 'Activity', icon: ActivityIcon },
   { href: '/admin/settings', label: 'Settings', icon: SettingsIcon },
