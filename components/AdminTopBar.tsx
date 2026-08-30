@@ -14,15 +14,22 @@ import {
   ActivityIcon,
   SettingsIcon,
   ShopIcon,
+  BoltIcon,
+  KeyIcon,
 } from '@/components/Icons'
 import AnimatedLogo from '@/components/AnimatedLogo'
 import { logout } from '@/lib/storage'
 
+// Keep in sync with AdminSidebar's mainLinks + manageLinks — this is the
+// only nav mobile admin users see, so it needs every page the sidebar has.
 const mobileLinks = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: BarChartIcon },
   { href: '/admin/games', label: 'Games', icon: GamesIcon },
   { href: '/admin/shop', label: 'Shop', icon: ShopIcon },
+  { href: '/admin/shop/orders', label: 'Orders', icon: ActivityIcon },
+  { href: '/admin/executors', label: 'Executors', icon: BoltIcon },
   { href: '/admin/loader', label: 'Loader', icon: TerminalIcon },
+  { href: '/admin/keys', label: 'Keys', icon: KeyIcon },
   { href: '/admin/activity', label: 'Activity', icon: ActivityIcon },
   { href: '/admin/settings', label: 'Settings', icon: SettingsIcon },
 ]

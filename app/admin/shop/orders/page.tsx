@@ -93,56 +93,104 @@ export default function AdminShopOrdersPage() {
           <p className="font-body text-sm text-silver-muted">Orders will show up here once Stripe checkout is live.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border-dim">
-          <table className="w-full text-sm font-body">
-            <thead>
-              <tr className="bg-black-card border-b border-border-dim text-silver-muted text-xs uppercase tracking-wider">
-                <th className="text-left px-4 py-3">Product</th>
-                <th className="text-left px-4 py-3">Amount</th>
-                <th className="text-left px-4 py-3">Email</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3">Key</th>
-                <th className="text-left px-4 py-3">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order, i) => (
-                <tr key={order.id} className={`border-b border-border-dim last:border-0 ${i % 2 === 0 ? 'bg-black-surface' : 'bg-black-card'}`}>
-                  <td className="px-4 py-3 text-white">{order.productName}</td>
-                  <td className="px-4 py-3 text-silver-light">
-                    {formatPrice(order.amountTotal, order.currency)}
+        <>
+          {/* Card list — below sm, where a 6-column table can't fit without hiding data off-screen */}
+          <div className="flex flex-col gap-3 sm:hidden">
+            {orders.map(order => (
+              <div key={order.id} className="admin-panel p-4">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <p className="font-body text-sm text-white">{order.productName}</p>
+                    <p className="font-heading text-base text-silver-light mt-0.5">
+                      {formatPrice(order.amountTotal, order.currency)}
+                    </p>
                     {order.presentmentAmount != null && order.presentmentCurrency && order.presentmentCurrency !== order.currency && (
-                      <span className="block text-[0.65rem] text-silver-faint">
+                      <p className="font-body text-[0.7rem] text-silver-faint">
                         paid {formatPrice(order.presentmentAmount, order.presentmentCurrency)}
-                      </span>
+                      </p>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-silver-mid">
-                    <div className="flex items-center gap-1.5">
-                      <span>{order.customerEmail || '—'}</span>
+                  </div>
+                  <StatusChip status={order.status} />
+                </div>
+                <dl className="flex flex-col gap-1.5 text-xs font-body border-t border-border-dim pt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-silver-muted">Email</dt>
+                    <dd className="flex items-center gap-1.5 text-silver-mid truncate">
+                      {order.customerEmail || '—'}
                       {order.customerEmail && order.status === 'fulfilled' && (
                         <span title={order.emailSent ? 'Delivery email sent' : 'Delivery email not sent'}>
-                          <MailIcon size={12} className={order.emailSent ? 'text-success' : 'text-silver-faint'} />
+                          <MailIcon size={11} className={order.emailSent ? 'text-success shrink-0' : 'text-silver-faint shrink-0'} />
                         </span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3"><StatusChip status={order.status} /></td>
-                  <td className="px-4 py-3">
-                    {order.deliveredKey ? (
-                      <code className="text-xs text-silver-mid font-mono">{order.deliveredKey}</code>
-                    ) : (
-                      <span className="text-silver-faint">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-silver-muted text-xs whitespace-nowrap">
-                    {new Date(order.createdAt).toLocaleString()}
-                  </td>
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-silver-muted">Key</dt>
+                    <dd className="text-silver-mid font-mono text-right break-all">
+                      {order.deliveredKey || '—'}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-silver-muted">Date</dt>
+                    <dd className="text-silver-mid">{new Date(order.createdAt).toLocaleString()}</dd>
+                  </div>
+                </dl>
+              </div>
+            ))}
+          </div>
+
+          {/* Table — sm and up */}
+          <div className="hidden sm:block overflow-x-auto rounded-xl border border-border-dim">
+            <table className="w-full text-sm font-body">
+              <thead>
+                <tr className="bg-black-card border-b border-border-dim text-silver-muted text-xs uppercase tracking-wider">
+                  <th className="text-left px-4 py-3">Product</th>
+                  <th className="text-left px-4 py-3">Amount</th>
+                  <th className="text-left px-4 py-3">Email</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-left px-4 py-3">Key</th>
+                  <th className="text-left px-4 py-3">Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {orders.map((order, i) => (
+                  <tr key={order.id} className={`border-b border-border-dim last:border-0 ${i % 2 === 0 ? 'bg-black-surface' : 'bg-black-card'}`}>
+                    <td className="px-4 py-3 text-white">{order.productName}</td>
+                    <td className="px-4 py-3 text-silver-light">
+                      {formatPrice(order.amountTotal, order.currency)}
+                      {order.presentmentAmount != null && order.presentmentCurrency && order.presentmentCurrency !== order.currency && (
+                        <span className="block text-[0.65rem] text-silver-faint">
+                          paid {formatPrice(order.presentmentAmount, order.presentmentCurrency)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-silver-mid">
+                      <div className="flex items-center gap-1.5">
+                        <span>{order.customerEmail || '—'}</span>
+                        {order.customerEmail && order.status === 'fulfilled' && (
+                          <span title={order.emailSent ? 'Delivery email sent' : 'Delivery email not sent'}>
+                            <MailIcon size={12} className={order.emailSent ? 'text-success' : 'text-silver-faint'} />
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3"><StatusChip status={order.status} /></td>
+                    <td className="px-4 py-3">
+                      {order.deliveredKey ? (
+                        <code className="text-xs text-silver-mid font-mono">{order.deliveredKey}</code>
+                      ) : (
+                        <span className="text-silver-faint">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-silver-muted text-xs whitespace-nowrap">
+                      {new Date(order.createdAt).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   )

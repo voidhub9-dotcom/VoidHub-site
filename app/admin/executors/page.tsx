@@ -222,96 +222,131 @@ export default function AdminExecutorsPage() {
       ) : (
         <ul className="flex flex-col gap-2" aria-label="Executor list">
           {visible.map(exec => (
-            <li key={`${exec.name}-${exec._index}`} className="void-card admin-stagger flex items-center gap-3 p-4">
-              {/* Reorder */}
-              <div className="flex flex-col gap-0.5">
-                <button
-                  onClick={() => move(exec._index, -1)}
-                  disabled={exec._index === 0 || saving}
-                  className="text-silver-faint hover:text-white disabled:opacity-30 transition-colors leading-none"
-                  aria-label={`Move ${exec.name} up`}
-                >
-                  ▲
-                </button>
-                <button
-                  onClick={() => move(exec._index, 1)}
-                  disabled={exec._index === executors.length - 1 || saving}
-                  className="text-silver-faint hover:text-white disabled:opacity-30 transition-colors leading-none"
-                  aria-label={`Move ${exec.name} down`}
-                >
-                  ▼
-                </button>
+            <li key={`${exec.name}-${exec._index}`} className="void-card admin-stagger p-4">
+              <div className="flex items-center gap-3">
+                {/* Reorder */}
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    onClick={() => move(exec._index, -1)}
+                    disabled={exec._index === 0 || saving}
+                    className="text-silver-faint hover:text-white disabled:opacity-30 transition-colors leading-none"
+                    aria-label={`Move ${exec.name} up`}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => move(exec._index, 1)}
+                    disabled={exec._index === executors.length - 1 || saving}
+                    className="text-silver-faint hover:text-white disabled:opacity-30 transition-colors leading-none"
+                    aria-label={`Move ${exec.name} down`}
+                  >
+                    ▼
+                  </button>
+                </div>
+
+                {/* Icon + status dot + name */}
+                <div className="relative shrink-0">
+                  <ExecutorIcon name={exec.name} icon={exec.icon} size={38} />
+                  <span
+                    className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-black-card ${
+                      exec.status === 'supported' ? 'bg-success shadow-[0_0_8px_rgba(0,255,136,0.6)]' : 'bg-danger shadow-[0_0_8px_rgba(255,51,51,0.6)]'
+                    }`}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-body text-sm text-white truncate">{exec.name}</p>
+                  {(exec.websiteUrl || exec.discordUrl) && (
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {exec.websiteUrl && (
+                        <a
+                          href={exec.websiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 font-body text-xs text-info hover:underline"
+                        >
+                          <GlobeIcon size={11} />
+                          Website
+                        </a>
+                      )}
+                      {exec.discordUrl && (
+                        <a
+                          href={exec.discordUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 font-body text-xs text-info hover:underline"
+                        >
+                          <DiscordIcon size={11} />
+                          Discord
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Status toggle + actions — inline on sm+, moved below on mobile so the name isn't squeezed */}
+                <div className="hidden sm:flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => toggleStatus(exec._index)}
+                    disabled={saving}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.65rem] font-body tracking-wider uppercase border transition-colors ${
+                      exec.status === 'supported'
+                        ? 'border-success/40 text-success hover:bg-success/10'
+                        : 'border-danger/40 text-danger hover:bg-danger/10'
+                    }`}
+                    title="Click to toggle status"
+                  >
+                    {exec.status === 'supported' ? <CheckIcon size={12} /> : <AlertIcon size={12} />}
+                    {exec.status === 'supported' ? 'Working' : 'Not working'}
+                  </button>
+                  <button
+                    onClick={() => openEdit(exec._index)}
+                    className="p-2 text-silver-muted hover:text-white transition-colors"
+                    aria-label={`Edit ${exec.name}`}
+                  >
+                    <EditIcon size={16} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteIndex(exec._index)}
+                    className="p-2 text-silver-muted hover:text-danger transition-colors"
+                    aria-label={`Delete ${exec.name}`}
+                  >
+                    <TrashIcon size={16} />
+                  </button>
+                </div>
               </div>
 
-              {/* Icon + status dot + name */}
-              <div className="relative shrink-0">
-                <ExecutorIcon name={exec.name} icon={exec.icon} size={38} />
-                <span
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-black-card ${
-                    exec.status === 'supported' ? 'bg-success shadow-[0_0_8px_rgba(0,255,136,0.6)]' : 'bg-danger shadow-[0_0_8px_rgba(255,51,51,0.6)]'
+              {/* Mobile-only status toggle + actions row */}
+              <div className="flex sm:hidden items-center justify-between gap-2 mt-3 pt-3 border-t border-border-dim">
+                <button
+                  onClick={() => toggleStatus(exec._index)}
+                  disabled={saving}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.65rem] font-body tracking-wider uppercase border transition-colors ${
+                    exec.status === 'supported'
+                      ? 'border-success/40 text-success hover:bg-success/10'
+                      : 'border-danger/40 text-danger hover:bg-danger/10'
                   }`}
-                />
+                  title="Tap to toggle status"
+                >
+                  {exec.status === 'supported' ? <CheckIcon size={12} /> : <AlertIcon size={12} />}
+                  {exec.status === 'supported' ? 'Working' : 'Not working'}
+                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => openEdit(exec._index)}
+                    className="p-2 text-silver-muted hover:text-white transition-colors"
+                    aria-label={`Edit ${exec.name}`}
+                  >
+                    <EditIcon size={16} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteIndex(exec._index)}
+                    className="p-2 text-silver-muted hover:text-danger transition-colors"
+                    aria-label={`Delete ${exec.name}`}
+                  >
+                    <TrashIcon size={16} />
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-body text-sm text-white truncate">{exec.name}</p>
-                {(exec.websiteUrl || exec.discordUrl) && (
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {exec.websiteUrl && (
-                      <a
-                        href={exec.websiteUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 font-body text-xs text-info hover:underline"
-                      >
-                        <GlobeIcon size={11} />
-                        Website
-                      </a>
-                    )}
-                    {exec.discordUrl && (
-                      <a
-                        href={exec.discordUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 font-body text-xs text-info hover:underline"
-                      >
-                        <DiscordIcon size={11} />
-                        Discord
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Status toggle */}
-              <button
-                onClick={() => toggleStatus(exec._index)}
-                disabled={saving}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.65rem] font-body tracking-wider uppercase border transition-colors ${
-                  exec.status === 'supported'
-                    ? 'border-success/40 text-success hover:bg-success/10'
-                    : 'border-danger/40 text-danger hover:bg-danger/10'
-                }`}
-                title="Click to toggle status"
-              >
-                {exec.status === 'supported' ? <CheckIcon size={12} /> : <AlertIcon size={12} />}
-                {exec.status === 'supported' ? 'Working' : 'Not working'}
-              </button>
-
-              {/* Actions */}
-              <button
-                onClick={() => openEdit(exec._index)}
-                className="p-2 text-silver-muted hover:text-white transition-colors"
-                aria-label={`Edit ${exec.name}`}
-              >
-                <EditIcon size={16} />
-              </button>
-              <button
-                onClick={() => setDeleteIndex(exec._index)}
-                className="p-2 text-silver-muted hover:text-danger transition-colors"
-                aria-label={`Delete ${exec.name}`}
-              >
-                <TrashIcon size={16} />
-              </button>
             </li>
           ))}
         </ul>

@@ -79,7 +79,7 @@ export default function Footer() {
           </div>
 
           {/* Quick Links */}
-          <div className="flex justify-center gap-8">
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-3 sm:gap-x-6 md:gap-x-8">
             {footerLinks.map(link => {
               const Icon = link.icon
               return (
