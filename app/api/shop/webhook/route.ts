@@ -1,6 +1,7 @@
 import Stripe from 'stripe'
 import { loadShopProducts, saveShopProducts, loadShopOrders, saveShopOrders } from '@/lib/shop'
 import { stripeClient, stripeConfigured } from '@/lib/stripe'
+import { sendKeyDeliveryEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,10 +70,27 @@ export async function POST(req: Request) {
         presentment_details?: { presentment_amount?: number; presentment_currency?: string }
       }).presentment_details
 
+      // Stripe's hosted checkout always collects an email for the receipt,
+      // even if the buyer skipped our own optional email field.
+      const recipientEmail = orders[orderIndex].customerEmail || session.customer_details?.email || null
+
+      let emailSent = false
+      if (deliveredKey && recipientEmail) {
+        emailSent = await sendKeyDeliveryEmail({
+          to: recipientEmail,
+          productName: product.name,
+          durationLabel: product.durationLabel,
+          keyValue: deliveredKey,
+          orderId: session.id,
+        })
+      }
+
       orders[orderIndex] = {
         ...orders[orderIndex],
+        customerEmail: recipientEmail,
         status: deliveredKey ? 'fulfilled' : 'paid_no_stock',
         deliveredKey,
+        emailSent,
         presentmentAmount: presentment?.presentment_amount ?? null,
         presentmentCurrency: presentment?.presentment_currency ?? null,
         fulfilledAt: deliveredKey ? new Date().toISOString() : null,

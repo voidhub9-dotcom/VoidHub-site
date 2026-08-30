@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ChevronLeftIcon, RefreshIcon, ActivityIcon, CheckIcon, ClockIcon, AlertIcon } from '@/components/Icons'
+import { ChevronLeftIcon, RefreshIcon, ActivityIcon, CheckIcon, ClockIcon, AlertIcon, MailIcon } from '@/components/Icons'
 import { useToast } from '@/components/Toast'
 import type { ShopOrder } from '@/lib/shop'
 
@@ -117,7 +117,16 @@ export default function AdminShopOrdersPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-silver-mid">{order.customerEmail || '—'}</td>
+                  <td className="px-4 py-3 text-silver-mid">
+                    <div className="flex items-center gap-1.5">
+                      <span>{order.customerEmail || '—'}</span>
+                      {order.customerEmail && order.status === 'fulfilled' && (
+                        <span title={order.emailSent ? 'Delivery email sent' : 'Delivery email not sent'}>
+                          <MailIcon size={12} className={order.emailSent ? 'text-success' : 'text-silver-faint'} />
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3"><StatusChip status={order.status} /></td>
                   <td className="px-4 py-3">
                     {order.deliveredKey ? (

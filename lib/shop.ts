@@ -47,6 +47,8 @@ export interface ShopOrder {
   customerEmail: string | null
   status: ShopOrderStatus
   deliveredKey: string | null
+  /** Whether the key-delivery email (backup to the on-page reveal) was sent successfully. */
+  emailSent: boolean
   createdAt: string
   fulfilledAt: string | null
 }

@@ -74,6 +74,7 @@ export async function POST(req: Request) {
       customerEmail: email || null,
       status: 'pending',
       deliveredKey: null,
+      emailSent: false,
       createdAt: new Date().toISOString(),
       fulfilledAt: null,
     }

@@ -5,12 +5,13 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import { CheckIcon, CopyIcon, ClockIcon, AlertIcon } from '@/components/Icons'
+import { CheckIcon, CopyIcon, ClockIcon, AlertIcon, MailIcon } from '@/components/Icons'
 
 interface OrderStatus {
   status: 'pending' | 'fulfilled' | 'paid_no_stock'
   productName: string
   deliveredKey: string | null
+  emailSent: boolean
 }
 
 const POLL_INTERVAL_MS = 2000
@@ -97,9 +98,14 @@ function SuccessContent() {
                   {copied ? <CheckIcon size={16} className="text-success" /> : <CopyIcon size={16} />}
                 </button>
               </div>
-              <p className="font-body text-silver-faint text-xs">
+              <p className="font-body text-silver-faint text-xs mb-2">
                 Save this key now — keep it somewhere safe.
               </p>
+              {order.emailSent && (
+                <p className="flex items-center justify-center gap-1.5 font-body text-silver-faint text-xs">
+                  <MailIcon size={12} /> A copy was also emailed to you.
+                </p>
+              )}
             </>
           ) : (
             <>

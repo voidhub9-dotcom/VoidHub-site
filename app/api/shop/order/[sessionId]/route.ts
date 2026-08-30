@@ -18,5 +18,6 @@ export async function GET(
     status: order.status,
     productName: order.productName,
     deliveredKey: order.deliveredKey,
+    emailSent: order.emailSent,
   })
 }

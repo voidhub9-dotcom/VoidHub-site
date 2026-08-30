@@ -484,3 +484,12 @@ export function TagIcon({ size = 20, ...props }: IconProps) {
     </svg>
   )
 }
+
+export function MailIcon({ size = 20, ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...defaultProps} {...props}>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M2 6l10 7 10-7" />
+    </svg>
+  )
+}
