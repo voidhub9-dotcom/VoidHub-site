@@ -62,10 +62,19 @@ export async function POST(req: Request) {
     }
 
     if (orderIndex !== -1) {
+      // `presentment_details` isn't in this SDK version's types yet, but Stripe
+      // includes it on the session when Adaptive Pricing converts the charge
+      // to the buyer's local currency — surfaces what they actually paid.
+      const presentment = (session as unknown as {
+        presentment_details?: { presentment_amount?: number; presentment_currency?: string }
+      }).presentment_details
+
       orders[orderIndex] = {
         ...orders[orderIndex],
         status: deliveredKey ? 'fulfilled' : 'paid_no_stock',
         deliveredKey,
+        presentmentAmount: presentment?.presentment_amount ?? null,
+        presentmentCurrency: presentment?.presentment_currency ?? null,
         fulfilledAt: deliveredKey ? new Date().toISOString() : null,
       }
       await saveShopOrders(orders)

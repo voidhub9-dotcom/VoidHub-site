@@ -62,7 +62,7 @@ export default function Footer() {
           <div className="flex flex-col items-center md:items-start gap-3">
             <Link href="/" className="flex items-center gap-3">
               <AnimatedLogo
-                src={links.logoUrl.trim() || 'https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png'}
+                src={links.logoUrl.trim() || '/logo.png'}
                 alt={`${links.siteName} Logo`}
                 size={40}
                 playIntro={false}

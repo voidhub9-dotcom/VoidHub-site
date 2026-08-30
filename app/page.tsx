@@ -164,7 +164,7 @@ export default function HomePage() {
             >
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-black-card border border-border-dim rounded-full mb-6">
                 <AnimatedLogo
-                  src="https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png"
+                  src="/logo.png"
                   alt="VoidHub"
                   size={16}
                   playIntro={false}

@@ -24,6 +24,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.voidon.top'),
   title: {
     default: 'VoidHub | Free Keyless Roblox Scripts',
     template: '%s | VoidHub',
@@ -40,8 +41,8 @@ export const metadata: Metadata = {
   publisher: 'VoidHub',
   robots: { index: true, follow: true },
   icons: {
-    icon: 'https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png',
-    apple: 'https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png',
+    icon: '/logo.png',
+    apple: '/logo.png',
   },
   openGraph: {
     type: 'website',
@@ -51,9 +52,9 @@ export const metadata: Metadata = {
       'Free. Keyless. No Limits. 100% free Roblox scripts for the most popular games — no key system, no paywalls.',
     images: [
       {
-        url: 'https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png',
-        width: 512,
-        height: 512,
+        url: '/logo.png',
+        width: 256,
+        height: 256,
         alt: 'VoidHub Logo',
       },
     ],
@@ -63,7 +64,7 @@ export const metadata: Metadata = {
     title: 'VoidHub | Free Keyless Roblox Scripts',
     description:
       'Free. Keyless. No Limits. 100% free Roblox scripts — no key system, no paywalls.',
-    images: ['https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png'],
+    images: ['/logo.png'],
   },
 }
 

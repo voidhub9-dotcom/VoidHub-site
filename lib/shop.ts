@@ -6,19 +6,11 @@ import { kvGet, kvSet, KV_KEYS } from './kv'
  * Stored as JSON blobs in KV, same pattern as `key-page.ts` / `site-links.ts`.
  */
 
-/** Per-country price override, e.g. a cheaper price for buyers in India or Brazil. */
-export interface RegionalPrice {
-  /** ISO 3166-1 alpha-2 country code, e.g. "US", "IN", "BR" */
-  countryCode: string
-  priceCents: number
-  currency: string
-}
-
 export interface ShopProduct {
   id: string
   name: string
   description: string
-  /** Base price in the smallest currency unit (cents for USD) — used when no regional override matches */
+  /** Price in the smallest currency unit (cents for USD) — your settlement currency */
   priceCents: number
   /** Lowercase ISO currency code, e.g. "usd" */
   currency: string
@@ -27,32 +19,11 @@ export interface ShopProduct {
   imageUrl: string
   category: string
   active: boolean
-  /** Per-country price overrides. Checked against the buyer's detected country. */
-  regionalPricing: RegionalPrice[]
   /** Unused key stock — one is popped per fulfilled order. Stock = keys.length */
   keys: string[]
   soldCount: number
   createdAt: string
   updatedAt: string
-}
-
-/**
- * Resolve the price a specific buyer sees/pays: a regional override for
- * their detected country if one is configured, otherwise the base price.
- * `countryCode` should come from the `x-vercel-ip-country` header, which
- * Vercel sets automatically on deployed requests (absent in local dev).
- */
-export function resolveProductPrice(
-  product: Pick<ShopProduct, 'priceCents' | 'currency' | 'regionalPricing'>,
-  countryCode: string | null,
-): { priceCents: number; currency: string; region: string | null } {
-  if (countryCode) {
-    const match = product.regionalPricing?.find(
-      r => r.countryCode.toUpperCase() === countryCode.toUpperCase(),
-    )
-    if (match) return { priceCents: match.priceCents, currency: match.currency, region: match.countryCode }
-  }
-  return { priceCents: product.priceCents, currency: product.currency, region: null }
 }
 
 export type ShopOrderStatus = 'pending' | 'fulfilled' | 'paid_no_stock'
@@ -62,8 +33,17 @@ export interface ShopOrder {
   id: string
   productId: string
   productName: string
+  /** Amount charged in YOUR settlement currency (what you actually receive) */
   amountTotal: number
   currency: string
+  /**
+   * What the buyer actually paid, if Stripe Adaptive Pricing converted it to
+   * their local currency at checkout (from the webhook's `presentment_details`).
+   * Null when the buyer paid in your settlement currency, or Adaptive Pricing
+   * isn't enabled on the Stripe account.
+   */
+  presentmentAmount: number | null
+  presentmentCurrency: string | null
   customerEmail: string | null
   status: ShopOrderStatus
   deliveredKey: string | null

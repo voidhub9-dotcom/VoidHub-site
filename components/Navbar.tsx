@@ -84,7 +84,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
             <AnimatedLogo
-              src={logoUrl.trim() || 'https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png'}
+              src={logoUrl.trim() || '/logo.png'}
               alt={`${siteName} Logo`}
               size={36}
             />

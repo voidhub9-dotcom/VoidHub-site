@@ -109,7 +109,14 @@ export default function AdminShopOrdersPage() {
               {orders.map((order, i) => (
                 <tr key={order.id} className={`border-b border-border-dim last:border-0 ${i % 2 === 0 ? 'bg-black-surface' : 'bg-black-card'}`}>
                   <td className="px-4 py-3 text-white">{order.productName}</td>
-                  <td className="px-4 py-3 text-silver-light">{formatPrice(order.amountTotal, order.currency)}</td>
+                  <td className="px-4 py-3 text-silver-light">
+                    {formatPrice(order.amountTotal, order.currency)}
+                    {order.presentmentAmount != null && order.presentmentCurrency && order.presentmentCurrency !== order.currency && (
+                      <span className="block text-[0.65rem] text-silver-faint">
+                        paid {formatPrice(order.presentmentAmount, order.presentmentCurrency)}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-silver-mid">{order.customerEmail || '—'}</td>
                   <td className="px-4 py-3"><StatusChip status={order.status} /></td>
                   <td className="px-4 py-3">

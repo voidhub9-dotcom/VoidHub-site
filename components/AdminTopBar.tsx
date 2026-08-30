@@ -44,7 +44,7 @@ export default function AdminTopBar() {
           {/* Left - Logo */}
           <Link href="/admin/dashboard" className="flex items-center gap-3">
             <AnimatedLogo
-              src="https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png"
+              src="/logo.png"
               alt="VoidHub Logo"
               size={32}
               playIntro={false}

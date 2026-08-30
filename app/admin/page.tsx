@@ -53,7 +53,7 @@ export default function AdminLoginPage() {
           <div className="flex justify-center mb-5">
             <div className="relative">
               <img
-                src="https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png"
+                src="/logo.png"
                 alt="VoidHub Logo"
                 className="w-16 h-16"
               />
