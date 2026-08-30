@@ -1,0 +1,500 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --radius: 0.5rem;
+
+    /* VoidHub Design System */
+    --black-void: #000000;
+    --black-deep: #080808;
+    --black-surface: #0f0f0f;
+    --black-card: #141414;
+    --black-elevated: #1a1a1a;
+    --black-hover: #202020;
+    --border-dim: #1e1e1e;
+    --border-mid: #2a2a2a;
+    --border-bright: #3a3a3a;
+    --silver-faint: #404040;
+    --silver-muted: #707070;
+    --silver-mid: #a0a0a0;
+    --silver-base: #c0c0c0;
+    --silver-light: #d8d8d8;
+    --silver-bright: #ececec;
+    --success: #00ff88;
+    --danger: #ff3333;
+    --warning: #ffaa00;
+    --info: #0099ff;
+    --accent-cyber: #00ffcc;
+  }
+
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-black text-white antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0a0a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #00ffcc, #303030);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #505050;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-black/40 backdrop-blur-md border border-white/5;
+  }
+  .void-card {
+    background: var(--black-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .void-card:hover {
+    border-color: var(--silver-faint);
+    box-shadow: 0 0 15px rgba(0, 255, 200, 0.12);
+    transform: translateY(-4px);
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-3 text-sm font-semibold text-black;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-primary:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 20px rgba(0, 255, 200, 0.25);
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border px-6 py-3 text-sm font-semibold;
+    border-color: var(--silver-faint);
+    color: var(--silver-base);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-ghost:hover {
+    border-color: var(--accent-cyber);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(0, 255, 200, 0.2);
+  }
+  .void-input {
+    @apply w-full rounded-md border bg-transparent px-4 py-2.5 text-sm text-white outline-none;
+    background: #0a0a0a;
+    border-color: var(--border-mid);
+    transition: all 0.25s ease;
+  }
+  .void-input:focus {
+    border-color: var(--accent-cyber);
+    box-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
+  }
+}
+
+/* ── Animations ────────────────────────────────── */
+
+@keyframes gridDrift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -60px, 0);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes orbFloat {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(20px, -30px) scale(1.1);
+  }
+}
+
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+    clip-path: none;
+  }
+  10% {
+    transform: translate(-3px, 1px);
+    clip-path: inset(30% 0 50% 0);
+    color: #00ffcc;
+  }
+  20% {
+    transform: translate(3px, -1px);
+    clip-path: inset(60% 0 10% 0);
+    color: #c0c0c0;
+  }
+  30% {
+    transform: translate(0);
+    clip-path: none;
+    color: #ffffff;
+  }
+  40% {
+    transform: translate(-2px, 2px);
+    color: #00ffcc;
+  }
+  50% {
+    transform: translate(0);
+    color: white;
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-10px);
+  }
+  40% {
+    transform: translateX(10px);
+  }
+  60% {
+    transform: translateX(-6px);
+  }
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spinCyan {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-glitch {
+  animation: glitch 0.6s steps(2, end) both;
+}
+.animate-shake {
+  animation: shake 0.4s ease;
+}
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+.animate-fade-up {
+  animation: fadeSlideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.animate-orb-float {
+  animation: orbFloat 12s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.hero-grid {
+  background-image: linear-gradient(rgba(160, 255, 235, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(160, 255, 235, 0.09) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: gridDrift 30s linear infinite;
+  /* Fade the grid out towards the bottom so it glows near the hero */
+  mask-image: linear-gradient(to bottom, black 0%, rgba(0, 0, 0, 0.45) 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, rgba(0, 0, 0, 0.45) 70%, transparent 100%);
+  /* Oversize by one tile so the transform-based drift never shows a gap
+     (height wins over the inset-0 bottom constraint) */
+  height: calc(100% + 60px);
+  will-change: transform;
+}
+
+.hero-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  animation: orbFloat 12s ease-in-out infinite;
+  pointer-events: none;
+  /* Promote to its own GPU layer so the expensive 80px blur is rasterized
+     once and then only transformed — instead of re-blurring every frame. */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(255, 255, 255, 0.005) 4px
+  );
+  pointer-events: none;
+}
+
+.spinner-cyan {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 255, 200, 0.2);
+  border-top-color: #00ffcc;
+  border-radius: 50%;
+  animation: spinCyan 0.7s linear infinite;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Intro overlay (racing start sequence) ─────── */
+
+/* During the exit reveal, freeze all flag/checker animations so the GPU
+   only has to run the panel slide — otherwise the giant waving gradients
+   keep animating during the reveal and cause a visible stutter at the end. */
+.intro-exiting .intro-flag-wave,
+.intro-exiting .intro-flag-sweep,
+.intro-exiting .intro-checker,
+.intro-exiting .intro-sweep {
+  animation-play-state: paused !important;
+}
+
+/* While the intro plays, pause every animation underneath it (floating
+   orbs, grid drift, glitch, pulse) so they don't steal frames. */
+.intro-active .hero-grid,
+.intro-active .hero-orb,
+.intro-active .animate-glitch,
+.intro-active .animate-breathe,
+.intro-active .animate-bounce,
+.intro-active .animate-pulse,
+.intro-active .spinner-cyan {
+  animation-play-state: paused !important;
+}
+
+/* The 80px-blurred orbs are extremely expensive to rasterize. Keep them
+   invisible while the intro covers the page so the reveal doesn't have to
+   paint them all at once (which caused the end-of-intro stutter); they
+   fade in gently over 1.5s once the intro fully finishes. */
+.hero-orb {
+  transition: opacity 1.5s ease 0.2s;
+}
+.intro-active .hero-orb {
+  opacity: 0 !important;
+  transition: none;
+}
+
+/*
+  All intro animations use ONLY transform + opacity so they run on the
+  GPU compositor thread. Animating left / background-position forces a
+  full repaint of the giant gradient layers every frame, which makes the
+  playback stutter ("cut") — never do that here.
+*/
+
+.intro-checker {
+  background-image: repeating-conic-gradient(
+    #ffffff 0% 25%,
+    #000000 0% 50%
+  );
+  background-size: 24px 24px;
+  /* Element is rendered wider than the screen; slide it with transform */
+  animation: checkerScroll 0.8s linear infinite;
+  opacity: 0.9;
+  will-change: transform;
+}
+
+@keyframes checkerScroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-24px, 0, 0);
+  }
+}
+
+/* Giant waving checkered flag filling the background panels */
+.intro-flag-wave {
+  background-image: repeating-conic-gradient(
+    rgba(255, 255, 255, 0.14) 0% 25%,
+    rgba(0, 0, 0, 0.9) 0% 50%
+  );
+  background-size: 90px 90px;
+  animation: flagWave 3.2s ease-in-out infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.intro-flag-wave-reverse {
+  animation-direction: reverse;
+  animation-delay: -1.6s;
+}
+
+@keyframes flagWave {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) skewY(-3deg) skewX(-6deg) scale(1.05);
+  }
+  25% {
+    transform: translate3d(28px, 8px, 0) skewY(2deg) skewX(-2deg) scale(1.1);
+  }
+  50% {
+    transform: translate3d(52px, -4px, 0) skewY(-1.5deg) skewX(4deg) scale(1.05);
+  }
+  75% {
+    transform: translate3d(24px, 10px, 0) skewY(3deg) skewX(-3deg) scale(1.08);
+  }
+}
+
+/* Bright checkered banner sweeping across the screen edge-to-edge */
+.intro-flag-sweep {
+  background-image: repeating-conic-gradient(
+    rgba(255, 255, 255, 0.55) 0% 25%,
+    rgba(10, 10, 10, 0.95) 0% 50%
+  );
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to right, transparent, black 20%, black 80%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 20%, black 80%, transparent);
+  animation: flagSweep 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  opacity: 0.5;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@keyframes flagSweep {
+  0% {
+    transform: translate3d(-120vw, 0, 0) skewX(-14deg);
+  }
+  100% {
+    transform: translate3d(160vw, 0, 0) skewX(-14deg);
+  }
+}
+
+.intro-strobe {
+  animation: introStrobe 0.5s steps(3, end) both;
+  pointer-events: none;
+}
+
+@keyframes introStrobe {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  40% {
+    opacity: 0.1;
+  }
+  60% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.intro-stamp {
+  animation: introStamp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes introStamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.intro-sweep {
+  animation: introSweep 0.9s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes introSweep {
+  0% {
+    transform: translateX(-60%) scaleX(0.2);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(60%) scaleX(1);
+    opacity: 0;
+  }
+}
+
+/* ── Admin games page ──────────────────────────── */
+
+.admin-stagger {
+  animation: fadeSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.admin-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+.admin-stat-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.04) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+.admin-stat-card:hover::after {
+  transform: translateX(100%);
+}
