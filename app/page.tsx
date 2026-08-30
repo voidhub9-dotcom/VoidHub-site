@@ -17,6 +17,8 @@ import {
   ShieldIcon,
   CodeIcon,
   GlobeIcon,
+  ShopIcon,
+  CartIcon,
 } from '@/components/Icons'
 import { getDiscordLink, getTagline, initializeStorage } from '@/lib/storage'
 
@@ -280,6 +282,30 @@ export default function HomePage() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        </section>
+
+        {/* Shop teaser */}
+        <section className="py-20 md:py-28 px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="price-card p-10 md:p-14 flex flex-col md:flex-row items-center gap-10 text-center md:text-left">
+              <div className="flex-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-black-surface border border-border-dim rounded-full mb-4">
+                  <ShopIcon size={13} className="text-violet" />
+                  <span className="font-body text-xs text-silver-mid tracking-wide">New — Premium Shop</span>
+                </div>
+                <h2 className="font-heading text-[clamp(1.4rem,2.8vw,2.2rem)] text-white mb-3">
+                  Want it instantly? Skip the wait.
+                </h2>
+                <p className="font-body text-silver-mid text-sm md:text-base max-w-md mx-auto md:mx-0">
+                  Grab a premium key from the shop and get delivered automatically after checkout — no ads, no checkpoints.
+                </p>
+              </div>
+              <Link href="/shop" className="btn-buy shrink-0 !px-8 !py-4">
+                <CartIcon size={18} />
+                <span>VISIT SHOP</span>
+              </Link>
             </div>
           </div>
         </section>

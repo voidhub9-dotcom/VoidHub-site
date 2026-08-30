@@ -46,6 +46,7 @@
     --warning: #ffaa00;
     --info: #0099ff;
     --accent-cyber: #00ffcc;
+    --accent-violet: #a855f7;
   }
 
   * {
@@ -117,6 +118,61 @@
   .void-input:focus {
     border-color: var(--accent-cyber);
     box-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
+  }
+
+  /* Gradient CTA used for buy/checkout actions across the shop */
+  .btn-buy {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-semibold text-white;
+    background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyber));
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-buy:hover:not(:disabled) {
+    transform: scale(1.02);
+    box-shadow: 0 0 24px rgba(168, 85, 247, 0.35);
+  }
+  .btn-buy:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(0.6);
+  }
+
+  /* Pricing tile used on the shop grid */
+  .price-card {
+    position: relative;
+    background: linear-gradient(180deg, var(--black-card) 0%, var(--black-surface) 100%);
+    border: 1px solid var(--border-dim);
+    border-radius: 14px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+  .price-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.35), rgba(0, 255, 200, 0.25));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
+  .price-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(168, 85, 247, 0.12);
+  }
+  .price-card:hover::before {
+    opacity: 1;
+  }
+
+  /* Small metric chip used on admin dashboard / shop stats */
+  .stat-pill {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-body;
+    background: var(--black-elevated);
+    border: 1px solid var(--border-mid);
+    color: var(--silver-light);
   }
 }
 

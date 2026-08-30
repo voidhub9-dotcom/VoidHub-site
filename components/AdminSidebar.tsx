@@ -12,12 +12,15 @@ import {
   LogoutIcon,
   BoltIcon,
   KeyIcon,
+  ShopIcon,
 } from '@/components/Icons'
 import { logout, getUsername } from '@/lib/storage'
 
 const mainLinks = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: BarChartIcon },
   { href: '/admin/games', label: 'Games', icon: GamesIcon },
+  { href: '/admin/shop', label: 'Shop', icon: ShopIcon },
+  { href: '/admin/shop/orders', label: 'Orders', icon: ActivityIcon },
   { href: '/admin/executors', label: 'Executors', icon: BoltIcon },
   { href: '/admin/loader', label: 'Loader', icon: TerminalIcon },
   { href: '/admin/keys', label: 'Keys', icon: KeyIcon },

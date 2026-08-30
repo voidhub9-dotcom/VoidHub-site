@@ -17,6 +17,8 @@ import {
   StarIcon,
   EyeOffIcon,
   BoltIcon,
+  ShopIcon,
+  CartIcon,
 } from '@/components/Icons'
 import {
   getCopyCount,
@@ -42,6 +44,7 @@ export default function AdminDashboardPage() {
     featured: 0,
     copies: 0,
   })
+  const [shopStats, setShopStats] = useState({ orders: 0, fulfilled: 0, revenueCents: 0 })
   const [recentActivity, setRecentActivity] = useState<ActivityLogEntry[]>([])
   const [recentGames, setRecentGames] = useState<Game[]>([])
   const [loaderSource, setLoaderSource] = useState<'raw-url' | 'database' | 'none' | 'error'>('none')
@@ -98,6 +101,22 @@ export default function AdminDashboardPage() {
         setLoaderSource('error')
       }
 
+      // Shop orders
+      try {
+        const ordersRes = await fetch('/api/admin/shop/orders', { headers: { 'x-admin-key': getAdminKey() } })
+        if (ordersRes.ok) {
+          const orders: { status: string; amountTotal: number; currency: string }[] = await ordersRes.json()
+          const fulfilled = orders.filter(o => o.status === 'fulfilled')
+          setShopStats({
+            orders: orders.length,
+            fulfilled: fulfilled.length,
+            revenueCents: fulfilled.reduce((sum, o) => sum + o.amountTotal, 0),
+          })
+        }
+      } catch {
+        /* shop stats are supplemental, ignore failures */
+      }
+
       setRecentActivity(getActivityLog().slice(0, 6))
     }
     loadData()
@@ -126,6 +145,21 @@ export default function AdminDashboardPage() {
               : 'R2 Storage Offline'}
           </div>
         )}
+      </div>
+
+      {/* Shop pills */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <span className="stat-pill">
+          <ShopIcon size={13} className="text-violet" />
+          {shopStats.orders} shop order{shopStats.orders !== 1 ? 's' : ''}
+        </span>
+        <span className="stat-pill">
+          <CartIcon size={13} className="text-cyber" />
+          {shopStats.fulfilled} fulfilled
+        </span>
+        <span className="stat-pill">
+          {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(shopStats.revenueCents / 100)} revenue
+        </span>
       </div>
 
       {/* Stats Grid */}
@@ -202,6 +236,7 @@ export default function AdminDashboardPage() {
       <div className="flex flex-wrap gap-3 mb-8">
         <QuickAction href="/admin/games?action=add" icon={PlusIcon} label="Add New Game" />
         <QuickAction href="/admin/games" icon={GamesIcon} label="Manage Games" />
+        <QuickAction href="/admin/shop" icon={ShopIcon} label="Manage Shop" />
         <QuickAction href="/admin/loader" icon={TerminalIcon} label="Edit Loader" />
         <QuickAction href="/admin/settings" icon={SettingsIcon} label="Site Settings" />
         <QuickAction href="/admin/activity" icon={ActivityIcon} label="Activity Log" />

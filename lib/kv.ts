@@ -23,6 +23,8 @@ export const KV_KEYS = {
   ANALYTICS: 'voidhub:analytics',
   SITE_LINKS: 'voidhub:site_links',
   KEY_PAGE: 'voidhub:key_page',
+  SHOP_PRODUCTS: 'voidhub:shop_products',
+  SHOP_ORDERS: 'voidhub:shop_orders',
   SEEDED: 'voidhub:seeded',
 } as const
 

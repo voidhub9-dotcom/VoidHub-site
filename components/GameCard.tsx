@@ -75,7 +75,7 @@ export default function GameCard({ game }: GameCardProps) {
   const isNew = Date.now() - new Date(game.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000
 
   return (
-    <div className="group relative flex flex-col bg-black-card border border-border-dim rounded-xl overflow-hidden transition-all duration-300 hover:border-silver-faint hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(255,255,255,0.07)]">
+    <div className="group relative flex flex-col bg-black-card border border-border-dim rounded-xl overflow-hidden transition-all duration-300 hover:border-silver-faint hover:-translate-y-1 hover:shadow-[0_12px_30px_-8px_rgba(0,255,200,0.12)]">
       {/* Thumbnail */}
       <div className="relative aspect-video w-full bg-black-surface overflow-hidden">
         {thumbnail && !thumbnailError ? (

@@ -454,3 +454,33 @@ export function TelegramIcon({ size = 20, ...props }: IconProps) {
     </svg>
   )
 }
+
+export function ShopIcon({ size = 20, ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...defaultProps} {...props}>
+      <path d="M3 9l1.5-5.5A1 1 0 015.46 3h13.08a1 1 0 01.96.74L21 9" />
+      <path d="M3 9a2.5 2.5 0 005 0 2.5 2.5 0 005 0 2.5 2.5 0 005 0 2.5 2.5 0 005 0" />
+      <path d="M4.5 9.5V20a1 1 0 001 1h13a1 1 0 001-1V9.5" />
+      <path d="M9.5 21v-6a1 1 0 011-1h3a1 1 0 011 1v6" />
+    </svg>
+  )
+}
+
+export function CartIcon({ size = 20, ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...defaultProps} {...props}>
+      <circle cx="9" cy="20" r="1.4" />
+      <circle cx="18" cy="20" r="1.4" />
+      <path d="M2 3h2l2.4 12.4a2 2 0 002 1.6h9.2a2 2 0 002-1.6L21 8H6" />
+    </svg>
+  )
+}
+
+export function TagIcon({ size = 20, ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...defaultProps} {...props}>
+      <path d="M12.59 2.59a2 2 0 00-1.42-.59H4a2 2 0 00-2 2v7.17a2 2 0 00.59 1.41l9 9a2 2 0 002.82 0l7.17-7.17a2 2 0 000-2.82l-9-9z" />
+      <circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}

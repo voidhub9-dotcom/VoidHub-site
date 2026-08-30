@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { HomeIcon, GamesIcon, AboutIcon, DiscordIcon, ActivityIcon, HelpIcon, YouTubeIcon, TikTokIcon, TelegramIcon } from '@/components/Icons'
+import { HomeIcon, GamesIcon, AboutIcon, DiscordIcon, ActivityIcon, HelpIcon, YouTubeIcon, TikTokIcon, TelegramIcon, ShopIcon } from '@/components/Icons'
 import { getDiscordLink, getTagline } from '@/lib/storage'
 
 interface FooterLinks {
@@ -24,6 +24,7 @@ const DEFAULT_FOOTER_LINKS: FooterLinks = {
 const footerLinks = [
   { href: '/', label: 'Home', icon: HomeIcon },
   { href: '/games', label: 'Games', icon: GamesIcon },
+  { href: '/shop', label: 'Shop', icon: ShopIcon },
   { href: '/status', label: 'Status', icon: ActivityIcon },
   { href: '/faq', label: 'FAQ', icon: HelpIcon },
   { href: '/about', label: 'About', icon: AboutIcon },

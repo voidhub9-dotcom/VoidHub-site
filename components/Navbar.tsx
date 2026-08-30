@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { HomeIcon, GamesIcon, AboutIcon, DiscordIcon, MenuIcon, XIcon, ActivityIcon, HelpIcon, KeyIcon } from '@/components/Icons'
+import { HomeIcon, GamesIcon, AboutIcon, DiscordIcon, MenuIcon, XIcon, ActivityIcon, HelpIcon, KeyIcon, ShopIcon } from '@/components/Icons'
 import { getDiscordLink } from '@/lib/storage'
 
 const navLinks = [
   { href: '/', label: 'Home', icon: HomeIcon },
   { href: '/games', label: 'Games', icon: GamesIcon },
+  { href: '/shop', label: 'Shop', icon: ShopIcon },
   { href: '/status', label: 'Status', icon: ActivityIcon },
   { href: '/faq', label: 'FAQ', icon: HelpIcon },
   { href: '/about', label: 'About', icon: AboutIcon },

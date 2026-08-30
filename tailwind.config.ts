@@ -39,6 +39,7 @@ export default {
         warning: "var(--warning)",
         info: "var(--info)",
         cyber: "var(--accent-cyber)",
+        violet: "var(--accent-violet)",
       },
     },
   },
