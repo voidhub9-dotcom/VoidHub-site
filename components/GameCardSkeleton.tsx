@@ -1,6 +1,6 @@
 export default function GameCardSkeleton() {
   return (
-    <div className="flex flex-col bg-black-card border border-border-dim rounded-xl overflow-hidden">
+    <div className="flex flex-col bg-black-card border border-border-dim rounded-2xl overflow-hidden">
       <div className="aspect-video w-full bg-black-surface animate-pulse" />
       <div className="flex flex-col p-4 gap-3">
         <div className="h-4 w-3/4 bg-black-surface rounded animate-pulse" />

@@ -90,7 +90,9 @@ export default function GamesPage() {
                 <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" aria-hidden="true" />
                 <span className="font-body text-xs text-silver-mid tracking-wide">Free · One universal loader</span>
               </div>
-              <h1 className="font-heading text-[clamp(2rem,4vw,3.5rem)] text-white mb-3 text-balance">SUPPORTED GAMES</h1>
+              <h1 className="font-heading text-[clamp(2rem,4vw,3.5rem)] text-white mb-3 text-balance">
+                SUPPORTED <span className="text-glow">GAMES</span>
+              </h1>
               <p className="font-body text-silver-mid text-sm md:text-base text-pretty max-w-xl mx-auto">
                 Free scripts for the most popular Roblox games. Copy one loadstring and it works in every game below.
               </p>
@@ -100,11 +102,14 @@ export default function GamesPage() {
             <div className="flex justify-center gap-3 md:gap-4 mb-8">
               {[
                 { label: 'GAMES', value: games.length },
-                { label: 'ACTIVE', value: activeCount },
+                { label: 'ACTIVE', value: activeCount, accent: 'success' as const },
                 { label: 'FEATURED', value: featuredCount },
               ].map(stat => (
-                <div key={stat.label} className="flex flex-col items-center px-6 py-3 bg-black-card border border-border-dim rounded-xl min-w-[100px]">
-                  <span className="font-heading text-xl md:text-2xl text-white">
+                <div
+                  key={stat.label}
+                  className="flex flex-col items-center px-6 py-3.5 bg-black-card border border-border-dim rounded-2xl min-w-[100px] transition-all duration-300 hover:border-silver-faint hover:-translate-y-0.5"
+                >
+                  <span className={`font-heading text-xl md:text-2xl tabular-nums ${stat.accent === 'success' && !loading ? 'text-success' : 'text-white'}`}>
                     {loading ? '—' : stat.value}
                   </span>
                   <span className="font-body text-[0.65rem] tracking-widest text-silver-muted">{stat.label}</span>
@@ -114,7 +119,12 @@ export default function GamesPage() {
 
             {/* Supported executors strip */}
             <div className="max-w-4xl mx-auto mb-10">
-              <div className="flex flex-col sm:flex-row items-center gap-3 bg-black-card border border-border-dim rounded-xl px-5 py-4">
+              <div className="relative overflow-hidden flex flex-col sm:flex-row items-center gap-3 bg-black-card border border-border-dim rounded-2xl px-5 py-4">
+                <div
+                  className="absolute inset-x-0 top-0 h-[2px] opacity-60"
+                  style={{ background: 'linear-gradient(90deg, var(--accent-violet), var(--accent-cyber))' }}
+                  aria-hidden="true"
+                />
                 <div className="flex items-center gap-2 shrink-0">
                   <TerminalIcon size={15} className="text-white" />
                   <span className="font-heading text-xs tracking-widest text-white">WORKS WITH</span>
@@ -255,7 +265,7 @@ export default function GamesPage() {
                 )}
               </>
             ) : (
-              <div className="text-center py-16 bg-black-card border border-border-dim rounded-xl max-w-xl mx-auto">
+              <div className="text-center py-16 bg-black-card border border-border-dim rounded-2xl max-w-xl mx-auto">
                 <SearchIcon size={28} className="text-silver-faint mx-auto mb-4" />
                 <p className="font-body text-silver-muted text-lg mb-2">No games found</p>
                 <p className="font-body text-silver-faint text-sm mb-6">Try adjusting your search or filters</p>
@@ -269,7 +279,12 @@ export default function GamesPage() {
             )}
 
             {/* Bottom CTA */}
-            <div className="mt-16 bg-black-card border border-border-mid rounded-xl p-8 text-center max-w-2xl mx-auto">
+            <div className="relative overflow-hidden mt-16 bg-black-card border border-border-mid rounded-2xl p-8 text-center max-w-2xl mx-auto">
+              <div
+                className="absolute inset-x-0 top-0 h-[2px]"
+                style={{ background: 'linear-gradient(90deg, var(--accent-violet), var(--accent-cyber))' }}
+                aria-hidden="true"
+              />
               <h2 className="font-heading text-lg text-white mb-2">Don&apos;t see your game?</h2>
               <p className="font-body text-silver-mid text-sm mb-6 max-w-md mx-auto">
                 More games are being added regularly. Join our Discord to suggest your favorite game — the most requested ones get prioritized.

@@ -179,6 +179,14 @@
     border: 1px solid var(--border-mid);
     color: var(--silver-light);
   }
+
+  /* Gradient text highlight — used on the logo wordmark and hero headlines */
+  .text-glow {
+    background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyber));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 }
 
 /* ── Animations ────────────────────────────────── */
