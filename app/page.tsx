@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import LoadstringBox from '@/components/LoadstringBox'
 import AnimatedLogo from '@/components/AnimatedLogo'
+import DiscordWidget from '@/components/DiscordWidget'
 import { ToastProvider } from '@/components/Toast'
 import {
   DiscordIcon,
@@ -394,6 +395,9 @@ export default function HomePage() {
         <section className="bg-black-elevated border-y border-border-mid py-16 md:py-20 px-4">
           <div className="max-w-2xl mx-auto text-center">
             <DiscordIcon size={40} className="mx-auto text-white animate-pulse-glow mb-6" />
+            <div className="flex justify-center">
+              <DiscordWidget />
+            </div>
             <h2 className="font-heading text-[clamp(1.2rem,3vw,1.6rem)] text-white mb-3 tracking-wide">
               JOIN THE VOIDHUB COMMUNITY
             </h2>
