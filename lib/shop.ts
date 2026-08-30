@@ -49,6 +49,8 @@ export interface ShopOrder {
   deliveredKey: string | null
   /** Whether the key-delivery email (backup to the on-page reveal) was sent successfully. */
   emailSent: boolean
+  /** True for admin-triggered test orders (no real payment, no stock consumed) — excluded from revenue/sales stats. */
+  isTest?: boolean
   createdAt: string
   fulfilledAt: string | null
 }

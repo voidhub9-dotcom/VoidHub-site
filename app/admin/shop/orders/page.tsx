@@ -100,9 +100,14 @@ export default function AdminShopOrdersPage() {
               <div key={order.id} className="admin-panel p-4">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
-                    <p className="font-body text-sm text-white">{order.productName}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-body text-sm text-white">{order.productName}</p>
+                      {order.isTest && (
+                        <span className="px-1.5 py-0.5 rounded border border-warning/40 bg-warning/10 text-warning font-body text-[0.6rem] uppercase tracking-wider">Test</span>
+                      )}
+                    </div>
                     <p className="font-heading text-base text-silver-light mt-0.5">
-                      {formatPrice(order.amountTotal, order.currency)}
+                      {order.isTest ? 'No charge' : formatPrice(order.amountTotal, order.currency)}
                     </p>
                     {order.presentmentAmount != null && order.presentmentCurrency && order.presentmentCurrency !== order.currency && (
                       <p className="font-body text-[0.7rem] text-silver-faint">
@@ -155,9 +160,16 @@ export default function AdminShopOrdersPage() {
               <tbody>
                 {orders.map((order, i) => (
                   <tr key={order.id} className={`border-b border-border-dim last:border-0 ${i % 2 === 0 ? 'bg-black-surface' : 'bg-black-card'}`}>
-                    <td className="px-4 py-3 text-white">{order.productName}</td>
+                    <td className="px-4 py-3 text-white">
+                      <div className="flex items-center gap-1.5">
+                        <span>{order.productName}</span>
+                        {order.isTest && (
+                          <span className="px-1.5 py-0.5 rounded border border-warning/40 bg-warning/10 text-warning font-body text-[0.6rem] uppercase tracking-wider">Test</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-silver-light">
-                      {formatPrice(order.amountTotal, order.currency)}
+                      {order.isTest ? <span className="text-silver-faint">—</span> : formatPrice(order.amountTotal, order.currency)}
                       {order.presentmentAmount != null && order.presentmentCurrency && order.presentmentCurrency !== order.currency && (
                         <span className="block text-[0.65rem] text-silver-faint">
                           paid {formatPrice(order.presentmentAmount, order.presentmentCurrency)}

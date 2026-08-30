@@ -105,7 +105,8 @@ export default function AdminDashboardPage() {
       try {
         const ordersRes = await fetch('/api/admin/shop/orders', { headers: { 'x-admin-key': getAdminKey() } })
         if (ordersRes.ok) {
-          const orders: { status: string; amountTotal: number; currency: string }[] = await ordersRes.json()
+          const allOrders: { status: string; amountTotal: number; currency: string; isTest?: boolean }[] = await ordersRes.json()
+          const orders = allOrders.filter(o => !o.isTest)
           const fulfilled = orders.filter(o => o.status === 'fulfilled')
           setShopStats({
             orders: orders.length,

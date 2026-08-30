@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
   PlusIcon, SearchIcon, EditIcon, TrashIcon, AlertIcon, ImageIcon,
-  RefreshIcon, ShopIcon, TagIcon, KeyIcon, ActivityIcon,
+  RefreshIcon, ShopIcon, TagIcon, KeyIcon, ActivityIcon, MailIcon, ExternalIcon, CheckIcon,
 } from '@/components/Icons'
 import Modal from '@/components/Modal'
 import ShopProductModal, { ShopProductFormData } from '@/components/ShopProductModal'
@@ -64,6 +64,10 @@ export default function AdminShopPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<ShopProduct | null>(null)
+  const [testingProduct, setTestingProduct] = useState<ShopProduct | null>(null)
+  const [testEmail, setTestEmail] = useState('')
+  const [testSubmitting, setTestSubmitting] = useState(false)
+  const [testResult, setTestResult] = useState<{ sessionId: string; emailSent: boolean } | null>(null)
 
   const loadProducts = useCallback(async () => {
     setLoading(true)
@@ -98,6 +102,37 @@ export default function AdminShopPage() {
     } catch (e: any) {
       showToast(e.message, 'error')
     }
+  }
+
+  const handleRunTest = async () => {
+    if (!testingProduct) return
+    setTestSubmitting(true)
+    try {
+      const res = await fetch('/api/admin/shop/test-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': getAdminKey() },
+        body: JSON.stringify({ productId: testingProduct.id, email: testEmail.trim() || undefined }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      setTestResult({ sessionId: data.sessionId, emailSent: data.emailSent })
+      showToast(
+        testEmail.trim()
+          ? (data.emailSent ? 'Test order created — email sent' : 'Test order created — email did NOT send (check Resend config)')
+          : 'Test order created',
+        data.emailSent || !testEmail.trim() ? 'success' : 'error',
+      )
+    } catch (e: any) {
+      showToast(e.message, 'error')
+    } finally {
+      setTestSubmitting(false)
+    }
+  }
+
+  const closeTestModal = () => {
+    setTestingProduct(null)
+    setTestEmail('')
+    setTestResult(null)
   }
 
   const handleDelete = async () => {
@@ -211,6 +246,10 @@ export default function AdminShopPage() {
                     className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg border border-border-mid text-silver-mid font-body text-xs hover:border-white hover:text-white transition-all">
                     <EditIcon size={13} />Edit
                   </button>
+                  <button onClick={() => setTestingProduct(product)} title="Simulate a test order — no Stripe, no real charge"
+                    className="flex items-center justify-center w-9 h-9 rounded-lg border border-border-mid text-silver-muted hover:border-info hover:text-info transition-all">
+                    <MailIcon size={13} />
+                  </button>
                   <button onClick={() => setDeleteConfirm(product)}
                     className="flex items-center justify-center w-9 h-9 rounded-lg border border-border-mid text-silver-muted hover:border-danger hover:text-danger transition-all">
                     <TrashIcon size={13} />
@@ -225,6 +264,61 @@ export default function AdminShopPage() {
       {/* Add/Edit Modal */}
       <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingProduct(null) }} title={editingProduct ? 'EDIT PRODUCT' : 'ADD NEW PRODUCT'} maxWidth="max-w-[560px]">
         <ShopProductModal product={editingProduct} onSave={handleSave} onCancel={() => { setIsModalOpen(false); setEditingProduct(null) }} />
+      </Modal>
+
+      {/* Test order — simulates the delivery pipeline without touching Stripe or real stock */}
+      <Modal isOpen={!!testingProduct} onClose={closeTestModal} title="SIMULATE TEST ORDER" maxWidth="max-w-[440px]">
+        <div className="flex flex-col gap-4">
+          <p className="font-body text-sm text-silver-mid">
+            Creates a fake order for <strong className="text-white">{testingProduct?.name}</strong> with a synthetic key —
+            no Stripe involved, no real charge, and your actual stock/sales numbers are untouched.
+          </p>
+          {!testResult ? (
+            <>
+              <div>
+                <label htmlFor="test-email" className="block font-body text-xs text-silver-muted uppercase tracking-wider mb-1.5">
+                  Email <span className="text-silver-faint normal-case">(optional — to test auto-delivery email)</span>
+                </label>
+                <input
+                  id="test-email"
+                  type="email"
+                  value={testEmail}
+                  onChange={e => setTestEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="void-input"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={closeTestModal} className="flex-1 h-10 border border-silver-faint text-silver-mid rounded-lg font-body text-sm hover:border-white hover:text-white transition-all">
+                  Cancel
+                </button>
+                <button onClick={handleRunTest} disabled={testSubmitting} className="btn-buy flex-1 !h-10 !py-0 disabled:opacity-50">
+                  {testSubmitting ? 'Running...' : 'Run Test'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="bg-black-surface border border-border-mid rounded-lg p-3 flex items-center gap-2">
+                <CheckIcon size={16} className="text-success shrink-0" />
+                <p className="font-body text-xs text-silver-mid">
+                  Test order created.{testEmail.trim() && (testResult.emailSent ? ' Email sent — check your inbox.' : ' Email did not send — check RESEND_API_KEY is set.')}
+                </p>
+              </div>
+              <a
+                href={`/shop/success?session_id=${testResult.sessionId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-buy flex items-center justify-center gap-2 !h-10 !py-0"
+              >
+                <ExternalIcon size={14} />View success page
+              </a>
+              <button onClick={closeTestModal} className="h-10 border border-silver-faint text-silver-mid rounded-lg font-body text-sm hover:border-white hover:text-white transition-all">
+                Close
+              </button>
+            </>
+          )}
+        </div>
       </Modal>
 
       {/* Delete Confirm */}
