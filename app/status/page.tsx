@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { ToastProvider } from '@/components/Toast'
-import { CheckIcon, AlertIcon, TerminalIcon, ActivityIcon, RefreshIcon, GamesIcon, BoltIcon } from '@/components/Icons'
+import { CheckIcon, AlertIcon, TerminalIcon, ActivityIcon, RefreshIcon, GamesIcon, BoltIcon, GlobeIcon, DiscordIcon } from '@/components/Icons'
 import ExecutorIcon from '@/components/ExecutorIcon'
 
 interface GameStatus {
@@ -18,8 +18,8 @@ interface GameStatus {
 interface Executor {
   name: string
   status: 'supported' | 'unsupported'
-  link?: string
-  linkLabel?: string
+  websiteUrl?: string
+  discordUrl?: string
   icon?: string
 }
 
@@ -469,25 +469,44 @@ export default function StatusPage() {
                                   <span className="font-body text-[11px] text-silver-faint font-mono">v{live.version}</span>
                                 )}
                               </div>
-                            ) : exec.link ? (
-                              <a
-                                href={exec.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-body text-xs text-silver-muted underline underline-offset-2 hover:text-white transition-colors duration-200"
-                              >
-                                {exec.linkLabel || 'Official Link'}
-                              </a>
                             ) : (
                               <p className="font-body text-xs text-silver-faint">Verified compatible</p>
                             )}
                           </div>
                         </div>
-                        {live && !live.updateStatus ? (
-                          <AlertIcon size={16} className="text-danger shrink-0 opacity-80" />
-                        ) : (
-                          <CheckIcon size={16} className="text-success shrink-0 opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
-                        )}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {exec.websiteUrl && (
+                            <a
+                              href={exec.websiteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`${exec.name} website`}
+                              title="Website"
+                              className="p-1.5 rounded-md text-silver-muted hover:text-white hover:bg-black-elevated transition-colors duration-200"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <GlobeIcon size={14} />
+                            </a>
+                          )}
+                          {exec.discordUrl && (
+                            <a
+                              href={exec.discordUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`${exec.name} Discord`}
+                              title="Discord"
+                              className="p-1.5 rounded-md text-silver-muted hover:text-white hover:bg-black-elevated transition-colors duration-200"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <DiscordIcon size={14} />
+                            </a>
+                          )}
+                          {live && !live.updateStatus ? (
+                            <AlertIcon size={16} className="text-danger shrink-0 opacity-80" />
+                          ) : (
+                            <CheckIcon size={16} className="text-success shrink-0 opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
+                          )}
+                        </div>
                       </div>
                     )
                   })}

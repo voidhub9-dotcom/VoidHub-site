@@ -1,15 +1,7 @@
-import { kvGet, kvSet, KV_KEYS, DEFAULT_EXECUTORS } from '@/lib/kv'
+import { kvGet, kvSet, KV_KEYS, DEFAULT_EXECUTORS, normalizeExecutor, type Executor } from '@/lib/kv'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-interface Executor {
-  name: string
-  status: 'supported' | 'unsupported'
-  link?: string
-  linkLabel?: string
-  icon?: string
-}
 
 function authorized(req: Request) {
   const key = req.headers.get('x-admin-key')
@@ -23,7 +15,7 @@ export async function GET(req: Request) {
     const raw = await kvGet(KV_KEYS.EXECUTORS)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) return Response.json(parsed)
+      if (Array.isArray(parsed)) return Response.json(parsed.map(normalizeExecutor))
     }
   } catch {
     // fall through to defaults
@@ -53,11 +45,11 @@ export async function POST(req: Request) {
     if (!name) continue
     const status = item.status === 'unsupported' ? 'unsupported' : 'supported'
     const entry: Executor = { name, status }
-    if (typeof item.link === 'string' && /^https?:\/\//i.test(item.link.trim())) {
-      entry.link = item.link.trim().slice(0, 300)
-      if (typeof item.linkLabel === 'string' && item.linkLabel.trim()) {
-        entry.linkLabel = item.linkLabel.trim().slice(0, 60)
-      }
+    if (typeof item.websiteUrl === 'string' && /^https?:\/\//i.test(item.websiteUrl.trim())) {
+      entry.websiteUrl = item.websiteUrl.trim().slice(0, 300)
+    }
+    if (typeof item.discordUrl === 'string' && /^https?:\/\//i.test(item.discordUrl.trim())) {
+      entry.discordUrl = item.discordUrl.trim().slice(0, 300)
     }
     if (typeof item.icon === 'string' && /^https?:\/\//i.test(item.icon.trim())) {
       entry.icon = item.icon.trim().slice(0, 500)

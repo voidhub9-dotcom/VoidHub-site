@@ -3,19 +3,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   PlusIcon, SearchIcon, TrashIcon, CheckIcon, AlertIcon,
-  BoltIcon, RefreshIcon, EditIcon,
+  BoltIcon, RefreshIcon, EditIcon, GlobeIcon, DiscordIcon,
 } from '@/components/Icons'
 import Modal from '@/components/Modal'
 import ExecutorIcon from '@/components/ExecutorIcon'
 import { useToast } from '@/components/Toast'
-
-interface Executor {
-  name: string
-  status: 'supported' | 'unsupported'
-  link?: string
-  linkLabel?: string
-  icon?: string
-}
+import type { Executor } from '@/lib/kv'
 
 function getAdminKey() {
   if (typeof window === 'undefined') return 'voidhub123'
@@ -35,7 +28,7 @@ async function apiExecutors(method: 'GET' | 'POST', body?: Executor[]) {
   return res.json()
 }
 
-const EMPTY_FORM: Executor = { name: '', status: 'supported', link: '', linkLabel: '', icon: '' }
+const EMPTY_FORM: Executor = { name: '', status: 'supported', websiteUrl: '', discordUrl: '', icon: '' }
 
 export default function AdminExecutorsPage() {
   const { showToast } = useToast()
@@ -85,7 +78,7 @@ export default function AdminExecutorsPage() {
 
   const openEdit = (index: number) => {
     setEditIndex(index)
-    setForm({ link: '', linkLabel: '', icon: '', ...executors[index] })
+    setForm({ websiteUrl: '', discordUrl: '', icon: '', ...executors[index] })
     setModalOpen(true)
   }
 
@@ -96,10 +89,8 @@ export default function AdminExecutorsPage() {
       return
     }
     const entry: Executor = { name, status: form.status }
-    if (form.link?.trim()) {
-      entry.link = form.link.trim()
-      if (form.linkLabel?.trim()) entry.linkLabel = form.linkLabel.trim()
-    }
+    if (form.websiteUrl?.trim()) entry.websiteUrl = form.websiteUrl.trim()
+    if (form.discordUrl?.trim()) entry.discordUrl = form.discordUrl.trim()
     if (form.icon?.trim()) entry.icon = form.icon.trim()
     const next = [...executors]
     if (editIndex === null) {
@@ -263,15 +254,31 @@ export default function AdminExecutorsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-body text-sm text-white truncate">{exec.name}</p>
-                {exec.link && (
-                  <a
-                    href={exec.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-body text-xs text-info hover:underline truncate block"
-                  >
-                    {exec.linkLabel || exec.link}
-                  </a>
+                {(exec.websiteUrl || exec.discordUrl) && (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {exec.websiteUrl && (
+                      <a
+                        href={exec.websiteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 font-body text-xs text-info hover:underline"
+                      >
+                        <GlobeIcon size={11} />
+                        Website
+                      </a>
+                    )}
+                    {exec.discordUrl && (
+                      <a
+                        href={exec.discordUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 font-body text-xs text-info hover:underline"
+                      >
+                        <DiscordIcon size={11} />
+                        Discord
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -378,29 +385,29 @@ export default function AdminExecutorsPage() {
           </div>
 
           <div>
-            <label htmlFor="exec-link" className="font-body text-xs text-silver-muted tracking-wider uppercase block mb-1.5">
-              Link <span className="text-silver-faint normal-case">(optional)</span>
+            <label htmlFor="exec-website" className="font-body text-xs text-silver-muted tracking-wider uppercase flex items-center gap-1.5 mb-1.5">
+              <GlobeIcon size={12} /> Website <span className="text-silver-faint normal-case">(optional)</span>
             </label>
             <input
-              id="exec-link"
+              id="exec-website"
               type="url"
-              value={form.link || ''}
-              onChange={e => setForm({ ...form, link: e.target.value })}
-              placeholder="https://discord.gg/..."
+              value={form.websiteUrl || ''}
+              onChange={e => setForm({ ...form, websiteUrl: e.target.value })}
+              placeholder="https://example.com"
               className="void-input"
             />
           </div>
 
           <div>
-            <label htmlFor="exec-link-label" className="font-body text-xs text-silver-muted tracking-wider uppercase block mb-1.5">
-              Link label <span className="text-silver-faint normal-case">(optional)</span>
+            <label htmlFor="exec-discord" className="font-body text-xs text-silver-muted tracking-wider uppercase flex items-center gap-1.5 mb-1.5">
+              <DiscordIcon size={12} /> Discord server <span className="text-silver-faint normal-case">(optional)</span>
             </label>
             <input
-              id="exec-link-label"
-              type="text"
-              value={form.linkLabel || ''}
-              onChange={e => setForm({ ...form, linkLabel: e.target.value })}
-              placeholder="e.g. Official Discord"
+              id="exec-discord"
+              type="url"
+              value={form.discordUrl || ''}
+              onChange={e => setForm({ ...form, discordUrl: e.target.value })}
+              placeholder="https://discord.gg/..."
               className="void-input"
             />
           </div>

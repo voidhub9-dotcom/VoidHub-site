@@ -1,4 +1,4 @@
-import { kvGet, KV_KEYS, DEFAULT_EXECUTORS } from '@/lib/kv'
+import { kvGet, KV_KEYS, DEFAULT_EXECUTORS, normalizeExecutor } from '@/lib/kv'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -9,7 +9,7 @@ export async function GET() {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return Response.json(parsed, {
+        return Response.json(parsed.map(normalizeExecutor), {
           headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate'},
         })
       }

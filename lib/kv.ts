@@ -28,8 +28,16 @@ export const KV_KEYS = {
   SEEDED: 'voidhub:seeded',
 } as const
 
+export interface Executor {
+  name: string
+  status: 'supported' | 'unsupported'
+  icon?: string
+  websiteUrl?: string
+  discordUrl?: string
+}
+
 /** Default executor compatibility list (used until edited in admin). */
-export const DEFAULT_EXECUTORS = [
+export const DEFAULT_EXECUTORS: Executor[] = [
   { name: 'Potassium', status: 'supported' },
   { name: 'Seliware', status: 'supported' },
   { name: 'Madium', status: 'supported' },
@@ -39,13 +47,38 @@ export const DEFAULT_EXECUTORS = [
   { name: 'Delta', status: 'supported' },
   { name: 'Codex', status: 'supported' },
   { name: 'Wave', status: 'supported' },
-  { name: 'Real', status: 'supported', link: 'https://discord.gg/projectreal', linkLabel: 'Official Discord' },
+  { name: 'Real', status: 'supported', discordUrl: 'https://discord.gg/projectreal' },
   { name: 'Xeno', status: 'unsupported' },
   { name: 'Solara', status: 'unsupported' },
   { name: 'Velocity', status: 'unsupported' },
   { name: 'Ronix', status: 'unsupported' },
   { name: 'Arceus X', status: 'unsupported' },
 ]
+
+/**
+ * Normalize a stored executor entry into the current shape. Migrates the
+ * old single `link`/`linkLabel` fields (pre website/discord split) into
+ * `websiteUrl` or `discordUrl` by sniffing the URL/label for "discord".
+ */
+export function normalizeExecutor(raw: any): Executor {
+  const name = String(raw?.name || '').trim()
+  const status: Executor['status'] = raw?.status === 'unsupported' ? 'unsupported' : 'supported'
+  const entry: Executor = { name, status }
+  if (typeof raw?.icon === 'string' && raw.icon.trim()) entry.icon = raw.icon.trim()
+
+  if (typeof raw?.websiteUrl === 'string' && raw.websiteUrl.trim()) entry.websiteUrl = raw.websiteUrl.trim()
+  if (typeof raw?.discordUrl === 'string' && raw.discordUrl.trim()) entry.discordUrl = raw.discordUrl.trim()
+
+  // Legacy fallback: single `link` + optional `linkLabel`
+  if (!entry.websiteUrl && !entry.discordUrl && typeof raw?.link === 'string' && raw.link.trim()) {
+    const link = raw.link.trim()
+    const looksLikeDiscord = /discord\.(gg|com)/i.test(link) || /discord/i.test(String(raw?.linkLabel || ''))
+    if (looksLikeDiscord) entry.discordUrl = link
+    else entry.websiteUrl = link
+  }
+
+  return entry
+}
 
 function keyFor(key: string): string {
   // "voidhub:discord" -> "kv/voidhub__discord.txt"
