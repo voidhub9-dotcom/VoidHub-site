@@ -116,7 +116,7 @@ async function buildPayload(): Promise<CachePayload | null> {
 export async function GET() {
   if (cache && Date.now() < cache.expires) {
     return Response.json(cache.data, {
-      headers: { 'Cache-Control': 'public, max-age=120, stale-while-revalidate=300' },
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     })
   }
 
@@ -124,14 +124,14 @@ export async function GET() {
   if (payload) {
     cache = { data: payload, expires: Date.now() + CACHE_TTL_MS }
     return Response.json(payload, {
-      headers: { 'Cache-Control': 'public, max-age=120, stale-while-revalidate=300' },
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     })
   }
 
   // All mirrors down — serve stale cache if we have one, else an empty shape
   if (cache) {
     return Response.json(cache.data, {
-      headers: { 'Cache-Control': 'public, max-age=60' },
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     })
   }
   return Response.json(

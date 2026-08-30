@@ -1,17 +1,27 @@
-import { loadShopProducts } from '@/lib/shop'
+import { loadShopProducts, resolveProductPrice } from '@/lib/shop'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: Request) {
   const products = await loadShopProducts()
+  const countryCode = req.headers.get('x-vercel-ip-country')
 
   const publicProducts = products
     .filter(p => p.active)
-    .map(({ keys, ...rest }) => ({ ...rest, stock: keys.length }))
+    .map(({ keys, regionalPricing, ...rest }) => {
+      const resolved = resolveProductPrice({ priceCents: rest.priceCents, currency: rest.currency, regionalPricing }, countryCode)
+      return {
+        ...rest,
+        priceCents: resolved.priceCents,
+        currency: resolved.currency,
+        region: resolved.region,
+        stock: keys.length,
+      }
+    })
 
   return Response.json(publicProducts, {
     headers: {
-      'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=30',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
     },
   })
 }

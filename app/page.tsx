@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import LoadstringBox from '@/components/LoadstringBox'
+import AnimatedLogo from '@/components/AnimatedLogo'
 import { ToastProvider } from '@/components/Toast'
 import {
   DiscordIcon,
@@ -92,11 +93,11 @@ export default function HomePage() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
   const [titleVisible, setTitleVisible] = useState(false)
   const [glitching, setGlitching] = useState(false)
-  const heroRef = useRef<HTMLDivElement>(null)
+  const [heroStats, setHeroStats] = useState({ games: 0, executors: 0 })
 
   useEffect(() => {
     initializeStorage()
-    
+
     const loadPublicSettings = async () => {
       try {
         const res = await fetch('/api/public/settings')
@@ -111,9 +112,19 @@ export default function HomePage() {
     }
     loadPublicSettings()
 
+    Promise.all([
+      fetch('/api/public/games').then(r => r.json()).catch(() => []),
+      fetch('/api/public/executors').then(r => r.json()).catch(() => []),
+    ]).then(([games, executors]) => {
+      setHeroStats({
+        games: Array.isArray(games) ? games.length : 0,
+        executors: Array.isArray(executors) ? executors.filter((e: { status?: string }) => e.status === 'supported').length : 0,
+      })
+    })
+
     // Title animation
     setTimeout(() => setTitleVisible(true), 200)
-    
+
     // Glitch animation
     const glitchTimeout = setTimeout(() => {
       setGlitching(true)
@@ -131,107 +142,135 @@ export default function HomePage() {
     }
   }, [])
 
-  const scrollToContent = () => {
-    const nextSection = document.getElementById('stats-section')
-    nextSection?.scrollIntoView({ behavior: 'smooth' })
-  }
-
   return (
     <ToastProvider>
       <div className="min-h-screen bg-black-void">
         <Navbar />
 
-        {/* Hero Section */}
-        <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          {/* Static grid background — no animation (heavy blur + infinite
-              animation was crashing low-end devices) */}
-          <div className="absolute inset-0 hero-grid" />
+        {/* Hero Section — product-first: copy + live preview, not a splash screen */}
+        <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24 px-4">
+          <div className="absolute inset-0 hero-grid opacity-50" />
+          <div className="absolute top-10 -left-16 w-72 h-72 bg-[rgba(0,255,204,0.08)] rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-72 h-72 bg-[rgba(168,85,247,0.08)] rounded-full blur-3xl" />
 
-          {/* Static ambient glows */}
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[rgba(0,255,204,0.05)] rounded-full blur-3xl" />
-          <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-[rgba(255,255,255,0.06)] rounded-full blur-3xl" />
-
-          {/* Content */}
-          <div className="relative z-10 flex flex-col items-center px-4 py-20 pt-24">
-            {/* Logo */}
-            <img
-              src="https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png"
-              alt="VoidHub Logo"
-              className="w-20 h-20 mb-6 animate-breathe drop-shadow-[0_0_30px_rgba(255,255,255,0.15)]"
-            />
-
-            {/* Title */}
-            <h1
-              className={`
-                font-heading text-white text-center
-                text-[clamp(3rem,8vw,7rem)] leading-none tracking-widest
-                transition-all duration-500
-                ${titleVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}
-                ${glitching ? 'animate-glitch' : ''}
-              `}
-            >
-              VOIDHUB
-            </h1>
-
-            {/* Tagline */}
-            <p
-              className={`
-                mt-4 font-body text-silver-mid text-[1.2rem] tracking-wider text-center
-                transition-all duration-500 delay-200
-                ${titleVisible ? 'opacity-100' : 'opacity-0'}
-              `}
-            >
-              {tagline}
-            </p>
-
-            {/* Loadstring Box */}
+          <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-10 items-center">
+            {/* Left — copy */}
             <div
               className={`
-                mt-8 w-full max-w-[560px]
-                transition-all duration-500 delay-300
+                text-center lg:text-left
+                transition-all duration-700
                 ${titleVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}
               `}
             >
-              <LoadstringBox />
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-black-card border border-border-dim rounded-full mb-6">
+                <AnimatedLogo
+                  src="https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png"
+                  alt="VoidHub"
+                  size={16}
+                  playIntro={false}
+                />
+                <span className="font-body text-xs text-silver-mid tracking-wide">{tagline}</span>
+              </div>
+
+              <h1
+                className={`
+                  font-heading text-white leading-[1.05] tracking-wide text-balance
+                  text-[clamp(2.25rem,4.5vw,3.75rem)]
+                  ${glitching ? 'animate-glitch' : ''}
+                `}
+              >
+                Free Roblox Scripts.
+                <br />
+                <span className="text-glow">Zero Keys.</span> Zero Waiting.
+              </h1>
+
+              <p className="mt-5 font-body text-silver-mid text-base md:text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed text-pretty">
+                One universal loadstring covers every supported game. No key systems, no link
+                shorteners, no paywalls — copy it, paste it, execute.
+              </p>
+
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                <a
+                  href={discordLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary !h-11 !py-0 !rounded-lg"
+                >
+                  <DiscordIcon size={18} />
+                  <span>JOIN DISCORD</span>
+                </a>
+                <Link
+                  href="/games"
+                  className="
+                    h-11 flex items-center justify-center gap-2 px-6
+                    border border-silver-faint text-silver-mid rounded-lg font-body text-sm
+                    transition-all duration-200 hover:border-white hover:text-white
+                  "
+                >
+                  <GamesIcon size={18} />
+                  <span>VIEW GAMES</span>
+                </Link>
+              </div>
+
+              <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                <span className="stat-pill">
+                  <GamesIcon size={13} />
+                  {heroStats.games || '—'} Games
+                </span>
+                <span className="stat-pill">
+                  <BoltIcon size={13} className="text-success" />
+                  {heroStats.executors || '—'} Executors
+                </span>
+                <span className="stat-pill">
+                  <KeyOffIcon size={13} className="text-cyber" />
+                  100% Free
+                </span>
+              </div>
             </div>
 
-            {/* CTA Buttons */}
+            {/* Right — live product preview */}
             <div
               className={`
-                mt-8 flex flex-col sm:flex-row gap-4 w-full max-w-[400px]
-                transition-all duration-500 delay-500
-                ${titleVisible ? 'opacity-100' : 'opacity-0'}
+                relative
+                transition-all duration-700 delay-200
+                ${titleVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}
               `}
             >
-              <a
-                href={discordLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary flex-1 !h-11 !py-0 !rounded-lg"
+              <div className="relative void-card overflow-hidden max-w-[480px] mx-auto lg:mx-0">
+                {/* window title bar */}
+                <div className="flex items-center gap-2 px-4 h-10 border-b border-border-dim bg-black-surface">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+                  <span className="ml-2 font-code text-[0.7rem] text-silver-muted">
+                    loader.lua — connected
+                  </span>
+                </div>
+                <div className="p-5">
+                  <LoadstringBox />
+                  <div className="mt-4 flex items-center gap-2 font-code text-xs text-success">
+                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                    <span>Ready — executor detected</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* floating chips */}
+              <div
+                className="hidden md:flex absolute -top-5 -right-4 items-center gap-2 px-3 py-2 bg-black-card border border-border-mid rounded-xl shadow-lg animate-float"
               >
-                <DiscordIcon size={18} />
-                <span>JOIN DISCORD</span>
-              </a>
+                <ShieldIcon size={14} className="text-success" />
+                <span className="font-body text-xs text-silver-light whitespace-nowrap">Undetected</span>
+              </div>
               <Link
-                href="/games"
-                className="
-                  flex-1 h-11 flex items-center justify-center gap-2
-                  border border-silver-faint text-silver-mid rounded-lg font-body text-sm
-                  transition-all duration-200 hover:border-white hover:text-white
-                "
+                href="/shop"
+                className="hidden md:flex absolute -bottom-6 -left-6 items-center gap-2 px-3.5 py-2.5 price-card !rounded-xl shadow-lg animate-float"
+                style={{ animationDelay: '1.4s' }}
               >
-                <GamesIcon size={18} />
-                <span>VIEW GAMES</span>
+                <CartIcon size={14} className="text-violet shrink-0" />
+                <span className="font-body text-xs text-white whitespace-nowrap">Shop keys →</span>
               </Link>
             </div>
-
-            {/* Scroll Indicator */}
-            <button
-              onClick={scrollToContent}
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 text-silver-faint animate-bounce"
-            >
-              <ChevronDownIcon size={28} />
-            </button>
           </div>
         </section>
 

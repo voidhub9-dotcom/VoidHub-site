@@ -13,6 +13,6 @@ export async function GET() {
       providers: config.providers.filter(p => p.enabled),
       discord: discord || 'https://discord.gg/kPPsdZtndn',
     },
-    { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=30' } },
+    { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
   )
 }

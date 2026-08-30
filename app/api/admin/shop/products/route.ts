@@ -1,10 +1,21 @@
-import { loadShopProducts, saveShopProducts, type ShopProduct } from '@/lib/shop'
+import { loadShopProducts, saveShopProducts, type ShopProduct, type RegionalPrice } from '@/lib/shop'
 
 export const dynamic = 'force-dynamic'
 
 function authorized(req: Request) {
   const key = req.headers.get('x-admin-key')
   return key === (process.env.ADMIN_PASSWORD || 'voidhub123')
+}
+
+function sanitizeRegionalPricing(input: unknown): RegionalPrice[] {
+  if (!Array.isArray(input)) return []
+  return input
+    .map((r: any) => ({
+      countryCode: String(r?.countryCode || '').trim().toUpperCase().slice(0, 2),
+      priceCents: Math.max(0, Math.round(Number(r?.priceCents) || 0)),
+      currency: String(r?.currency || 'usd').toLowerCase(),
+    }))
+    .filter(r => r.countryCode.length === 2 && r.priceCents > 0)
 }
 
 export async function GET(req: Request) {
@@ -51,6 +62,7 @@ export async function POST(req: Request) {
       imageUrl: String(body.imageUrl || ''),
       category: String(body.category || ''),
       active: body.active !== false,
+      regionalPricing: sanitizeRegionalPricing(body.regionalPricing),
       keys: keysToAdd,
       soldCount: 0,
       createdAt: new Date().toISOString(),
@@ -91,11 +103,14 @@ export async function PUT(req: Request) {
       ? body.keysToAdd.map((k: unknown) => String(k).trim()).filter(Boolean)
       : []
 
-    const { keysToAdd: _omit, id: _id, ...updates } = body
+    const { keysToAdd: _omit, id: _id, regionalPricing, ...updates } = body
 
     products[index] = {
       ...products[index],
       ...updates,
+      ...(regionalPricing !== undefined
+        ? { regionalPricing: sanitizeRegionalPricing(regionalPricing) }
+        : {}),
       keys: keysToAdd.length ? [...products[index].keys, ...keysToAdd] : products[index].keys,
       updatedAt: new Date().toISOString(),
     }

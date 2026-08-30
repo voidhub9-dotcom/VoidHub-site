@@ -10,7 +10,7 @@ export async function GET() {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
         return Response.json(parsed, {
-          headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' },
+          headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate'},
         })
       }
     }
@@ -18,6 +18,6 @@ export async function GET() {
     // fall through to defaults
   }
   return Response.json(DEFAULT_EXECUTORS, {
-    headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' },
+    headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate'},
   })
 }

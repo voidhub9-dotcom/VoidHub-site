@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AlertIcon, KeyIcon } from '@/components/Icons'
-import type { ShopProduct } from '@/lib/shop'
+import { AlertIcon, KeyIcon, PlusIcon, TrashIcon, GlobeIcon } from '@/components/Icons'
+import type { ShopProduct, RegionalPrice } from '@/lib/shop'
 
 export interface ShopProductFormData {
   name: string
@@ -14,6 +14,13 @@ export interface ShopProductFormData {
   category: string
   active: boolean
   keysToAdd: string[]
+  regionalPricing: RegionalPrice[]
+}
+
+interface RegionRow {
+  countryCode: string
+  priceDollars: string
+  currency: string
 }
 
 interface ShopProductModalProps {
@@ -44,6 +51,7 @@ const labelCls = 'block font-heading text-[0.62rem] tracking-widest text-silver-
 export default function ShopProductModal({ product, onSave, onCancel }: ShopProductModalProps) {
   const [form, setForm] = useState(empty)
   const [keysText, setKeysText] = useState('')
+  const [regionRows, setRegionRows] = useState<RegionRow[]>([])
   const [error, setError] = useState('')
 
   const isEdit = !!product
@@ -60,12 +68,27 @@ export default function ShopProductModal({ product, onSave, onCancel }: ShopProd
         category: product.category,
         active: product.active,
       })
+      setRegionRows(
+        (product.regionalPricing || []).map(r => ({
+          countryCode: r.countryCode,
+          priceDollars: (r.priceCents / 100).toString(),
+          currency: r.currency,
+        })),
+      )
     } else {
       setForm(empty)
+      setRegionRows([])
     }
     setKeysText('')
     setError('')
   }, [product])
+
+  const addRegionRow = () =>
+    setRegionRows(rows => [...rows, { countryCode: '', priceDollars: '', currency: form.currency }])
+  const removeRegionRow = (i: number) =>
+    setRegionRows(rows => rows.filter((_, idx) => idx !== i))
+  const updateRegionRow = (i: number, updates: Partial<RegionRow>) =>
+    setRegionRows(rows => rows.map((r, idx) => (idx === i ? { ...r, ...updates } : r)))
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm(p => ({ ...p, [k]: v }))
@@ -80,6 +103,14 @@ export default function ShopProductModal({ product, onSave, onCancel }: ShopProd
       .map(k => k.trim())
       .filter(Boolean)
 
+    const regionalPricing: RegionalPrice[] = regionRows
+      .filter(r => r.countryCode.trim() && r.priceDollars.trim())
+      .map(r => ({
+        countryCode: r.countryCode.trim().toUpperCase().slice(0, 2),
+        priceCents: Math.round(parseFloat(r.priceDollars || '0') * 100),
+        currency: r.currency,
+      }))
+
     onSave({
       name: form.name.trim(),
       description: form.description.trim(),
@@ -90,6 +121,7 @@ export default function ShopProductModal({ product, onSave, onCancel }: ShopProd
       category: form.category.trim(),
       active: form.active,
       keysToAdd,
+      regionalPricing,
     })
   }
 
@@ -183,6 +215,66 @@ export default function ShopProductModal({ product, onSave, onCancel }: ShopProd
           placeholder="https://…"
           className={inputCls}
         />
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className={`${labelCls} !mb-0 flex items-center gap-1.5`}>
+            <GlobeIcon size={11} /> Regional pricing
+          </span>
+          <button
+            type="button"
+            onClick={addRegionRow}
+            className="flex items-center gap-1 text-[0.65rem] font-body text-silver-mid hover:text-white transition-colors"
+          >
+            <PlusIcon size={11} /> Add country
+          </button>
+        </div>
+        <p className="font-body text-[0.68rem] text-silver-faint mb-2">
+          Optional per-country price overrides — buyers in that country see and pay this price instead of the base price above.
+        </p>
+        {regionRows.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {regionRows.map((row, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={row.countryCode}
+                  onChange={e => updateRegionRow(i, { countryCode: e.target.value.toUpperCase().slice(0, 2) })}
+                  placeholder="IN"
+                  maxLength={2}
+                  className={`${inputCls} !h-9 !w-16 text-center uppercase`}
+                  aria-label="Country code"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={row.priceDollars}
+                  onChange={e => updateRegionRow(i, { priceDollars: e.target.value })}
+                  placeholder="4.99"
+                  className={`${inputCls} !h-9 !w-auto flex-1`}
+                  aria-label="Regional price"
+                />
+                <select
+                  value={row.currency}
+                  onChange={e => updateRegionRow(i, { currency: e.target.value })}
+                  className={`${inputCls} !h-9 !w-20 appearance-none cursor-pointer uppercase`}
+                  aria-label="Regional currency"
+                >
+                  {CURRENCIES.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => removeRegionRow(i)}
+                  className="shrink-0 p-2 text-silver-muted hover:text-danger transition-colors"
+                  aria-label="Remove region"
+                >
+                  <TrashIcon size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>

@@ -13,6 +13,8 @@ export interface PublicShopProduct {
   category: string
   stock: number
   soldCount: number
+  /** Buyer's detected country if a regional price override applied, else null */
+  region: string | null
 }
 
 interface ShopProductCardProps {
@@ -84,9 +86,16 @@ export default function ShopProductCard({ product, onBuy, buying }: ShopProductC
         )}
 
         <div className="flex items-center justify-between pt-2 mt-auto">
-          <span className="font-heading text-xl text-white">
-            {formatPrice(product.priceCents, product.currency)}
-          </span>
+          <div className="flex flex-col">
+            <span className="font-heading text-xl text-white">
+              {formatPrice(product.priceCents, product.currency)}
+            </span>
+            {product.region && (
+              <span className="font-body text-[0.65rem] text-silver-faint">
+                {product.region} pricing
+              </span>
+            )}
+          </div>
           <button
             onClick={() => onBuy(product)}
             disabled={soldOut || buying}

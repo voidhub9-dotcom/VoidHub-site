@@ -1,4 +1,4 @@
-import { loadShopProducts, appendShopOrder, type ShopOrder } from '@/lib/shop'
+import { loadShopProducts, appendShopOrder, resolveProductPrice, type ShopOrder } from '@/lib/shop'
 import { stripeClient, stripeConfigured } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
@@ -30,6 +30,11 @@ export async function POST(req: Request) {
       return Response.json({ error: 'This product is sold out' }, { status: 409 })
     }
 
+    // Charge the same region-resolved price the buyer was shown on /shop —
+    // both routes read the same x-vercel-ip-country header, so they agree.
+    const countryCode = req.headers.get('x-vercel-ip-country')
+    const price = resolveProductPrice(product, countryCode)
+
     const stripe = stripeClient()!
     const origin =
       process.env.NEXT_PUBLIC_SITE_URL ||
@@ -44,8 +49,8 @@ export async function POST(req: Request) {
         {
           quantity: 1,
           price_data: {
-            currency: product.currency,
-            unit_amount: product.priceCents,
+            currency: price.currency,
+            unit_amount: price.priceCents,
             product_data: {
               name: product.name,
               description: product.description || undefined,
@@ -53,7 +58,7 @@ export async function POST(req: Request) {
           },
         },
       ],
-      metadata: { productId: product.id },
+      metadata: { productId: product.id, region: price.region || '' },
       success_url: `${origin}/shop/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/shop/cancel`,
     })
@@ -62,8 +67,8 @@ export async function POST(req: Request) {
       id: session.id,
       productId: product.id,
       productName: product.name,
-      amountTotal: product.priceCents,
-      currency: product.currency,
+      amountTotal: price.priceCents,
+      currency: price.currency,
       customerEmail: email || null,
       status: 'pending',
       deliveredKey: null,

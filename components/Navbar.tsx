@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { HomeIcon, GamesIcon, AboutIcon, DiscordIcon, MenuIcon, XIcon, ActivityIcon, HelpIcon, KeyIcon, ShopIcon } from '@/components/Icons'
+import AnimatedLogo from '@/components/AnimatedLogo'
 import { getDiscordLink } from '@/lib/storage'
 
 const navLinks = [
@@ -82,10 +83,10 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
-            <img
+            <AnimatedLogo
               src={logoUrl.trim() || 'https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png'}
               alt={`${siteName} Logo`}
-              className="h-9 w-9 object-contain"
+              size={36}
             />
             <span className="font-heading text-xl tracking-wider">
               {siteName === 'VoidHub' ? (

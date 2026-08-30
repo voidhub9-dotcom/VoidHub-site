@@ -15,6 +15,7 @@ import {
   SettingsIcon,
   ShopIcon,
 } from '@/components/Icons'
+import AnimatedLogo from '@/components/AnimatedLogo'
 import { logout } from '@/lib/storage'
 
 const mobileLinks = [
@@ -42,10 +43,11 @@ export default function AdminTopBar() {
         <div className="flex items-center justify-between h-full px-4">
           {/* Left - Logo */}
           <Link href="/admin/dashboard" className="flex items-center gap-3">
-            <img
+            <AnimatedLogo
               src="https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png"
               alt="VoidHub Logo"
-              className="w-8 h-8"
+              size={32}
+              playIntro={false}
             />
             <span className="font-heading text-[0.9rem] text-white">VoidHub Admin</span>
           </Link>

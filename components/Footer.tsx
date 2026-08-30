@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { HomeIcon, GamesIcon, AboutIcon, DiscordIcon, ActivityIcon, HelpIcon, YouTubeIcon, TikTokIcon, TelegramIcon, ShopIcon } from '@/components/Icons'
+import AnimatedLogo from '@/components/AnimatedLogo'
 import { getDiscordLink, getTagline } from '@/lib/storage'
 
 interface FooterLinks {
@@ -60,10 +61,11 @@ export default function Footer() {
           {/* Logo & Tagline */}
           <div className="flex flex-col items-center md:items-start gap-3">
             <Link href="/" className="flex items-center gap-3">
-              <img
+              <AnimatedLogo
                 src={links.logoUrl.trim() || 'https://i.gyazo.com/6563500fdd13be5167583dafb30df1d9.png'}
                 alt={`${links.siteName} Logo`}
-                className="h-10 w-10 object-contain"
+                size={40}
+                playIntro={false}
               />
               <span className="font-heading text-xl tracking-wider">
                 {links.siteName === 'VoidHub' ? (
