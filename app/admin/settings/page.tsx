@@ -205,7 +205,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Credentials */}
-      <section className="rounded-lg border border-border-dim bg-black-card p-6">
+      <section className="admin-panel p-6">
         <h2 className="font-heading text-lg tracking-wide text-white mb-4">CREDENTIALS</h2>
         <div className="flex items-start gap-3 rounded-lg border border-border-dim bg-black-surface p-4 max-w-xl">
           <LockIcon size={18} className="text-info mt-0.5 shrink-0" />
@@ -226,7 +226,7 @@ export default function SettingsPage() {
       </section>
 
       {/* Site Settings */}
-      <section className="rounded-lg border border-border-dim bg-black-card p-6">
+      <section className="admin-panel p-6">
         <h2 className="font-heading text-lg tracking-wide text-white mb-4">SITE SETTINGS</h2>
         <div className="max-w-md space-y-4">
           <div>
@@ -273,7 +273,7 @@ export default function SettingsPage() {
       </section>
 
       {/* Links & Branding */}
-      <section className="rounded-lg border border-border-dim bg-black-card p-6">
+      <section className="admin-panel p-6">
         <h2 className="font-heading text-lg tracking-wide text-white mb-1">LINKS &amp; BRANDING</h2>
         <p className="font-body text-xs text-silver-muted mb-4">
           Shown across the public site — leave a link empty to hide it
@@ -373,7 +373,7 @@ export default function SettingsPage() {
       </section>
 
       {/* Data Management */}
-      <section className="rounded-lg border border-border-dim bg-black-card p-6">
+      <section className="admin-panel p-6">
         <h2 className="font-heading text-lg tracking-wide text-white mb-4">DATA MANAGEMENT</h2>
         <div className="flex flex-wrap gap-3">
           <button
@@ -424,7 +424,7 @@ export default function SettingsPage() {
       </section>
 
       {/* Session Info */}
-      <section className="rounded-lg border border-border-dim bg-black-card p-6">
+      <section className="admin-panel p-6">
         <h2 className="font-heading text-lg tracking-wide text-white mb-4">SESSION INFO</h2>
         <div className="space-y-1 text-sm font-body text-silver-muted">
           <p>Logged in as: <span className="text-silver-bright">{username}</span></p>

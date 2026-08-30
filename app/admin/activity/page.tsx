@@ -91,7 +91,7 @@ export default function ActivityPage() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border-dim bg-black-card">
+      <div className="admin-panel">
         {log.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <ActivityIcon size={40} className="text-silver-faint" />

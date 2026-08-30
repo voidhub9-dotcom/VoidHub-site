@@ -300,7 +300,7 @@ export default function LoaderPage() {
       </section>
 
       {/* PANEL 2: Pasted Script (fallback) */}
-      <section className="rounded-lg border border-border-dim bg-black-card p-6">
+      <section className="admin-panel p-6">
         <div className="flex items-center gap-3 mb-1">
           <TerminalIcon size={22} className="text-silver-base" />
           <h2 className="font-heading text-lg tracking-wide text-white">PASTED LUA SCRIPT</h2>
@@ -341,7 +341,7 @@ export default function LoaderPage() {
       </section>
 
       {/* PANEL 3: Loadstring Display */}
-      <section className="rounded-lg border border-border-dim bg-black-card p-6">
+      <section className="admin-panel p-6">
         <h2 className="font-heading text-lg tracking-wide text-white">PUBLIC LOADSTRING TEXT</h2>
         <p className="mt-1 text-sm font-body text-silver-muted">
           The text shown in the copy box on the home page. Point it at your protected endpoint.
@@ -364,7 +364,7 @@ export default function LoaderPage() {
       </section>
 
       {/* PANEL 4: Endpoint URL */}
-      <section className="rounded-lg border border-border-dim bg-black-card p-6">
+      <section className="admin-panel p-6">
         <h2 className="font-heading text-lg tracking-wide text-white">ENDPOINT URL</h2>
         <p className="mt-1 text-sm font-body text-silver-muted">
           The URL your Lua loader calls. Update this if you change your hosting domain.
@@ -396,7 +396,7 @@ export default function LoaderPage() {
 
       {/* PANEL 5: Protection Status + Copy Counter */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <section className="rounded-lg border border-border-dim bg-black-card p-6">
+        <section className="admin-panel p-6">
           <h2 className="font-heading text-sm tracking-wide text-white mb-4">PROTECTION STATUS</h2>
           <ul className="space-y-2">
             {PROTECTION_STATUS.map(item => (
@@ -408,7 +408,7 @@ export default function LoaderPage() {
           </ul>
         </section>
 
-        <section className="rounded-lg border border-border-dim bg-black-card p-6">
+        <section className="admin-panel p-6">
           <h2 className="font-heading text-sm tracking-wide text-white mb-4">COPY COUNTER</h2>
           <p className="font-heading text-4xl text-white">{copyCount}</p>
           <p className="mt-1 text-sm font-body text-silver-muted">times the loadstring was copied</p>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LockIcon, EyeIcon, EyeOffIcon, ShieldIcon } from '@/components/Icons'
+import AnimatedLogo from '@/components/AnimatedLogo'
 import { login } from '@/lib/storage'
 
 export default function AdminLoginPage() {
@@ -43,7 +44,7 @@ export default function AdminLoginPage() {
         {/* Login Card */}
         <div
           className={`
-            bg-black-card border border-border-mid rounded-xl
+            admin-panel
             shadow-[0_0_60px_rgba(255,255,255,0.04)]
             p-8
             ${shake ? 'animate-shake' : ''}
@@ -52,11 +53,7 @@ export default function AdminLoginPage() {
           {/* Logo */}
           <div className="flex justify-center mb-5">
             <div className="relative">
-              <img
-                src="/logo.png"
-                alt="VoidHub Logo"
-                className="w-16 h-16"
-              />
+              <AnimatedLogo src="/logo.png" alt="VoidHub Logo" size={64} />
               <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-black-surface border border-border-mid flex items-center justify-center">
                 <ShieldIcon size={12} className="text-silver-mid" />
               </div>

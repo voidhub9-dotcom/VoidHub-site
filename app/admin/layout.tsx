@@ -54,10 +54,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-black-void">
+      <div className="relative min-h-screen bg-black-void overflow-hidden">
+        {/* Ambient grid + gradient glow, fixed behind everything */}
+        <div className="fixed inset-0 hero-grid opacity-[0.12] pointer-events-none" aria-hidden="true" />
+        <div
+          className="fixed -top-32 -left-32 w-[480px] h-[480px] rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(0,255,204,0.05), transparent 70%)' }}
+          aria-hidden="true"
+        />
+        <div
+          className="fixed bottom-0 right-0 w-[480px] h-[480px] rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.06), transparent 70%)' }}
+          aria-hidden="true"
+        />
+
         <AdminTopBar />
         <AdminSidebar />
-        <main className="pt-[60px] lg:pl-[220px]">
+        <main className="relative pt-[60px] lg:pl-[220px]">
           <div className="p-4 md:p-6 lg:p-8">{children}</div>
         </main>
       </div>

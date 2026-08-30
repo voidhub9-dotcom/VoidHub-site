@@ -39,7 +39,12 @@ export default function AdminTopBar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 h-[60px] bg-black-surface border-b border-border-dim">
+      <header className="fixed top-0 left-0 right-0 z-50 h-[60px] bg-black-surface/90 backdrop-blur-xl border-b border-border-dim">
+        <div
+          className="absolute inset-x-0 bottom-0 h-px opacity-60"
+          style={{ background: 'linear-gradient(90deg, transparent, var(--accent-violet), var(--accent-cyber), transparent)' }}
+          aria-hidden="true"
+        />
         <div className="flex items-center justify-between h-full px-4">
           {/* Left - Logo */}
           <Link href="/admin/dashboard" className="flex items-center gap-3">

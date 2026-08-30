@@ -649,7 +649,7 @@
   animation: logoBurstRing 0.7s ease-out both;
 }
 
-/* ── Admin games page ──────────────────────────── */
+/* ── Admin shell ──────────────────────────────── */
 
 .admin-stagger {
   animation: fadeSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -669,4 +669,28 @@
 }
 .admin-stat-card:hover::after {
   transform: translateX(100%);
+}
+
+/* Unified admin content-panel look: signature gradient top accent bar,
+   used everywhere admin pages currently wrap content in a plain
+   bg-black-card + border-border-dim box. */
+.admin-panel {
+  position: relative;
+  background: var(--black-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.25s ease;
+}
+.admin-panel::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyber));
+  opacity: 0.7;
+}
+.admin-panel:hover {
+  border-color: var(--border-mid);
 }

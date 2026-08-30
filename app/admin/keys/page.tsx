@@ -188,7 +188,7 @@ export default function AdminKeysPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <a href="/getkey" target="_blank" rel="noopener noreferrer" className="void-btn-secondary">
+          <a href="/getkey" target="_blank" rel="noopener noreferrer" className="btn-ghost">
             VIEW PAGE
           </a>
           <button onClick={openAdd} className="btn-primary flex items-center gap-2">
@@ -234,7 +234,7 @@ export default function AdminKeysPage() {
       </div>
 
       {/* Page settings */}
-      <div className="void-card p-5 mb-6 flex flex-col gap-4">
+      <div className="admin-panel p-5 mb-6 flex flex-col gap-4">
         <h2 className="font-heading text-sm text-white tracking-wider">PAGE TEXT</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -602,7 +602,7 @@ export default function AdminKeysPage() {
           )}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button onClick={() => setModalOpen(false)} className="void-btn-secondary">
+            <button onClick={() => setModalOpen(false)} className="btn-ghost">
               CANCEL
             </button>
             <button onClick={submitProvider} className="btn-primary flex items-center gap-2">
@@ -624,7 +624,7 @@ export default function AdminKeysPage() {
             ? This cannot be undone.
           </p>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setDeleteIndex(null)} className="void-btn-secondary">
+            <button onClick={() => setDeleteIndex(null)} className="btn-ghost">
               CANCEL
             </button>
             <button

@@ -52,19 +52,19 @@ export const metadata: Metadata = {
       'Free Roblox scripts for the most popular games, plus premium keys in the Shop for instant delivery.',
     images: [
       {
-        url: '/logo.png',
-        width: 256,
-        height: 256,
-        alt: 'VoidHub Logo',
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'VoidHub — Free Roblox Scripts & Premium Keys',
       },
     ],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'VoidHub | Free Roblox Scripts & Premium Keys',
     description:
       'Free Roblox scripts for the most popular games, plus premium keys in the Shop.',
-    images: ['/logo.png'],
+    images: ['/og-image.png'],
   },
 }
 

@@ -176,7 +176,7 @@ export default function AdminDashboardPage() {
 
       {/* Loader status + quick loadstring */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="bg-black-card border border-border-dim rounded-lg p-5">
+        <div className="admin-panel p-5">
           <div className="flex items-center gap-2 mb-3">
             <ShieldIcon size={18} className="text-silver-base" />
             <h2 className="font-heading text-sm text-white">LOADER STATUS</h2>
@@ -214,7 +214,7 @@ export default function AdminDashboardPage() {
           </Link>
         </div>
 
-        <div className="bg-black-card border border-border-dim rounded-lg p-5">
+        <div className="admin-panel p-5">
           <div className="flex items-center gap-2 mb-3">
             <BoltIcon size={18} className="text-silver-base" />
             <h2 className="font-heading text-sm text-white">PUBLIC LOADSTRING</h2>
@@ -244,7 +244,7 @@ export default function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <div className="bg-black-card border border-border-dim rounded-lg p-5">
+        <div className="admin-panel p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <ActivityIcon size={18} className="text-silver-base" />
@@ -269,7 +269,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Recent Games */}
-        <div className="bg-black-card border border-border-dim rounded-lg p-5">
+        <div className="admin-panel p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <GamesIcon size={18} className="text-silver-base" />

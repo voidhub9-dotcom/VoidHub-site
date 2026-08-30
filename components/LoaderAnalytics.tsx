@@ -101,7 +101,7 @@ export default function LoaderAnalytics() {
       : null
 
   return (
-    <div className="bg-black-card border border-border-dim rounded-lg p-5 mb-6">
+    <div className="admin-panel p-5 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <BoltIcon size={18} className="text-silver-base" />
