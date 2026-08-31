@@ -104,3 +104,39 @@ export async function updateShopOrder(
   await saveShopOrders(orders)
   return orders[index]
 }
+
+/**
+ * Admin-editable copy for the key-delivery email (lib/email.ts). The overall
+ * HTML shell (logo header, key box, gradient accent) stays fixed — only the
+ * text is editable, same pattern as the free key-page's title/subtitle/
+ * instructions/footer. Supports {product}, {duration}, {key}, {orderId}
+ * placeholders, substituted at send time.
+ */
+export interface ShopEmailTemplate {
+  subject: string
+  heading: string
+  introText: string
+  footerNote: string
+}
+
+export const DEFAULT_SHOP_EMAIL_TEMPLATE: ShopEmailTemplate = {
+  subject: 'Your VoidHub key — {product}',
+  heading: 'Your key is ready',
+  introText: "Save this key somewhere safe — you'll need it to run the loader.",
+  footerNote: "Didn't make this purchase? Ignore this email.",
+}
+
+export async function loadShopEmailTemplate(): Promise<ShopEmailTemplate> {
+  try {
+    const raw = await kvGet(KV_KEYS.SHOP_EMAIL_TEMPLATE)
+    if (!raw) return DEFAULT_SHOP_EMAIL_TEMPLATE
+    const parsed = JSON.parse(raw)
+    return { ...DEFAULT_SHOP_EMAIL_TEMPLATE, ...parsed }
+  } catch {
+    return DEFAULT_SHOP_EMAIL_TEMPLATE
+  }
+}
+
+export async function saveShopEmailTemplate(template: ShopEmailTemplate): Promise<void> {
+  await kvSet(KV_KEYS.SHOP_EMAIL_TEMPLATE, JSON.stringify(template))
+}

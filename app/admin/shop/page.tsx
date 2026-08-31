@@ -8,6 +8,7 @@ import {
 } from '@/components/Icons'
 import Modal from '@/components/Modal'
 import ShopProductModal, { ShopProductFormData } from '@/components/ShopProductModal'
+import ShopEmailTemplateModal from '@/components/ShopEmailTemplateModal'
 import StripeSetupGuide from '@/components/StripeSetupGuide'
 import { useToast } from '@/components/Toast'
 import type { ShopProduct } from '@/lib/shop'
@@ -68,6 +69,7 @@ export default function AdminShopPage() {
   const [testEmail, setTestEmail] = useState('')
   const [testSubmitting, setTestSubmitting] = useState(false)
   const [testResult, setTestResult] = useState<{ sessionId: string; emailSent: boolean; emailError?: string } | null>(null)
+  const [emailTemplateOpen, setEmailTemplateOpen] = useState(false)
 
   const loadProducts = useCallback(async () => {
     setLoading(true)
@@ -167,6 +169,10 @@ export default function AdminShopPage() {
             className="flex items-center gap-2 px-3 h-10 border border-border-mid text-silver-mid rounded-lg font-body text-sm hover:text-white hover:border-white transition-all">
             <ActivityIcon size={16} /><span className="hidden sm:inline">Orders</span>
           </Link>
+          <button onClick={() => setEmailTemplateOpen(true)}
+            className="flex items-center gap-2 px-3 h-10 border border-border-mid text-silver-mid rounded-lg font-body text-sm hover:text-white hover:border-white transition-all">
+            <MailIcon size={16} /><span className="hidden sm:inline">Email Template</span>
+          </button>
           <button onClick={loadProducts} aria-label="Refresh products"
             className="flex items-center gap-2 px-3 h-10 border border-border-mid text-silver-mid rounded-lg font-body text-sm hover:text-white hover:border-white transition-all">
             <RefreshIcon size={16} className={loading ? 'animate-spin' : ''} /><span className="hidden sm:inline">Refresh</span>
@@ -328,6 +334,11 @@ export default function AdminShopPage() {
             </>
           )}
         </div>
+      </Modal>
+
+      {/* Email delivery template */}
+      <Modal isOpen={emailTemplateOpen} onClose={() => setEmailTemplateOpen(false)} title="DELIVERY EMAIL TEMPLATE" maxWidth="max-w-[500px]">
+        <ShopEmailTemplateModal onClose={() => setEmailTemplateOpen(false)} />
       </Modal>
 
       {/* Delete Confirm */}

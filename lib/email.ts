@@ -15,6 +15,8 @@
  * returns false — the on-page key reveal keeps working either way.
  */
 
+import { loadShopEmailTemplate, type ShopEmailTemplate } from './shop'
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const FROM_ADDRESS = process.env.EMAIL_FROM || 'VoidHub <keys@voidon.top>'
 
@@ -27,11 +29,28 @@ function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
 }
 
-function buildEmail(params: { productName: string; durationLabel: string; keyValue: string; orderId: string }) {
+/** Substitutes {product}, {duration}, {key}, {orderId} in admin-edited template text. */
+function applyPlaceholders(text: string, vars: Record<string, string>): string {
+  return text.replace(/\{(product|duration|key|orderId)\}/g, (_, name) => vars[name] ?? '')
+}
+
+function buildEmail(
+  params: { productName: string; durationLabel: string; keyValue: string; orderId: string },
+  template: ShopEmailTemplate,
+) {
   const { productName, durationLabel, keyValue, orderId } = params
+  const vars = { product: productName, duration: durationLabel, key: keyValue, orderId }
+  const subject = applyPlaceholders(template.subject, vars)
+  const heading = applyPlaceholders(template.heading, vars)
+  const intro = applyPlaceholders(template.introText, vars)
+  const footer = applyPlaceholders(template.footerNote, vars)
+
   const safeProduct = escapeHtml(productName)
   const safeDuration = escapeHtml(durationLabel)
   const safeKey = escapeHtml(keyValue)
+  const safeHeading = escapeHtml(heading)
+  const safeIntro = escapeHtml(intro)
+  const safeFooter = escapeHtml(footer)
 
   const html = `
 <div style="background:#000;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
@@ -39,31 +58,31 @@ function buildEmail(params: { productName: string; durationLabel: string; keyVal
     <div style="height:3px;background:linear-gradient(90deg,#a855f7,#00ffcc);"></div>
     <div style="padding:32px 28px;">
       <p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#707070;">VoidHub</p>
-      <h1 style="margin:0 0 20px;font-size:20px;color:#fff;">Your key is ready</h1>
+      <h1 style="margin:0 0 20px;font-size:20px;color:#fff;">${safeHeading}</h1>
       <p style="margin:0 0 4px;font-size:13px;color:#a0a0a0;">${safeProduct} &middot; ${safeDuration}</p>
       <div style="margin:16px 0;padding:16px;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;">
         <code style="font-family:'SF Mono',Consolas,monospace;font-size:15px;color:#ececec;word-break:break-all;">${safeKey}</code>
       </div>
-      <p style="margin:0 0 24px;font-size:12px;color:#707070;">Save this key somewhere safe — you'll need it to run the loader.</p>
+      <p style="margin:0 0 24px;font-size:12px;color:#707070;">${safeIntro}</p>
       <p style="margin:0;font-size:11px;color:#404040;">Order reference: ${escapeHtml(orderId)}</p>
     </div>
   </div>
   <p style="max-width:480px;margin:16px auto 0;font-size:11px;color:#404040;text-align:center;">
-    Didn't make this purchase? Ignore this email.
+    ${safeFooter}
   </p>
 </div>`.trim()
 
-  const text = `Your VoidHub key is ready
+  const text = `${heading}
 
 ${productName} · ${durationLabel}
 
 Key: ${keyValue}
 
-Save this key somewhere safe — you'll need it to run the loader.
+${intro}
 
 Order reference: ${orderId}`
 
-  return { html, text }
+  return { subject, html, text }
 }
 
 export interface EmailSendResult {
@@ -90,7 +109,8 @@ export async function sendKeyDeliveryEmail(params: {
   if (!RESEND_API_KEY) return { ok: false, error: 'RESEND_API_KEY is not set' }
 
   try {
-    const { html, text } = buildEmail(params)
+    const template = await loadShopEmailTemplate()
+    const { subject, html, text } = buildEmail(params, template)
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -100,7 +120,7 @@ export async function sendKeyDeliveryEmail(params: {
       body: JSON.stringify({
         from: FROM_ADDRESS,
         to: params.to,
-        subject: `Your VoidHub key — ${params.productName}`,
+        subject,
         html,
         text,
       }),
