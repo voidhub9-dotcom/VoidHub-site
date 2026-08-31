@@ -17,25 +17,6 @@ async function getGames() {
 
 async function saveGames(games: any[]) {
   await saveFile('games.json', games)
-  await buildGameList(games)
-}
-
-async function buildGameList(games: any[]) {
-  const lines = ['local Games = {']
-
-  for (const game of games) {
-    if (!game.placeId || !game.scriptLink) continue
-
-    lines.push(
-      `  [${game.placeId}] = "${game.scriptLink}", -- ${game.name}`
-    )
-  }
-
-  lines.push('}')
-  lines.push('')
-  lines.push('return Games')
-
-  await saveFile('GameList.lua', lines.join('\n'))
 }
 
 export async function GET(req: Request) {

@@ -32,6 +32,7 @@ export interface GameFormData {
   thumbnail: string
   scriptLink: string
   robloxUrl: string
+  placeId?: string
   features: string[]
   featured: boolean
   notes: string
@@ -90,6 +91,7 @@ export default function GameModal({ game, onSave, onCancel }: GameModalProps) {
         thumbnail:   game.thumbnail   ?? '',
         scriptLink:  game.scriptLink  ?? '',
         robloxUrl:   game.robloxUrl   ?? '',
+        placeId:     game.placeId     ?? '',
         features:    Array.isArray(game.features) ? game.features : [],
         featured:    game.featured    ?? false,
         notes:       game.notes       ?? '',
@@ -140,6 +142,7 @@ export default function GameModal({ game, onSave, onCancel }: GameModalProps) {
         description: data.description || p.description,
         thumbnail:   data.thumbnail   || p.thumbnail,
         robloxUrl:   data.robloxUrl   || (url.includes('roblox.com') ? url : `https://www.roblox.com/games/${gameId}`),
+        placeId:     data.placeId     || p.placeId,
       }))
       setFetchState('ok')
       setFetchMsg(`"${data.name || 'Game'}" imported — name, description & thumbnail filled in.`)
@@ -203,7 +206,6 @@ export default function GameModal({ game, onSave, onCancel }: GameModalProps) {
   // ── Step navigation with per-step validation ───────────────────────
   const validateStep = (s: number): string => {
     if (s === 1 && !form.name.trim()) return 'Game name is required before continuing.'
-    if (s === 3 && !form.scriptLink.trim()) return 'Script link is required to publish.'
     return ''
   }
 
@@ -228,7 +230,6 @@ export default function GameModal({ game, onSave, onCancel }: GameModalProps) {
 
   const handleSave = () => {
     if (!form.name.trim()) { setStep(1); setStepErr('Game name is required.'); return }
-    if (!form.scriptLink.trim()) { setStepErr('Script link is required to publish.'); scriptRef.current?.focus(); return }
     onSave(form)
   }
 
@@ -526,17 +527,20 @@ export default function GameModal({ game, onSave, onCancel }: GameModalProps) {
           <div className="flex-1 flex flex-col gap-4 min-w-0">
             <div>
               <label htmlFor="gw-script" className={labelCls}>
-                Script link <span className="text-danger">*</span>
+                Script link <span className="text-silver-faint normal-case">(optional)</span>
               </label>
               <input
                 id="gw-script"
                 ref={scriptRef}
                 value={form.scriptLink}
-                onChange={e => { set('scriptLink', e.target.value); setStepErr('') }}
+                onChange={e => set('scriptLink', e.target.value)}
                 placeholder="https://discord.gg/… or pastebin link"
-                className={`${inputCls} ${stepErr && !form.scriptLink.trim() ? '!border-danger' : ''}`}
+                className={inputCls}
               />
-              <p className="font-body text-[0.68rem] text-silver-muted mt-1">Where the GET SCRIPT button on the public page sends people.</p>
+              <p className="font-body text-[0.68rem] text-silver-muted mt-1">
+                Adds a secondary &quot;Get Script&quot; link button on the game card. The main COPY SCRIPT button
+                always works site-wide regardless — it&apos;s powered by Admin → Loader, not this field.
+              </p>
             </div>
 
             <div>

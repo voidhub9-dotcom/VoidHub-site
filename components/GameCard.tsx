@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ExternalIcon, StarIcon, ImageIcon, CheckIcon } from '@/components/Icons'
+import { ExternalIcon, StarIcon, ImageIcon, CheckIcon, CodeIcon } from '@/components/Icons'
 
 interface Game {
   id: string
@@ -150,12 +150,26 @@ export default function GameCard({ game }: GameCardProps) {
             )}
           </button>
 
+          {game.scriptLink?.trim().startsWith('http') && (
+            <a
+              href={game.scriptLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              title="Get script link"
+              className="h-9 w-9 shrink-0 flex items-center justify-center border border-white/20 bg-white/5 backdrop-blur-md text-silver-light rounded-lg hover:border-white hover:text-white hover:bg-white/10 transition-all"
+            >
+              <CodeIcon size={14} />
+            </a>
+          )}
+
           {game.robloxUrl && (
             <a
               href={game.robloxUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}
+              title="Open in Roblox"
               className="h-9 w-9 shrink-0 flex items-center justify-center border border-white/20 bg-white/5 backdrop-blur-md text-silver-light rounded-lg hover:border-white hover:text-white hover:bg-white/10 transition-all"
             >
               <ExternalIcon size={14} />
