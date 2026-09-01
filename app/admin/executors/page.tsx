@@ -8,6 +8,7 @@ import {
 import Modal from '@/components/Modal'
 import ExecutorIcon from '@/components/ExecutorIcon'
 import { useToast } from '@/components/Toast'
+import ImageUploadInput from '@/components/ImageUploadInput'
 import type { Executor } from '@/lib/kv'
 
 function getAdminKey() {
@@ -379,15 +380,13 @@ export default function AdminExecutorsPage() {
 
           <div>
             <label htmlFor="exec-icon" className="font-body text-xs text-silver-muted tracking-wider uppercase block mb-1.5">
-              Icon URL <span className="text-silver-faint normal-case">(optional — leave empty for auto badge)</span>
+              Icon <span className="text-silver-faint normal-case">(optional — leave empty for auto badge)</span>
             </label>
-            <input
+            <ImageUploadInput
               id="exec-icon"
-              type="url"
               value={form.icon || ''}
-              onChange={e => setForm({ ...form, icon: e.target.value })}
-              placeholder="https://example.com/logo.png"
-              className="void-input"
+              onChange={url => setForm({ ...form, icon: url })}
+              placeholder="https://... or upload"
             />
           </div>
 

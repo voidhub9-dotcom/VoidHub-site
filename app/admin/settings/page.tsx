@@ -8,6 +8,7 @@ import {
   addActivityLog,
 } from '@/lib/storage'
 import { useToast } from '@/components/Toast'
+import ImageUploadInput from '@/components/ImageUploadInput'
 import {
   SettingsIcon,
   LockIcon,
@@ -293,15 +294,13 @@ export default function SettingsPage() {
           </div>
           <div>
             <label htmlFor="lb-logo" className="mb-1.5 block font-heading text-[0.6rem] tracking-widest text-silver-muted uppercase">
-              Logo Image URL <span className="text-silver-faint normal-case">(optional)</span>
+              Logo <span className="text-silver-faint normal-case">(optional)</span>
             </label>
-            <input
+            <ImageUploadInput
               id="lb-logo"
-              type="url"
               value={links.logoUrl}
-              onChange={e => setLinks({ ...links, logoUrl: e.target.value })}
-              placeholder="https://.../logo.png"
-              className={inputClass}
+              onChange={url => setLinks({ ...links, logoUrl: url })}
+              placeholder="https://... or upload"
             />
           </div>
           <div>
@@ -357,13 +356,6 @@ export default function SettingsPage() {
             />
           </div>
         </div>
-        {links.logoUrl.trim() && (
-          <div className="mt-4 flex items-center gap-3">
-            <span className="font-body text-xs text-silver-muted">Logo preview:</span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={links.logoUrl} alt="Logo preview" className="h-9 w-9 rounded-md object-cover border border-border-dim" />
-          </div>
-        )}
         <button
           onClick={handleSaveSettings}
           className="btn-primary mt-5 !px-5 !py-2.5"

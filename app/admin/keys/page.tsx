@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { KeyIcon, PlusIcon, TrashIcon, CheckIcon, EditIcon, RefreshIcon } from '@/components/Icons'
 import Modal from '@/components/Modal'
 import { useToast } from '@/components/Toast'
+import ImageUploadInput from '@/components/ImageUploadInput'
 
 interface KeyProvider {
   id: string
@@ -279,15 +280,13 @@ export default function AdminKeysPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="kp-banner" className="font-body text-xs text-silver-muted tracking-wider uppercase block mb-1.5">
-              Banner image URL <span className="text-silver-faint normal-case">(optional)</span>
+              Banner image <span className="text-silver-faint normal-case">(optional)</span>
             </label>
-            <input
+            <ImageUploadInput
               id="kp-banner"
-              type="url"
               value={config.bannerImageUrl}
-              onChange={e => updateField('bannerImageUrl', e.target.value)}
-              placeholder="https://.../banner.png"
-              className="void-input"
+              onChange={url => updateField('bannerImageUrl', url)}
+              placeholder="https://... or upload"
             />
           </div>
           <div>
@@ -539,15 +538,13 @@ export default function AdminKeysPage() {
             </div>
             <div>
               <label htmlFor="prov-icon" className="font-body text-xs text-silver-muted tracking-wider uppercase block mb-1.5">
-                Icon URL <span className="text-silver-faint normal-case">(optional)</span>
+                Icon <span className="text-silver-faint normal-case">(optional)</span>
               </label>
-              <input
+              <ImageUploadInput
                 id="prov-icon"
-                type="url"
                 value={form.iconUrl}
-                onChange={e => setForm({ ...form, iconUrl: e.target.value })}
-                placeholder="https://.../logo.png"
-                className="void-input"
+                onChange={url => setForm({ ...form, iconUrl: url })}
+                placeholder="https://... or upload"
               />
             </div>
           </div>
@@ -592,14 +589,6 @@ export default function AdminKeysPage() {
               />
             </div>
           </div>
-
-          {form.iconUrl.trim() && (
-            <div className="flex items-center gap-2">
-              <span className="font-body text-xs text-silver-muted">Icon preview:</span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={form.iconUrl} alt="Icon preview" className="w-9 h-9 rounded-md object-cover" />
-            </div>
-          )}
 
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={() => setModalOpen(false)} className="btn-ghost">

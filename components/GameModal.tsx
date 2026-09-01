@@ -5,6 +5,7 @@ import {
   RefreshIcon, CheckIcon, AlertIcon, PlusIcon, ImageIcon, XIcon,
   SparkleIcon, StarIcon, ExternalIcon,
 } from '@/components/Icons'
+import ImageUploadInput from '@/components/ImageUploadInput'
 
 /**
  * Add / Edit game — 4-step wizard:
@@ -375,13 +376,12 @@ export default function GameModal({ game, onSave, onCancel }: GameModalProps) {
                 />
               </div>
               <div>
-                <label htmlFor="gw-thumb" className={labelCls}>Thumbnail URL</label>
-                <input
+                <label htmlFor="gw-thumb" className={labelCls}>Image source</label>
+                <ImageUploadInput
                   id="gw-thumb"
                   value={form.thumbnail}
-                  onChange={e => { set('thumbnail', e.target.value); setThumbErr(false) }}
-                  placeholder="Auto-filled by import, or paste an image URL"
-                  className={inputCls}
+                  onChange={url => { set('thumbnail', url); setThumbErr(false) }}
+                  placeholder="Auto-filled by import, or paste/upload"
                 />
               </div>
             </div>
