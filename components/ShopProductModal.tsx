@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AlertIcon, KeyIcon, GlobeIcon } from '@/components/Icons'
+import ImageUploadInput from '@/components/ImageUploadInput'
 import type { ShopProduct } from '@/lib/shop'
 
 export interface ShopProductFormData {
@@ -181,14 +182,17 @@ export default function ShopProductModal({ product, onSave, onCancel }: ShopProd
       </div>
 
       <div>
-        <label htmlFor="sp-image" className={labelCls}>Image URL</label>
-        <input
+        <label htmlFor="sp-image" className={labelCls}>Product image</label>
+        <ImageUploadInput
           id="sp-image"
           value={form.imageUrl}
-          onChange={e => set('imageUrl', e.target.value)}
-          placeholder="https://…"
-          className={inputCls}
+          onChange={url => set('imageUrl', url)}
+          placeholder="https://… or upload"
         />
+        <p className="font-body text-[0.68rem] text-silver-muted mt-1.5">
+          Upload it directly, or paste a permanent URL. Avoid Discord attachment links — they expire
+          after a day or so and the image will break on the live site.
+        </p>
       </div>
 
       <div>

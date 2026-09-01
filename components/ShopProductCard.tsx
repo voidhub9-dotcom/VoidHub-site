@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { TagIcon, ClockIcon, CartIcon, ImageIcon } from '@/components/Icons'
 
 export interface PublicShopProduct {
@@ -35,15 +36,17 @@ function formatPrice(cents: number, currency: string) {
 export default function ShopProductCard({ product, onBuy, buying }: ShopProductCardProps) {
   const soldOut = product.stock < 1
   const lowStock = !soldOut && product.stock <= 5
+  const [imageError, setImageError] = useState(false)
 
   return (
     <div className="price-card flex flex-col">
       <div className="relative aspect-video w-full bg-black-surface overflow-hidden">
-        {product.imageUrl ? (
+        {product.imageUrl && !imageError ? (
           <img
             src={product.imageUrl}
             alt={product.name}
             className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
