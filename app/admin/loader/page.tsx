@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getLoadstring, setLoadstring, getCopyCount, resetCopyCount, addActivityLog } from '@/lib/storage'
 import { useToast } from '@/components/Toast'
 import {
@@ -12,7 +12,10 @@ import {
   RefreshIcon,
   EyeOffIcon,
   ExternalIcon,
+  UploadIcon,
 } from '@/components/Icons'
+
+const MAX_UPLOAD_BYTES = 3 * 1024 * 1024 // 3MB — plenty for even heavily obfuscated Lua
 
 function getAdminKey(): string {
   if (typeof window === 'undefined') return ''
@@ -39,13 +42,19 @@ async function apiSaveLoader(payload: { script?: string; rawScriptUrl?: string; 
 }
 
 const PROTECTION_STATUS = [
-  'Script served only to Roblox executors',
-  'Browsers & DevTools get redirected — never the script',
+  'Browsers & DevTools redirected to a decoy page',
   'Raw source link hidden server-side, never exposed',
+  'Per-IP rate limit slows down bulk scraping (20 req / 10s)',
   'Script fetched fresh on every request (no stale cache)',
   'Cache-Control: no-store on all responses',
   'Clipboard-stealer scripts auto-blocked',
 ]
+
+const PROTECTION_CAVEAT =
+  "Heads up: none of this stops a single curl of the endpoint — a Roblox executor's request looks " +
+  'identical to curl at the protocol level, so there’s no header check that can tell them apart. ' +
+  'These slow down scraping and hide the raw source; if you want the script itself to survive being ' +
+  'copied, obfuscate it before pasting or uploading it above.'
 
 export default function LoaderPage() {
   const { showToast } = useToast()
@@ -65,6 +74,8 @@ export default function LoaderPage() {
   const [isSavingEndpoint, setIsSavingEndpoint] = useState(false)
   const [isSavingDisplay, setIsSavingDisplay] = useState(false)
   const [storageStatus, setStorageStatus] = useState<'unknown' | 'ok' | 'unavailable'>('unknown')
+  const [uploadedFileName, setUploadedFileName] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadFromServer = useCallback(async () => {
     setIsLoading(true)
@@ -117,6 +128,26 @@ export default function LoaderPage() {
     } catch (err: any) {
       setTestResult({ ok: false, message: err.message })
     } finally { setIsTestingRawUrl(false) }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file later
+    if (!file) return
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      showToast(`File too large (max ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB)`, 'error')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setScriptContent(String(reader.result || ''))
+      setUploadedFileName(file.name)
+      showToast(`Loaded "${file.name}" — click Save Script to publish it`, 'info')
+    }
+    reader.onerror = () => showToast('Could not read that file', 'error')
+    reader.readAsText(file)
   }
 
   const handleSaveScript = async () => {
@@ -309,7 +340,11 @@ export default function LoaderPage() {
           </span>
         </div>
         <p className="text-sm font-body text-silver-muted mb-4">
-          Used only when no Raw Script URL is set above. Paste your full Lua script — stored server-side in R2.
+          Used only when no Raw Script URL is set above. Paste your full Lua script, or upload a
+          <span className="font-code text-silver-bright"> .lua</span> file directly — either way it's stored server-side in R2.
+          If you've obfuscated the script yourself, this is where it goes: obfuscation protects the source once
+          it's served, the rate limit on <span className="font-code text-silver-bright">/api/loader</span> just
+          slows down anyone trying to scrape it wholesale.
         </p>
 
         {isLoading ? (
@@ -319,23 +354,42 @@ export default function LoaderPage() {
           </div>
         ) : (
           <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".lua,.txt,text/plain"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             <textarea
               value={scriptContent}
-              onChange={e => setScriptContent(e.target.value)}
-              placeholder={'-- Paste your full Lua script here\n-- Saved directly to R2, live instantly'}
+              onChange={e => { setScriptContent(e.target.value); setUploadedFileName('') }}
+              placeholder={'-- Paste your full Lua script here, or upload a .lua file below\n-- Saved directly to R2, live instantly'}
               className="min-h-[260px] w-full resize-y rounded-lg border border-border-dim bg-black-surface p-4 font-code text-[0.85rem] text-silver-bright outline-none transition-colors focus:border-white"
               spellCheck={false}
             />
-            <p className="mt-2 font-code text-xs text-silver-muted">
-              {lineCount} lines · {scriptContent.length.toLocaleString()} chars
-            </p>
-            <button
-              onClick={handleSaveScript}
-              disabled={isSavingScript || storageStatus === 'unavailable'}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-silver-faint px-6 py-2.5 font-body text-sm text-silver-mid transition-all hover:border-white hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSavingScript ? <><RefreshIcon size={16} className="animate-spin" />Saving…</> : <><TerminalIcon size={16} />SAVE SCRIPT</>}
-            </button>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="font-code text-xs text-silver-muted">
+                {lineCount} lines · {scriptContent.length.toLocaleString()} chars
+                {uploadedFileName && <span className="text-success"> · from {uploadedFileName}</span>}
+              </p>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                onClick={handleSaveScript}
+                disabled={isSavingScript || storageStatus === 'unavailable'}
+                className="inline-flex items-center gap-2 rounded-lg border border-silver-faint px-6 py-2.5 font-body text-sm text-silver-mid transition-all hover:border-white hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSavingScript ? <><RefreshIcon size={16} className="animate-spin" />Saving…</> : <><TerminalIcon size={16} />SAVE SCRIPT</>}
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={storageStatus === 'unavailable'}
+                className="inline-flex items-center gap-2 rounded-lg border border-silver-faint px-6 py-2.5 font-body text-sm text-silver-mid transition-all hover:border-white hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <UploadIcon size={16} />UPLOAD .LUA FILE
+              </button>
+            </div>
           </>
         )}
       </section>
@@ -406,6 +460,10 @@ export default function LoaderPage() {
               </li>
             ))}
           </ul>
+          <p className="mt-4 flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/5 p-3 text-xs font-body text-silver-muted leading-relaxed">
+            <AlertIcon size={14} className="mt-0.5 shrink-0 text-warning" />
+            {PROTECTION_CAVEAT}
+          </p>
         </section>
 
         <section className="admin-panel p-6">

@@ -1,5 +1,6 @@
 import { kvGet, KV_KEYS } from '@/lib/kv'
 import { recordLoaderHit } from '@/lib/analytics'
+import { isRateLimited, getClientIp } from '@/lib/rate-limit'
 
 /**
  * Protected script loader.
@@ -70,6 +71,17 @@ export async function GET(request: Request) {
   // Roblox executors do not send sec-fetch-* headers, so they won't be redirected.
   if (isBrowser(request)) {
     return Response.redirect(new URL('/unauthorized', request.url), 302)
+  }
+
+  // ── Per-IP rate limit ────────────────────────────────────────────────────
+  // Doesn't stop a single deliberate curl, but caps how fast one source can
+  // hammer this endpoint in a tight loop (the actual scraping pattern).
+  const ip = getClientIp(request)
+  if (isRateLimited(ip, 20, 10_000)) {
+    return new Response('-- Too many requests, slow down', {
+      status: 429,
+      headers: { 'Content-Type': 'text/plain', 'Retry-After': '10' },
+    })
   }
 
   // Count this execution (real executor hit — browsers were filtered above).
