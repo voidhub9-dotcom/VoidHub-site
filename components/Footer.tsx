@@ -158,9 +158,14 @@ export default function Footer() {
           <p className="text-silver-muted text-xs font-body">
             &copy; {new Date().getFullYear()} {links.siteName}. All rights reserved.
           </p>
-          <p className="text-silver-muted text-xs font-body">
-            Free scripts. Premium keys. No BS.
-          </p>
+          <div className="flex items-center gap-4">
+            <Link href="/developers" className="text-silver-muted text-xs font-body hover:text-white transition-colors">
+              Public API
+            </Link>
+            <p className="text-silver-muted text-xs font-body">
+              Free scripts. Premium keys. No BS.
+            </p>
+          </div>
         </div>
       </div>
     </footer>
