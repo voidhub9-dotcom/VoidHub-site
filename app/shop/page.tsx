@@ -6,7 +6,7 @@ import Footer from '@/components/Footer'
 import Modal from '@/components/Modal'
 import ShopProductCard, { PublicShopProduct } from '@/components/ShopProductCard'
 import { ToastProvider, useToast } from '@/components/Toast'
-import { ShopIcon, CartIcon, ShieldIcon } from '@/components/Icons'
+import { ShopIcon, CartIcon, ShieldIcon, PlusIcon } from '@/components/Icons'
 
 function ShopPageInner() {
   const { showToast } = useToast()
@@ -14,6 +14,7 @@ function ShopPageInner() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<PublicShopProduct | null>(null)
   const [email, setEmail] = useState('')
+  const [quantity, setQuantity] = useState(1)
   const [buying, setBuying] = useState(false)
 
   useEffect(() => {
@@ -26,9 +27,16 @@ function ShopPageInner() {
       .catch(() => setLoading(false))
   }, [])
 
+  const maxQty = selected ? Math.min(10, selected.stock) : 1
+
   const openBuyModal = (product: PublicShopProduct) => {
     setSelected(product)
     setEmail('')
+    setQuantity(1)
+  }
+
+  const adjustQuantity = (delta: number) => {
+    setQuantity(q => Math.max(1, Math.min(maxQty, q + delta)))
   }
 
   const handleCheckout = async () => {
@@ -38,7 +46,7 @@ function ShopPageInner() {
       const res = await fetch('/api/shop/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: selected.id, email: email || undefined }),
+        body: JSON.stringify({ productId: selected.id, quantity, email: email || undefined }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to start checkout')
@@ -112,8 +120,37 @@ function ShopPageInner() {
             <div className="flex items-center justify-between px-4 py-3 bg-black-surface border border-border-dim rounded-lg">
               <span className="font-body text-sm text-silver-mid">{selected.durationLabel || selected.name}</span>
               <span className="font-heading text-lg text-white">
-                {new Intl.NumberFormat('en-US', { style: 'currency', currency: selected.currency.toUpperCase() }).format(selected.priceCents / 100)}
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: selected.currency.toUpperCase() }).format((selected.priceCents * quantity) / 100)}
               </span>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block font-body text-xs text-silver-muted">Quantity</label>
+                <span className="font-body text-xs text-silver-faint">{selected.stock} in stock</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => adjustQuantity(-1)}
+                  disabled={quantity <= 1}
+                  aria-label="Decrease quantity"
+                  className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg border border-border-mid text-silver-mid font-heading text-lg hover:border-white hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
+                >
+                  −
+                </button>
+                <span className="flex-1 text-center font-heading text-lg text-white" aria-live="polite">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => adjustQuantity(1)}
+                  disabled={quantity >= maxQty}
+                  aria-label="Increase quantity"
+                  className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg border border-border-mid text-silver-mid hover:border-white hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
+                >
+                  <PlusIcon size={16} />
+                </button>
+              </div>
             </div>
             <div>
               <label className="block font-body text-xs text-silver-muted mb-1.5">Email (optional — for your receipt)</label>

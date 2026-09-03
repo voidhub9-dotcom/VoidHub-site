@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useToast } from '@/components/Toast'
-import type { ShopEmailTemplate } from '@/lib/shop'
+import { renderShopEmail, type ShopEmailTemplate } from '@/lib/shop-email-render'
 
 interface ShopEmailTemplateModalProps {
   onClose: () => void
@@ -26,11 +26,19 @@ const FIELDS: { key: keyof ShopEmailTemplate; label: string; multiline?: boolean
   { key: 'footerNote', label: 'Footer note', multiline: true },
 ]
 
+const SAMPLE = {
+  productName: 'VoidHub Lifetime Key',
+  durationLabel: 'Lifetime',
+  keyValues: ['VOID-XXXX-XXXX-XXXX', 'VOID-YYYY-YYYY-YYYY'],
+  orderId: 'cs_test_a1B2c3D4e5F6',
+}
+
 export default function ShopEmailTemplateModal({ onClose }: ShopEmailTemplateModalProps) {
   const { showToast } = useToast()
   const [template, setTemplate] = useState<ShopEmailTemplate | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [singleKey, setSingleKey] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/shop/email-template', { headers: { 'x-admin-key': getAdminKey() } })
@@ -40,6 +48,14 @@ export default function ShopEmailTemplateModal({ onClose }: ShopEmailTemplateMod
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const preview = useMemo(() => {
+    if (!template) return null
+    return renderShopEmail(
+      { ...SAMPLE, keyValues: singleKey ? SAMPLE.keyValues.slice(0, 1) : SAMPLE.keyValues },
+      template,
+    )
+  }, [template, singleKey])
 
   const handleSave = async () => {
     if (!template) return
@@ -70,45 +86,73 @@ export default function ShopEmailTemplateModal({ onClose }: ShopEmailTemplateMod
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="font-body text-xs text-silver-muted leading-relaxed">
-        Controls the wording of the key-delivery email (the layout — logo, key box, gradient accent — stays fixed).
-        Use <code className="text-silver-light">{'{product}'}</code>, <code className="text-silver-light">{'{duration}'}</code>,{' '}
-        <code className="text-silver-light">{'{key}'}</code>, or <code className="text-silver-light">{'{orderId}'}</code> anywhere
-        to insert those values.
-      </p>
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Form */}
+      <div className="flex flex-col gap-4 lg:w-[320px] shrink-0">
+        <p className="font-body text-xs text-silver-muted leading-relaxed">
+          Controls the wording of the key-delivery email (the layout — logo, key box, gradient accent — stays fixed).
+          Use <code className="text-silver-light">{'{product}'}</code>, <code className="text-silver-light">{'{duration}'}</code>,{' '}
+          <code className="text-silver-light">{'{key}'}</code>, or <code className="text-silver-light">{'{orderId}'}</code> anywhere
+          to insert those values.
+        </p>
 
-      {FIELDS.map(field => (
-        <div key={field.key}>
-          <label htmlFor={`email-${field.key}`} className={labelCls}>{field.label}</label>
-          {field.multiline ? (
-            <textarea
-              id={`email-${field.key}`}
-              value={template[field.key]}
-              onChange={e => setTemplate({ ...template, [field.key]: e.target.value })}
-              rows={2}
-              className={`${inputCls} resize-none`}
-            />
-          ) : (
-            <input
-              id={`email-${field.key}`}
-              type="text"
-              value={template[field.key]}
-              onChange={e => setTemplate({ ...template, [field.key]: e.target.value })}
-              className={inputCls}
-            />
-          )}
+        {FIELDS.map(field => (
+          <div key={field.key}>
+            <label htmlFor={`email-${field.key}`} className={labelCls}>{field.label}</label>
+            {field.multiline ? (
+              <textarea
+                id={`email-${field.key}`}
+                value={template[field.key]}
+                onChange={e => setTemplate({ ...template, [field.key]: e.target.value })}
+                rows={2}
+                className={`${inputCls} resize-none`}
+              />
+            ) : (
+              <input
+                id={`email-${field.key}`}
+                type="text"
+                value={template[field.key]}
+                onChange={e => setTemplate({ ...template, [field.key]: e.target.value })}
+                className={inputCls}
+              />
+            )}
+          </div>
+        ))}
+
+        <div className="flex gap-3 mt-2">
+          <button onClick={onClose} disabled={saving}
+            className="flex-1 h-10 border border-silver-faint text-silver-mid rounded-lg font-body text-sm hover:border-white hover:text-white transition-all disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={handleSave} disabled={saving} className="btn-buy flex-1 !h-10 !py-0 disabled:opacity-50">
+            {saving ? 'Saving...' : 'Save'}
+          </button>
         </div>
-      ))}
+      </div>
 
-      <div className="flex gap-3 mt-2">
-        <button onClick={onClose} disabled={saving}
-          className="flex-1 h-10 border border-silver-faint text-silver-mid rounded-lg font-body text-sm hover:border-white hover:text-white transition-all disabled:opacity-50">
-          Cancel
-        </button>
-        <button onClick={handleSave} disabled={saving} className="btn-buy flex-1 !h-10 !py-0 disabled:opacity-50">
-          {saving ? 'Saving...' : 'Save'}
-        </button>
+      {/* Live preview */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className={labelCls}>Live preview</span>
+          <button
+            type="button"
+            onClick={() => setSingleKey(s => !s)}
+            className="font-body text-[0.65rem] text-silver-muted hover:text-white transition-colors"
+          >
+            {singleKey ? 'Show as 2 keys' : 'Show as 1 key'}
+          </button>
+        </div>
+        <p className="font-body text-[0.68rem] text-silver-muted mb-2">
+          Subject: <span className="text-silver-light">{preview?.subject}</span>
+        </p>
+        <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-border-dim bg-white">
+          <iframe
+            title="Email preview"
+            srcDoc={preview?.html}
+            sandbox=""
+            className="w-full h-full min-h-[420px]"
+          />
+        </div>
       </div>
     </div>
   )

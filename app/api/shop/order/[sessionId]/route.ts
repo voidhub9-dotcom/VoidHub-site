@@ -17,7 +17,8 @@ export async function GET(
   return Response.json({
     status: order.status,
     productName: order.productName,
-    deliveredKey: order.deliveredKey,
+    quantity: order.quantity,
+    deliveredKeys: order.deliveredKeys,
     emailSent: order.emailSent,
   })
 }

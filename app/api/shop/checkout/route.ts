@@ -15,6 +15,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}))
     const productId = String(body.productId || '')
     const email = typeof body.email === 'string' && body.email.trim() ? body.email.trim() : undefined
+    const quantity = Math.max(1, Math.min(10, Math.floor(Number(body.quantity)) || 1))
 
     if (!productId) {
       return Response.json({ error: 'Product ID required' }, { status: 400 })
@@ -28,6 +29,9 @@ export async function POST(req: Request) {
     }
     if (product.keys.length < 1) {
       return Response.json({ error: 'This product is sold out' }, { status: 409 })
+    }
+    if (product.keys.length < quantity) {
+      return Response.json({ error: `Only ${product.keys.length} left in stock` }, { status: 409 })
     }
 
     const stripe = stripeClient()!
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
       customer_email: email,
       line_items: [
         {
-          quantity: 1,
+          quantity,
           price_data: {
             currency: product.currency,
             unit_amount: product.priceCents,
@@ -58,7 +62,7 @@ export async function POST(req: Request) {
           },
         },
       ],
-      metadata: { productId: product.id },
+      metadata: { productId: product.id, quantity: String(quantity) },
       success_url: `${origin}/shop/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/shop/cancel`,
     })
@@ -67,13 +71,14 @@ export async function POST(req: Request) {
       id: session.id,
       productId: product.id,
       productName: product.name,
-      amountTotal: product.priceCents,
+      quantity,
+      amountTotal: product.priceCents * quantity,
       currency: product.currency,
       presentmentAmount: null,
       presentmentCurrency: null,
       customerEmail: email || null,
       status: 'pending',
-      deliveredKey: null,
+      deliveredKeys: null,
       emailSent: false,
       createdAt: new Date().toISOString(),
       fulfilledAt: null,

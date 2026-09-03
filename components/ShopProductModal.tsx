@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AlertIcon, KeyIcon, GlobeIcon } from '@/components/Icons'
+import { AlertIcon, KeyIcon, GlobeIcon, XIcon, EyeIcon, EyeOffIcon } from '@/components/Icons'
 import ImageUploadInput from '@/components/ImageUploadInput'
 import type { ShopProduct } from '@/lib/shop'
 
@@ -15,6 +15,7 @@ export interface ShopProductFormData {
   category: string
   active: boolean
   keysToAdd: string[]
+  removeKeys: string[]
 }
 
 interface ShopProductModalProps {
@@ -46,6 +47,8 @@ export default function ShopProductModal({ product, onSave, onCancel }: ShopProd
   const [form, setForm] = useState(empty)
   const [keysText, setKeysText] = useState('')
   const [error, setError] = useState('')
+  const [removeKeys, setRemoveKeys] = useState<Set<string>>(new Set())
+  const [keysRevealed, setKeysRevealed] = useState(false)
 
   const isEdit = !!product
 
@@ -66,7 +69,18 @@ export default function ShopProductModal({ product, onSave, onCancel }: ShopProd
     }
     setKeysText('')
     setError('')
+    setRemoveKeys(new Set())
+    setKeysRevealed(true)
   }, [product])
+
+  const toggleRemoveKey = (key: string) => {
+    setRemoveKeys(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm(p => ({ ...p, [k]: v }))
@@ -91,6 +105,7 @@ export default function ShopProductModal({ product, onSave, onCancel }: ShopProd
       category: form.category.trim(),
       active: form.active,
       keysToAdd,
+      removeKeys: Array.from(removeKeys),
     })
   }
 
@@ -195,13 +210,61 @@ export default function ShopProductModal({ product, onSave, onCancel }: ShopProd
         </p>
       </div>
 
+      {isEdit && product && product.keys.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className={`${labelCls} !mb-0 flex items-center gap-1.5`}>
+              <KeyIcon size={11} /> Current stock ({product.keys.length - removeKeys.size})
+            </span>
+            <button
+              type="button"
+              onClick={() => setKeysRevealed(r => !r)}
+              className="flex items-center gap-1.5 font-body text-[0.65rem] text-silver-muted hover:text-white transition-colors"
+            >
+              {keysRevealed ? <EyeOffIcon size={12} /> : <EyeIcon size={12} />}
+              {keysRevealed ? 'Hide' : 'Reveal'}
+            </button>
+          </div>
+          <div className="max-h-40 overflow-y-auto rounded-lg border border-border-mid bg-black-surface divide-y divide-border-dim">
+            {product.keys.map((key, i) => {
+              const marked = removeKeys.has(key)
+              return (
+                <div
+                  key={`${key}-${i}`}
+                  className={`flex items-center justify-between gap-2 px-3 py-2 font-mono text-xs transition-colors ${
+                    marked ? 'bg-danger/10 text-danger line-through' : 'text-silver-mid'
+                  }`}
+                >
+                  <span className="truncate">{keysRevealed ? key : '•'.repeat(Math.min(key.length, 24))}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleRemoveKey(key)}
+                    aria-label={marked ? `Keep ${key}` : `Remove ${key}`}
+                    className={`shrink-0 p-1 rounded transition-colors ${
+                      marked ? 'text-danger hover:text-white' : 'text-silver-faint hover:text-danger'
+                    }`}
+                  >
+                    <XIcon size={12} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+          {removeKeys.size > 0 && (
+            <p className="font-body text-[0.68rem] text-danger mt-1.5">
+              {removeKeys.size} key{removeKeys.size === 1 ? '' : 's'} marked for removal — applied when you save.
+            </p>
+          )}
+        </div>
+      )}
+
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <label htmlFor="sp-keys" className={`${labelCls} !mb-0 flex items-center gap-1.5`}>
             <KeyIcon size={11} /> Add stock keys
           </label>
           <span className="font-body text-[0.65rem] text-silver-muted">
-            Current stock: {currentStock}
+            Current stock: {currentStock - removeKeys.size}
           </span>
         </div>
         <textarea

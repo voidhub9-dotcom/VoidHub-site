@@ -31,6 +31,7 @@ export async function POST(req: Request) {
 
   const productId = typeof (body as any)?.productId === 'string' ? (body as any).productId : ''
   const email = typeof (body as any)?.email === 'string' && (body as any).email.trim() ? (body as any).email.trim() : null
+  const quantity = Math.max(1, Math.min(10, Math.floor(Number((body as any)?.quantity)) || 1))
 
   if (!productId) {
     return Response.json({ error: 'Product ID required' }, { status: 400 })
@@ -42,7 +43,10 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Product not found' }, { status: 404 })
   }
 
-  const testKey = `TEST-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+  const testKeys = Array.from(
+    { length: quantity },
+    (_, i) => `TEST-${Date.now().toString(36).toUpperCase()}-${(i + 1)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+  )
   const orderId = `test_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 
   let emailSent = false
@@ -52,7 +56,7 @@ export async function POST(req: Request) {
       to: email,
       productName: product.name,
       durationLabel: product.durationLabel,
-      keyValue: testKey,
+      keyValues: testKeys,
       orderId,
     })
     emailSent = emailResult.ok
@@ -64,13 +68,14 @@ export async function POST(req: Request) {
     id: orderId,
     productId: product.id,
     productName: product.name,
+    quantity,
     amountTotal: 0,
     currency: product.currency,
     presentmentAmount: null,
     presentmentCurrency: null,
     customerEmail: email,
     status: 'fulfilled',
-    deliveredKey: testKey,
+    deliveredKeys: testKeys,
     emailSent,
     isTest: true,
     createdAt: now,
@@ -78,5 +83,5 @@ export async function POST(req: Request) {
   }
   await appendShopOrder(order)
 
-  return Response.json({ sessionId: orderId, deliveredKey: testKey, emailSent, emailError })
+  return Response.json({ sessionId: orderId, deliveredKeys: testKeys, emailSent, emailError })
 }

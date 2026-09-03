@@ -90,13 +90,23 @@ export async function PUT(req: Request) {
     const keysToAdd: string[] = Array.isArray(body.keysToAdd)
       ? body.keysToAdd.map((k: unknown) => String(k).trim()).filter(Boolean)
       : []
+    const keysToRemove: string[] = Array.isArray(body.removeKeys)
+      ? body.removeKeys.map((k: unknown) => String(k))
+      : []
 
-    const { keysToAdd: _omit, id: _id, ...updates } = body
+    const { keysToAdd: _omit, removeKeys: _omit2, id: _id, ...updates } = body
+
+    let keys = products[index].keys
+    if (keysToRemove.length) {
+      const removeSet = new Set(keysToRemove)
+      keys = keys.filter(k => !removeSet.has(k))
+    }
+    if (keysToAdd.length) keys = [...keys, ...keysToAdd]
 
     products[index] = {
       ...products[index],
       ...updates,
-      keys: keysToAdd.length ? [...products[index].keys, ...keysToAdd] : products[index].keys,
+      keys,
       updatedAt: new Date().toISOString(),
     }
 

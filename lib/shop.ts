@@ -1,4 +1,7 @@
 import { kvGet, kvSet, KV_KEYS } from './kv'
+import type { ShopEmailTemplate } from './shop-email-render'
+
+export type { ShopEmailTemplate }
 
 /**
  * Paid key shop — Stripe Checkout products with an admin-managed stock of
@@ -33,7 +36,9 @@ export interface ShopOrder {
   id: string
   productId: string
   productName: string
-  /** Amount charged in YOUR settlement currency (what you actually receive) */
+  /** How many keys this order is for. Defaults to 1 for pre-quantity orders. */
+  quantity: number
+  /** Amount charged in YOUR settlement currency (what you actually receive) — the FULL order total, not per-key */
   amountTotal: number
   currency: string
   /**
@@ -46,16 +51,48 @@ export interface ShopOrder {
   presentmentCurrency: string | null
   customerEmail: string | null
   status: ShopOrderStatus
-  deliveredKey: string | null
+  /** One entry per key delivered. May be shorter than `quantity` if stock ran out mid-fulfillment. */
+  deliveredKeys: string[] | null
   /** Whether the key-delivery email (backup to the on-page reveal) was sent successfully. */
   emailSent: boolean
   /** True for admin-triggered test orders (no real payment, no stock consumed) — excluded from revenue/sales stats. */
   isTest?: boolean
+  /** True when an admin manually fulfilled a stuck order (e.g. webhook never fired) instead of Stripe's webhook. */
+  manuallyFulfilled?: boolean
   createdAt: string
   fulfilledAt: string | null
 }
 
 const MAX_ORDERS = 500
+
+/**
+ * Normalizes a raw stored order into the current shape — backfills
+ * `quantity` (didn't exist pre-quantity-feature) and `deliveredKeys`
+ * (was a single `deliveredKey` string) so old records still render
+ * correctly instead of breaking on the new fields.
+ */
+function normalizeOrder(raw: any): ShopOrder {
+  return {
+    id: raw.id,
+    productId: raw.productId,
+    productName: raw.productName,
+    quantity: typeof raw.quantity === 'number' && raw.quantity > 0 ? raw.quantity : 1,
+    amountTotal: raw.amountTotal,
+    currency: raw.currency,
+    presentmentAmount: raw.presentmentAmount ?? null,
+    presentmentCurrency: raw.presentmentCurrency ?? null,
+    customerEmail: raw.customerEmail ?? null,
+    status: raw.status,
+    deliveredKeys: Array.isArray(raw.deliveredKeys)
+      ? raw.deliveredKeys
+      : (typeof raw.deliveredKey === 'string' && raw.deliveredKey ? [raw.deliveredKey] : null),
+    emailSent: !!raw.emailSent,
+    isTest: !!raw.isTest,
+    manuallyFulfilled: !!raw.manuallyFulfilled,
+    createdAt: raw.createdAt,
+    fulfilledAt: raw.fulfilledAt ?? null,
+  }
+}
 
 export async function loadShopProducts(): Promise<ShopProduct[]> {
   try {
@@ -77,7 +114,7 @@ export async function loadShopOrders(): Promise<ShopOrder[]> {
     const raw = await kvGet(KV_KEYS.SHOP_ORDERS)
     if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    return Array.isArray(parsed) ? parsed.map(normalizeOrder) : []
   } catch {
     return []
   }
@@ -110,15 +147,9 @@ export async function updateShopOrder(
  * HTML shell (logo header, key box, gradient accent) stays fixed — only the
  * text is editable, same pattern as the free key-page's title/subtitle/
  * instructions/footer. Supports {product}, {duration}, {key}, {orderId}
- * placeholders, substituted at send time.
+ * placeholders, substituted at send time. Type lives in
+ * shop-email-render.ts so it can be imported client-side too.
  */
-export interface ShopEmailTemplate {
-  subject: string
-  heading: string
-  introText: string
-  footerNote: string
-}
-
 export const DEFAULT_SHOP_EMAIL_TEMPLATE: ShopEmailTemplate = {
   subject: 'Your VoidHub key — {product}',
   heading: 'Your key is ready',

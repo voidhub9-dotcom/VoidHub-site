@@ -50,13 +50,16 @@ export async function POST(req: Request) {
     }
 
     const product = products[productIndex]
-    const deliveredKey = product.keys.length > 0 ? product.keys[0] : null
+    const requestedQty =
+      orderIndex !== -1 ? orders[orderIndex].quantity : Number(session.metadata?.quantity) || 1
+    const qty = Math.min(requestedQty, product.keys.length)
+    const deliveredKeys = qty > 0 ? product.keys.slice(0, qty) : null
 
-    if (deliveredKey) {
+    if (deliveredKeys) {
       products[productIndex] = {
         ...product,
-        keys: product.keys.slice(1),
-        soldCount: product.soldCount + 1,
+        keys: product.keys.slice(qty),
+        soldCount: product.soldCount + qty,
         updatedAt: new Date().toISOString(),
       }
       await saveShopProducts(products)
@@ -75,12 +78,12 @@ export async function POST(req: Request) {
       const recipientEmail = orders[orderIndex].customerEmail || session.customer_details?.email || null
 
       let emailSent = false
-      if (deliveredKey && recipientEmail) {
+      if (deliveredKeys && recipientEmail) {
         const emailResult = await sendKeyDeliveryEmail({
           to: recipientEmail,
           productName: product.name,
           durationLabel: product.durationLabel,
-          keyValue: deliveredKey,
+          keyValues: deliveredKeys,
           orderId: session.id,
         })
         emailSent = emailResult.ok
@@ -89,12 +92,12 @@ export async function POST(req: Request) {
       orders[orderIndex] = {
         ...orders[orderIndex],
         customerEmail: recipientEmail,
-        status: deliveredKey ? 'fulfilled' : 'paid_no_stock',
-        deliveredKey,
+        status: deliveredKeys ? 'fulfilled' : 'paid_no_stock',
+        deliveredKeys,
         emailSent,
         presentmentAmount: presentment?.presentment_amount ?? null,
         presentmentCurrency: presentment?.presentment_currency ?? null,
-        fulfilledAt: deliveredKey ? new Date().toISOString() : null,
+        fulfilledAt: deliveredKeys ? new Date().toISOString() : null,
       }
       await saveShopOrders(orders)
     }

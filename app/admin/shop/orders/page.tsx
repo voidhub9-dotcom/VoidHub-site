@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { ChevronLeftIcon, RefreshIcon, ActivityIcon, CheckIcon, ClockIcon, AlertIcon, MailIcon, TrashIcon } from '@/components/Icons'
+import { ChevronLeftIcon, RefreshIcon, ActivityIcon, CheckIcon, ClockIcon, AlertIcon, MailIcon, TrashIcon, BoltIcon } from '@/components/Icons'
 import Modal from '@/components/Modal'
 import { useToast } from '@/components/Toast'
 import type { ShopOrder } from '@/lib/shop'
@@ -49,6 +49,7 @@ export default function AdminShopOrdersPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [fulfillingId, setFulfillingId] = useState<string | null>(null)
 
   const loadOrders = useCallback(async () => {
     setLoading(true)
@@ -87,6 +88,30 @@ export default function AdminShopOrdersPage() {
 
   const selectAllTest = () => {
     setSelected(new Set(orders.filter(o => o.isTest).map(o => o.id)))
+  }
+
+  const handleFulfill = async (id: string) => {
+    setFulfillingId(id)
+    try {
+      const res = await fetch('/api/admin/shop/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': getAdminKey() },
+        body: JSON.stringify({ id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      showToast(
+        data.partial
+          ? `Delivered ${data.deliveredKeys.length} key(s) — stock ran out before the full order`
+          : `Order fulfilled — ${data.deliveredKeys.length} key(s) delivered${data.emailSent ? ' and emailed' : ''}`,
+        data.partial ? 'error' : 'success',
+      )
+      await loadOrders()
+    } catch (e: any) {
+      showToast(e.message, 'error')
+    } finally {
+      setFulfillingId(null)
+    }
   }
 
   const handleDeleteSelected = async () => {
@@ -199,9 +224,13 @@ export default function AdminShopOrdersPage() {
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <dt className="text-silver-muted">Key</dt>
+                    <dt className="text-silver-muted">Qty</dt>
+                    <dd className="text-silver-mid">{order.quantity}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-silver-muted">{order.deliveredKeys && order.deliveredKeys.length > 1 ? 'Keys' : 'Key'}</dt>
                     <dd className="text-silver-mid font-mono text-right break-all">
-                      {order.deliveredKey || '—'}
+                      {order.deliveredKeys?.length ? order.deliveredKeys.join(', ') : '—'}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-2">
@@ -209,6 +238,16 @@ export default function AdminShopOrdersPage() {
                     <dd className="text-silver-mid">{new Date(order.createdAt).toLocaleString()}</dd>
                   </div>
                 </dl>
+                {order.status !== 'fulfilled' && !order.isTest && (
+                  <button
+                    onClick={() => handleFulfill(order.id)}
+                    disabled={fulfillingId === order.id}
+                    className="mt-3 w-full flex items-center justify-center gap-1.5 h-9 rounded-lg border border-success/40 text-success font-body text-xs hover:bg-success/10 transition-all disabled:opacity-50"
+                  >
+                    <BoltIcon size={13} />
+                    {fulfillingId === order.id ? 'Fulfilling…' : 'Fulfill Now'}
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -228,11 +267,13 @@ export default function AdminShopOrdersPage() {
                     />
                   </th>
                   <th className="text-left px-4 py-3">Product</th>
+                  <th className="text-left px-4 py-3">Qty</th>
                   <th className="text-left px-4 py-3">Amount</th>
                   <th className="text-left px-4 py-3">Email</th>
                   <th className="text-left px-4 py-3">Status</th>
-                  <th className="text-left px-4 py-3">Key</th>
+                  <th className="text-left px-4 py-3">Key(s)</th>
                   <th className="text-left px-4 py-3">Date</th>
+                  <th className="text-left px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -255,6 +296,7 @@ export default function AdminShopOrdersPage() {
                         )}
                       </div>
                     </td>
+                    <td className="px-4 py-3 text-silver-mid">{order.quantity}</td>
                     <td className="px-4 py-3 text-silver-light">
                       {order.isTest ? <span className="text-silver-faint">—</span> : formatPrice(order.amountTotal, order.currency)}
                       {order.presentmentAmount != null && order.presentmentCurrency && order.presentmentCurrency !== order.currency && (
@@ -273,16 +315,39 @@ export default function AdminShopOrdersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3"><StatusChip status={order.status} /></td>
                     <td className="px-4 py-3">
-                      {order.deliveredKey ? (
-                        <code className="text-xs text-silver-mid font-mono">{order.deliveredKey}</code>
+                      <div className="flex items-center gap-1.5">
+                        <StatusChip status={order.status} />
+                        {order.manuallyFulfilled && (
+                          <span title="Fulfilled manually by an admin, not by Stripe's webhook">
+                            <BoltIcon size={12} className="text-warning" />
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 max-w-[220px]">
+                      {order.deliveredKeys?.length ? (
+                        <code className="text-xs text-silver-mid font-mono block truncate" title={order.deliveredKeys.join(', ')}>
+                          {order.deliveredKeys.join(', ')}
+                        </code>
                       ) : (
                         <span className="text-silver-faint">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-silver-muted text-xs whitespace-nowrap">
                       {new Date(order.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      {order.status !== 'fulfilled' && !order.isTest && (
+                        <button
+                          onClick={() => handleFulfill(order.id)}
+                          disabled={fulfillingId === order.id}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-success/40 text-success font-body text-xs hover:bg-success/10 transition-all disabled:opacity-50 whitespace-nowrap"
+                        >
+                          <BoltIcon size={12} />
+                          {fulfillingId === order.id ? 'Fulfilling…' : 'Fulfill Now'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

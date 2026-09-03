@@ -337,7 +337,7 @@ export default function AdminShopPage() {
       </Modal>
 
       {/* Email delivery template */}
-      <Modal isOpen={emailTemplateOpen} onClose={() => setEmailTemplateOpen(false)} title="DELIVERY EMAIL TEMPLATE" maxWidth="max-w-[500px]">
+      <Modal isOpen={emailTemplateOpen} onClose={() => setEmailTemplateOpen(false)} title="DELIVERY EMAIL TEMPLATE" maxWidth="max-w-[820px]">
         <ShopEmailTemplateModal onClose={() => setEmailTemplateOpen(false)} />
       </Modal>
 

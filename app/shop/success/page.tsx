@@ -10,7 +10,8 @@ import { CheckIcon, CopyIcon, ClockIcon, AlertIcon, MailIcon } from '@/component
 interface OrderStatus {
   status: 'pending' | 'fulfilled' | 'paid_no_stock'
   productName: string
-  deliveredKey: string | null
+  quantity: number
+  deliveredKeys: string[] | null
   emailSent: boolean
 }
 
@@ -22,7 +23,7 @@ function SuccessContent() {
   const sessionId = searchParams.get('session_id')
   const [order, setOrder] = useState<OrderStatus | null>(null)
   const [notFound, setNotFound] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [pollCount, setPollCount] = useState(0)
 
   useEffect(() => {
@@ -53,8 +54,19 @@ function SuccessContent() {
   const handleCopy = async (key: string) => {
     try {
       await navigator.clipboard.writeText(key)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(null), 2000)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleCopyAll = async () => {
+    if (!order?.deliveredKeys) return
+    try {
+      await navigator.clipboard.writeText(order.deliveredKeys.join('\n'))
+      setCopiedKey('__all__')
+      setTimeout(() => setCopiedKey(null), 2000)
     } catch {
       // ignore
     }
@@ -81,25 +93,48 @@ function SuccessContent() {
                 This usually takes just a few seconds.
               </p>
             </>
-          ) : order.status === 'fulfilled' && order.deliveredKey ? (
+          ) : order.status === 'fulfilled' && order.deliveredKeys && order.deliveredKeys.length > 0 ? (
             <>
               <CheckIcon size={36} className="text-success mx-auto mb-4" />
               <h1 className="font-heading text-xl text-white mb-2">Payment successful</h1>
-              <p className="font-body text-silver-mid text-sm mb-6">{order.productName}</p>
-              <div className="flex items-center gap-2 bg-black-surface border border-border-mid rounded-lg px-4 py-3 mb-4">
-                <code className="flex-1 text-left font-mono text-sm text-silver-bright break-all">
-                  {order.deliveredKey}
-                </code>
-                <button
-                  onClick={() => handleCopy(order.deliveredKey!)}
-                  className="shrink-0 p-2 text-silver-muted hover:text-white transition-colors"
-                  aria-label="Copy key"
-                >
-                  {copied ? <CheckIcon size={16} className="text-success" /> : <CopyIcon size={16} />}
-                </button>
+              <p className="font-body text-silver-mid text-sm mb-6">
+                {order.productName}
+                {order.deliveredKeys.length > 1 && ` · ${order.deliveredKeys.length} keys`}
+              </p>
+              <div className="flex flex-col gap-2 mb-4">
+                {order.deliveredKeys.map((key, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-black-surface border border-border-mid rounded-lg px-4 py-3">
+                    <code className="flex-1 text-left font-mono text-sm text-silver-bright break-all">
+                      {key}
+                    </code>
+                    <button
+                      onClick={() => handleCopy(key)}
+                      className="shrink-0 p-2 text-silver-muted hover:text-white transition-colors"
+                      aria-label={`Copy key ${i + 1}`}
+                    >
+                      {copiedKey === key ? <CheckIcon size={16} className="text-success" /> : <CopyIcon size={16} />}
+                    </button>
+                  </div>
+                ))}
               </div>
+              {order.deliveredKeys.length > 1 && (
+                <button
+                  onClick={handleCopyAll}
+                  className="inline-flex items-center gap-1.5 mb-4 font-body text-xs text-silver-mid hover:text-white transition-colors"
+                >
+                  {copiedKey === '__all__' ? <CheckIcon size={12} className="text-success" /> : <CopyIcon size={12} />}
+                  Copy all keys
+                </button>
+              )}
+              {order.quantity > order.deliveredKeys.length && (
+                <p className="flex items-center justify-center gap-1.5 font-body text-warning text-xs mb-3">
+                  <AlertIcon size={12} /> Only {order.deliveredKeys.length} of {order.quantity} paid for were in
+                  stock — contact support with your order reference for the rest.
+                </p>
+              )}
               <p className="font-body text-silver-faint text-xs mb-2">
-                Save this key now — keep it somewhere safe.
+                Save {order.deliveredKeys.length > 1 ? 'these keys' : 'this key'} now — keep{' '}
+                {order.deliveredKeys.length > 1 ? 'them' : 'it'} somewhere safe.
               </p>
               {order.emailSent && (
                 <p className="flex items-center justify-center gap-1.5 font-body text-silver-faint text-xs">
