@@ -20,7 +20,6 @@
 import Foundation
 import UIKit
 import Combine
-import CryptoKit
 import os
 
 @MainActor
@@ -41,14 +40,6 @@ final class ClipboardManager: ObservableObject {
     // subscription in `init` instead of a `didSet`.
     @Published var maxHistoryItems: Int
     @Published var retentionDays: Int
-
-    /// Any single pasteboard representation larger than this is dropped
-    /// (not the whole clip -- other representations of the same clip are
-    /// still kept) to avoid one giant, unusual UTI blowing out storage.
-    private let maxRepresentationBytes = 20 * 1024 * 1024 // 20 MB
-    /// Combined size across all representations of one clip. Clips larger
-    /// than this are not captured at all.
-    private let maxItemTotalBytes = 40 * 1024 * 1024 // 40 MB
 
     private enum Keys {
         static let maxHistoryItems = "clipkeep.maxHistoryItems"
@@ -140,51 +131,22 @@ final class ClipboardManager: ObservableObject {
         guard currentChangeCount != lastKnownChangeCount else { return }
         lastKnownChangeCount = currentChangeCount
 
-        guard pasteboard.numberOfItems > 0 else { return }
-
-        let availableTypes = Set(pasteboard.types)
-        guard !availableTypes.isEmpty else { return }
-
-        var representations: [String: Data] = [:]
-        var totalBytes = 0
-        for type in availableTypes {
-            guard let data = pasteboard.data(forPasteboardType: type) else { continue }
-            guard data.count <= maxRepresentationBytes else {
-                logger.notice("Dropping oversized representation \(type, privacy: .public): \(data.count) bytes")
-                continue
-            }
-            representations[type] = data
-            totalBytes += data.count
-        }
-
-        guard !representations.isEmpty else {
-            logger.notice("Pasteboard changed but produced no readable representation (types: \(availableTypes.joined(separator: ","), privacy: .public))")
-            return
-        }
-        guard totalBytes <= maxItemTotalBytes else {
-            logger.notice("Skipping clip: \(totalBytes) bytes exceeds the \(self.maxItemTotalBytes)-byte limit")
+        // Reading the representations is shared with the keyboard extension so
+        // both capture identically; only the size limits differ, since an
+        // extension is killed at a much lower memory ceiling than an app.
+        guard let captured = ClipCapture.read(from: pasteboard, limits: .app) else {
+            logger.notice("Pasteboard changed but produced nothing storable")
             return
         }
 
-        let digest = Self.digest(for: representations)
-        if digest == lastCapturedDigest {
+        if captured.digest == lastCapturedDigest {
             return
         }
-        lastCapturedDigest = digest
-
-        let kind = UTI.classify(availableTypes)
-        let preview = Self.makePreview(kind: kind, representations: representations)
-
-        let metadata = ClipMetadata(
-            kind: kind,
-            previewText: preview,
-            approximateByteCount: totalBytes,
-            storedTypes: Array(representations.keys).sorted()
-        )
+        lastCapturedDigest = captured.digest
 
         do {
-            try store.saveRepresentations(representations, for: metadata.id)
-            items.insert(metadata, at: 0)
+            try store.saveRepresentations(captured.representations, for: captured.metadata.id)
+            items.insert(captured.metadata, at: 0)
             enforceLimitsAndPersist()
         } catch {
             logger.error("Failed to save new clip: \(error.localizedDescription, privacy: .public)")
@@ -206,7 +168,7 @@ final class ClipboardManager: ObservableObject {
             }
             pasteboard.items = [representations.mapValues { $0 as Any }]
             lastKnownChangeCount = pasteboard.changeCount
-            lastCapturedDigest = Self.digest(for: representations)
+            lastCapturedDigest = ClipCapture.digest(for: representations)
             HapticsManager.shared.confirmSuccess()
             toastMessage = ToastMessage(text: "Copied to Clipboard", symbolName: "checkmark.circle.fill")
         } catch {
@@ -323,81 +285,4 @@ final class ClipboardManager: ObservableObject {
         totalStorageBytes = store.totalStorageBytes()
     }
 
-    // MARK: - Preview / hashing helpers
-
-    private static func digest(for representations: [String: Data]) -> String {
-        var hasher = SHA256()
-        for key in representations.keys.sorted() {
-            hasher.update(data: Data(key.utf8))
-            if let data = representations[key] {
-                hasher.update(data: data)
-            }
-        }
-        return hasher.finalize().compactMap { String(format: "%02x", $0) }.joined()
-    }
-
-    private static func makePreview(kind: ClipKind, representations: [String: Data]) -> String {
-        switch kind {
-        case .text:
-            return previewFromPlainText(representations) ?? "(Empty text)"
-
-        case .richText:
-            if let rtfData = representations[UTI.rtf],
-               let attributed = try? NSAttributedString(
-                    data: rtfData,
-                    options: [.documentType: NSAttributedString.DocumentType.rtf],
-                    documentAttributes: nil
-               ) {
-                return truncate(attributed.string)
-            }
-            if let rtfdData = representations[UTI.flatRTFD],
-               let attributed = try? NSAttributedString(
-                    data: rtfdData,
-                    options: [.documentType: NSAttributedString.DocumentType.rtfd],
-                    documentAttributes: nil
-               ) {
-                return truncate(attributed.string)
-            }
-            return previewFromPlainText(representations) ?? "Formatted text"
-
-        case .url:
-            if let text = previewFromPlainText(representations) {
-                return text
-            }
-            return "Link"
-
-        case .image:
-            guard let imageData = representations.first(where: { UTI.imageTypes.contains($0.key) })?.value,
-                  let image = UIImage(data: imageData) else {
-                return "Image"
-            }
-            let pixelWidth = Int(image.size.width * image.scale)
-            let pixelHeight = Int(image.size.height * image.scale)
-            let kb = imageData.count / 1024
-            return "Image · \(pixelWidth)×\(pixelHeight) · \(kb) KB"
-
-        case .unknown:
-            let typeList = representations.keys.sorted().joined(separator: ", ")
-            return "Unsupported content (\(typeList))"
-        }
-    }
-
-    /// Delegates to the shared extractor so the preview shown in the app and
-    /// the text the keyboard actually inserts can never disagree about what a
-    /// clip says. (It also fixes a latent wrinkle: this used to iterate
-    /// `UTI.textTypes`, a Set, so which representation won was unspecified
-    /// when a clip carried both. The extractor checks them in a fixed order.)
-    private static func previewFromPlainText(_ representations: [String: Data]) -> String? {
-        guard let text = ClipTextExtractor.plainText(from: representations) else { return nil }
-        return truncate(text)
-    }
-
-    private static func truncate(_ string: String, limit: Int = 400) -> String {
-        let collapsed = string.trimmingCharacters(in: .whitespacesAndNewlines)
-        if collapsed.count <= limit {
-            return collapsed
-        }
-        let endIndex = collapsed.index(collapsed.startIndex, offsetBy: limit)
-        return String(collapsed[collapsed.startIndex..<endIndex]) + "…"
-    }
 }

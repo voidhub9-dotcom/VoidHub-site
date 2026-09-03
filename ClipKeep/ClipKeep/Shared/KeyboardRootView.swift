@@ -120,7 +120,9 @@ struct KeyboardRootView: View {
 
             Spacer(minLength: 0)
 
-            Text("ClipKeep")
+            // "Local" is not decoration: it tells the user their clips here
+            // are the keyboard's own and won't match the app's list.
+            Text(store.mode == .standalone ? "ClipKeep · Local" : "ClipKeep")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.tertiary)
 
@@ -161,19 +163,20 @@ struct KeyboardRootView: View {
 
     @ViewBuilder
     private var content: some View {
-        if let problem = store.accessProblem {
+        if store.mode == .locked {
+            // The only genuinely dead end: without Full Access iOS denies the
+            // keyboard both shared storage and the pasteboard, so there is
+            // nothing to read and nothing to fall back to.
             messageState(
                 symbol: "lock.fill",
-                title: problem.title,
-                message: problem.message
+                title: "Full Access Needed",
+                message: "Turn on Allow Full Access for the ClipKeep keyboard in Settings › General › Keyboard › Keyboards › ClipKeep. iOS blocks keyboards from reading clips until you do."
             )
         } else if store.items.isEmpty {
             messageState(
                 symbol: store.hasAnyClips ? "star" : "clipboard",
                 title: store.hasAnyClips ? "No Favorites Yet" : "No Clips Yet",
-                message: store.hasAnyClips
-                    ? "Swipe a clip in the ClipKeep app to favorite it, and it will show up here."
-                    : "Copy something, then open the ClipKeep app once so it can capture the clip. It will be available here afterwards."
+                message: emptyMessage
             )
         } else {
             ScrollView {
@@ -225,6 +228,22 @@ struct KeyboardRootView: View {
             } label: {
                 Label("Copy to Clipboard", systemImage: "doc.on.clipboard")
             }
+        }
+    }
+
+    /// Empty-state copy has to match the storage mode, because what the user
+    /// should do next genuinely differs: in standalone mode the keyboard
+    /// captures for itself, so copying anything is enough; in shared mode the
+    /// app is what fills the history.
+    private var emptyMessage: String {
+        if store.hasAnyClips {
+            return "Swipe a clip in the ClipKeep app to favorite it, and it will show up here."
+        }
+        switch store.mode {
+        case .standalone:
+            return "Copy anything, then tap the reload button above. This keyboard keeps its own history."
+        case .shared, .locked:
+            return "Copy something, then open the ClipKeep app once so it can capture the clip. It will be available here afterwards."
         }
     }
 

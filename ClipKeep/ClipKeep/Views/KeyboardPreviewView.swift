@@ -17,7 +17,9 @@ import UIKit
 
 struct KeyboardPreviewView: View {
 
-    @StateObject private var store = KeyboardClipStore()
+    // Read-only: ClipboardManager is the app's capture path, and a second
+    // writer here would race it for the index file.
+    @StateObject private var store = KeyboardClipStore(capturesPasteboard: false)
 
     @State private var demoText: String = ""
     @State private var height: CGFloat = KeyboardSettings.height

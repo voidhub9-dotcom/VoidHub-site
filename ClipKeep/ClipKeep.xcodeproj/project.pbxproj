@@ -33,6 +33,7 @@
 		2B3C4D000000000000000007 /* KeyboardPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000007 /* KeyboardPreviewView.swift */; };
 		2B3C4D000000000000000008 /* PiPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000008 /* PiPView.swift */; };
 		2B3C4D000000000000000009 /* ClipPiPController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000009 /* ClipPiPController.swift */; };
+		2B3C4D000000000000000025 /* ClipCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000025 /* ClipCapture.swift */; };
 		2B3C4D000000000000000042 /* ClipKeepKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000023 /* ClipKeepKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3C4D5E000000000000000001 /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000001 /* AppGroup.swift */; };
 		3C4D5E000000000000000002 /* KeyboardSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000002 /* KeyboardSettings.swift */; };
@@ -44,6 +45,7 @@
 		3C4D5E000000000000000012 /* UTIConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278BC42D08A1B40A659B96B4 /* UTIConstants.swift */; };
 		3C4D5E000000000000000013 /* ClipMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = B817CAA8A70F505A3747ADC5 /* ClipMetadata.swift */; };
 		3C4D5E000000000000000014 /* PersistenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C558A7603FCA96FD0F27CD /* PersistenceStore.swift */; };
+		3C4D5E000000000000000025 /* ClipCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000025 /* ClipCapture.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -104,6 +106,7 @@
 		1A2B3C000000000000000022 /* ClipKeepKeyboard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClipKeepKeyboard.entitlements; sourceTree = "<group>"; };
 		1A2B3C000000000000000023 /* ClipKeepKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClipKeepKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A2B3C000000000000000024 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A2B3C000000000000000025 /* ClipCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipCapture.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -152,6 +155,7 @@
 				1A2B3C000000000000000001 /* AppGroup.swift */,
 				1A2B3C000000000000000002 /* KeyboardSettings.swift */,
 				1A2B3C000000000000000003 /* ClipTextExtractor.swift */,
+				1A2B3C000000000000000025 /* ClipCapture.swift */,
 				1A2B3C000000000000000004 /* KeyboardClipStore.swift */,
 				1A2B3C000000000000000005 /* KeyboardRootView.swift */,
 			);
@@ -343,6 +347,7 @@
 				2B3C4D000000000000000007 /* KeyboardPreviewView.swift in Sources */,
 				2B3C4D000000000000000008 /* PiPView.swift in Sources */,
 				2B3C4D000000000000000009 /* ClipPiPController.swift in Sources */,
+				2B3C4D000000000000000025 /* ClipCapture.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -360,6 +365,7 @@
 				3C4D5E000000000000000012 /* UTIConstants.swift in Sources */,
 				3C4D5E000000000000000013 /* ClipMetadata.swift in Sources */,
 				3C4D5E000000000000000014 /* PersistenceStore.swift in Sources */,
+				3C4D5E000000000000000025 /* ClipCapture.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

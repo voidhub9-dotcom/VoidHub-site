@@ -146,14 +146,19 @@ struct SetupStepsView: View {
 
     // MARK: - Status
 
+    /// True when this build was signed without the App Group entitlement,
+    /// which is the norm for sideloaded builds: App Groups require a paid
+    /// Apple Developer account, so free-Apple-ID signing strips them.
+    private var isStandalone: Bool { !AppGroup.isAvailable }
+
     private var statusCard: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: isConfirmed ? "checkmark.circle.fill" : "hourglass.circle.fill")
+            Image(systemName: statusSymbol)
                 .font(.system(size: 26))
-                .foregroundStyle(isConfirmed ? Color.green : Color.orange)
+                .foregroundStyle(statusColor)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(isConfirmed ? "Keyboard is working" : "Not confirmed yet")
+                Text(statusTitle)
                     .font(.headline)
                 Text(statusDetail)
                     .font(.footnote)
@@ -165,6 +170,21 @@ struct SetupStepsView: View {
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
+    private var statusSymbol: String {
+        if isConfirmed { return "checkmark.circle.fill" }
+        return isStandalone ? "keyboard.badge.ellipsis" : "hourglass.circle.fill"
+    }
+
+    private var statusColor: Color {
+        if isConfirmed { return .green }
+        return isStandalone ? .blue : .orange
+    }
+
+    private var statusTitle: String {
+        if isConfirmed { return "Keyboard is working" }
+        return isStandalone ? "Keyboard runs on its own" : "Not confirmed yet"
+    }
+
     private var statusDetail: String {
         if isConfirmed {
             if let lastLaunch {
@@ -172,8 +192,8 @@ struct SetupStepsView: View {
             }
             return "ClipKeep's keyboard has Full Access and can read your clips."
         }
-        if !AppGroup.isAvailable {
-            return "This build has no App Group container, so the app and keyboard can't share data. It needs re-signing with the group entitlement."
+        if isStandalone {
+            return "This build was signed without ClipKeep's App Group, which sideloading with a free Apple ID cannot provide. The keyboard still works: it keeps its own history and captures what you copy directly. That history is separate from this list, and the app can't confirm the keyboard's status for the same reason."
         }
         return "Finish the steps below, then open the ClipKeep keyboard once in any app. This card updates by itself when it checks in."
     }

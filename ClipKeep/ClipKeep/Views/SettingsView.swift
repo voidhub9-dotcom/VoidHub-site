@@ -79,7 +79,8 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    LabeledContent("Status", value: KeyboardSettings.isKeyboardConfirmedWorking ? "Working" : "Not confirmed")
+                    LabeledContent("Status", value: keyboardStatus)
+                    LabeledContent("Shared Storage", value: AppGroup.isAvailable ? "Available" : "Not entitled")
                     Button {
                         showSetupSteps = true
                     } label: {
@@ -88,7 +89,7 @@ struct SettingsView: View {
                 } header: {
                     Text("ClipKeep Keyboard")
                 } footer: {
-                    Text("The keyboard puts your clips inside every app with a text field. It needs Allow Full Access to read them -- iOS blocks keyboards from shared app data otherwise. \"Working\" appears once the keyboard has opened at least once with that switched on.")
+                    Text(keyboardFooter)
                 }
 
                 Section {
@@ -118,6 +119,18 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
             }
         }
+    }
+
+    private var keyboardStatus: String {
+        if KeyboardSettings.isKeyboardConfirmedWorking { return "Working" }
+        return AppGroup.isAvailable ? "Not confirmed" : "Standalone"
+    }
+
+    private var keyboardFooter: String {
+        if AppGroup.isAvailable {
+            return "The keyboard puts your clips inside every app with a text field. It needs Allow Full Access to read them -- iOS blocks keyboards from shared app data otherwise. \"Working\" appears once the keyboard has opened at least once with that switched on."
+        }
+        return "This build has no App Group entitlement, which sideloading with a free Apple ID cannot provide (App Groups need a paid Apple Developer account). The keyboard still works on its own: it keeps a separate history and captures what you copy directly, so it needs no help from this list. Re-signing with the group entitlement is what merges the two."
     }
 
     private var appVersionString: String {
