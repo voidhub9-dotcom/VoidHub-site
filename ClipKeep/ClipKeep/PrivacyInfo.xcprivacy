@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	ClipKeep makes no network requests and collects nothing that leaves the
+	device, so both tracking and data collection sections are empty/false.
+	-->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<!--
+	Required-reason API usage:
+	  - UserDefaults (Settings screen: max history size, auto-delete window)
+	    is read and written for the app's own use only, never shared via an
+	    App Group, MDM, or a third-party SDK, so CA92.1 is the declared
+	    reason.
+	  - PersistenceStore only reads NSURLFileSizeKey / .fileSizeKey when
+	    computing the storage total shown in Settings. That key is not on
+	    Apple's File Timestamp required-reason API list (only creation and
+	    modification date keys, plus the raw stat()/getattrlist() family,
+	    are), so no File Timestamp declaration is needed here. If a future
+	    change ever reads .creationDateKey, .contentModificationDateKey, or
+	    calls stat()/getattrlist() directly, add
+	    NSPrivacyAccessedAPICategoryFileTimestamp with reason C617.1 (since
+	    all of ClipKeep's files live inside its own app container) at that
+	    time.
+	  - ClipKeep never touches disk space APIs, system boot time, or the
+	    active keyboards API, so those three required-reason categories are
+	    intentionally absent.
+	-->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,91 @@
+name: Build unsigned IPA
+
+# Runs an actual Xcode/iOS toolchain (which only exists on macOS -- nowhere
+# in this repo's own tooling can produce one) on GitHub's hosted macOS
+# runner, and hands back a real, compiled .ipa as a downloadable artifact.
+#
+# IMPORTANT: this build has no Apple Developer certificate to sign with, so
+# CODE_SIGNING_ALLOWED is turned off and the resulting .ipa is unsigned.
+# An unsigned .ipa will NOT install on a real iPhone as-is -- iOS refuses to
+# run any app that isn't signed. To actually put it on a device you still
+# need to re-sign it, either with:
+#   - Sideloadly / AltStore (free Apple ID, resigns on install, ~7-day expiry
+#     unless you have a paid Apple Developer Program membership), or
+#   - Xcode itself on a Mac, following the README's "Getting it onto your
+#     iPhone" section, which handles signing automatically.
+# That signing step needs a real Apple ID and can't be scripted here without
+# your Apple credentials, which this workflow deliberately never asks for.
+#
+# Usage: push this repo to GitHub, then either wait for a push to `main` or
+# trigger it manually from the Actions tab ("Run workflow"). When it
+# finishes, open the run and download the "ClipKeep-unsigned-ipa" artifact
+# -- that zip contains ClipKeep-unsigned.ipa.
+
+"on":
+  workflow_dispatch:
+  push:
+    branches: [ main, "claude/app-ipa-build-nz82cy" ]
+    paths:
+      - "ClipKeep/**"
+      - ".github/workflows/build-ipa.yml"
+
+jobs:
+  build:
+    # "latest" rather than pinning a specific image (e.g. macos-14): GitHub
+    # periodically retires older macOS runner images, and a hard-pinned
+    # label that gets removed would fail this workflow outright with no
+    # obvious cause. "latest" always resolves to a currently supported one.
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Archive (unsigned)
+        working-directory: ClipKeep
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ClipKeep.xcodeproj \
+            -scheme ClipKeep \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/ClipKeep.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            DEVELOPMENT_TEAM="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            archive
+
+      - name: Package .ipa
+        run: |
+          set -euo pipefail
+          ARCHIVE_APP="$RUNNER_TEMP/ClipKeep.xcarchive/Products/Applications/ClipKeep.app"
+          if [ ! -d "$ARCHIVE_APP" ]; then
+            echo "::error::Expected app bundle not found at $ARCHIVE_APP"
+            find "$RUNNER_TEMP/ClipKeep.xcarchive" -maxdepth 4
+            exit 1
+          fi
+
+          PAYLOAD_DIR="$RUNNER_TEMP/Payload"
+          rm -rf "$PAYLOAD_DIR"
+          mkdir -p "$PAYLOAD_DIR"
+          cp -R "$ARCHIVE_APP" "$PAYLOAD_DIR/"
+
+          mkdir -p "$GITHUB_WORKSPACE/build-output"
+          (cd "$RUNNER_TEMP" && zip -r -q "$GITHUB_WORKSPACE/build-output/ClipKeep-unsigned.ipa" Payload)
+
+          echo "Built: $(ls -la "$GITHUB_WORKSPACE/build-output/ClipKeep-unsigned.ipa")"
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClipKeep-unsigned-ipa
+          path: build-output/ClipKeep-unsigned.ipa
+          retention-days: 14
+          if-no-files-found: error
