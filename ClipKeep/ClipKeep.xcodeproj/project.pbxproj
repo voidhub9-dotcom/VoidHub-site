@@ -103,6 +103,7 @@
 		1A2B3C000000000000000021 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1A2B3C000000000000000022 /* ClipKeepKeyboard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClipKeepKeyboard.entitlements; sourceTree = "<group>"; };
 		1A2B3C000000000000000023 /* ClipKeepKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClipKeepKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A2B3C000000000000000024 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -180,6 +181,7 @@
 				E488FBF2695DE8C2A78E35CD /* ContentView.swift */,
 				4B5FE9C04E753CCD4E8CBB14 /* Assets.xcassets */,
 				AFF7E66ABB3742D6EF680175 /* PrivacyInfo.xcprivacy */,
+				1A2B3C000000000000000024 /* Info.plist */,
 				1A2B3C000000000000000020 /* ClipKeep.entitlements */,
 				46357D21205BE84ADD717726 /* Services */,
 				A85D0C0EFEF2BD42791567B1 /* Models */,
@@ -507,12 +509,12 @@
 			DEVELOPMENT_ASSET_PATHS = "";
 			ENABLE_PREVIEWS = YES;
 			GENERATE_INFOPLIST_FILE = YES;
+			INFOPLIST_FILE = ClipKeep/Info.plist;
 			INFOPLIST_KEY_CFBundleDisplayName = ClipKeep;
 			INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 			INFOPLIST_KEY_NSHumanReadableCopyright = "";
 			INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 			INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-			INFOPLIST_KEY_UIBackgroundModes = audio;
 			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 			INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
 			INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -542,12 +544,12 @@
 			DEVELOPMENT_ASSET_PATHS = "";
 			ENABLE_PREVIEWS = YES;
 			GENERATE_INFOPLIST_FILE = YES;
+			INFOPLIST_FILE = ClipKeep/Info.plist;
 			INFOPLIST_KEY_CFBundleDisplayName = ClipKeep;
 			INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 			INFOPLIST_KEY_NSHumanReadableCopyright = "";
 			INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 			INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-			INFOPLIST_KEY_UIBackgroundModes = audio;
 			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 			INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
 			INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
