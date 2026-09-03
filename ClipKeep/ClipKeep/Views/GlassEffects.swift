@@ -27,9 +27,15 @@ extension View {
     /// floating buttons -- not for large content backgrounds; Apple's own
     /// guidance reserves Liquid Glass for the navigation/controls layer
     /// that floats above content, not the content itself.
+    ///
+    /// Takes a concrete `InsettableShape` rather than a type-erased `AnyShape`:
+    /// the fallback path strokes the outline with `strokeBorder`, which only
+    /// exists on `InsettableShape` (it insets by half the line width so the
+    /// hairline sits fully inside the fill). `AnyShape` erases that capability
+    /// away, so it can't be used here.
     @ViewBuilder
-    func adaptiveGlassBackground(
-        in shape: AnyShape,
+    func adaptiveGlassBackground<S: InsettableShape>(
+        in shape: S,
         tint: Color? = nil,
         interactive: Bool = false
     ) -> some View {
@@ -45,7 +51,7 @@ extension View {
     /// Convenience overload for the common case of a circular glass badge.
     @ViewBuilder
     func adaptiveGlassCircle(tint: Color? = nil, interactive: Bool = false) -> some View {
-        adaptiveGlassBackground(in: AnyShape(Circle()), tint: tint, interactive: interactive)
+        adaptiveGlassBackground(in: Circle(), tint: tint, interactive: interactive)
     }
 }
 

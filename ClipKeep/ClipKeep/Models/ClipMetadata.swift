@@ -10,7 +10,11 @@
 
 import Foundation
 
-struct ClipMetadata: Identifiable, Codable, Equatable {
+// Hashable (not just Equatable): ContentView drives its detail screen with
+// `.navigationDestination(item:)`, whose `D` is constrained to Hashable. Every
+// stored property here is already Hashable, so the conformance is synthesized
+// and stays consistent with the synthesized `==`.
+struct ClipMetadata: Identifiable, Codable, Hashable {
     let id: UUID
     let createdAt: Date
     let kind: ClipKind

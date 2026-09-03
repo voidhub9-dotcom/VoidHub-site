@@ -28,7 +28,7 @@ private struct ToastView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .adaptiveGlassBackground(in: AnyShape(Capsule()))
+        .adaptiveGlassBackground(in: Capsule())
         .shadow(color: .black.opacity(0.15), radius: 8, y: 3)
         .accessibilityElement(children: .combine)
     }

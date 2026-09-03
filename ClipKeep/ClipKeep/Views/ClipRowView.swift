@@ -73,7 +73,7 @@ struct ClipRowView: View {
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 40, height: 40)
                 .adaptiveGlassBackground(
-                    in: AnyShape(RoundedRectangle(cornerRadius: 11, style: .continuous)),
+                    in: RoundedRectangle(cornerRadius: 11, style: .continuous),
                     tint: Color.accentColor.opacity(0.5)
                 )
         }
