@@ -6,9 +6,19 @@ export const dynamic = 'force-dynamic'
 /**
  * Admin image upload — lets the dashboard upload logos/banners straight
  * from the device instead of pasting URLs. Stores the file in R2
- * (uploads/<id>) and returns a permanent same-origin URL served by
- * /api/uploads/[id].
+ * (uploads/<id>).
+ *
+ * By default returns a same-origin URL served by /api/uploads/[id] (a
+ * Vercel function that fetches the bytes from R2 on every request — every
+ * hit counts as a Vercel Edge Request). If CDN_UPLOADS_BASE_URL is set
+ * (e.g. https://cdn.voidon.top/uploads), returns that instead — point it at
+ * a Cloudflare Worker bound directly to the R2 bucket so image traffic
+ * never touches Vercel at all. See cloudflare/uploads-worker/ for that
+ * Worker. Existing /api/uploads/<id> URLs already saved on games/products/
+ * etc keep working either way — this only changes the URL handed back for
+ * NEW uploads.
  */
+const CDN_BASE_URL = process.env.CDN_UPLOADS_BASE_URL?.replace(/\/+$/, '') || ''
 
 const ADMIN_KEY = process.env.ADMIN_PASSWORD || 'voidhub123'
 const MAX_BYTES = 4 * 1024 * 1024 // 4MB is plenty for logos/banners
@@ -57,5 +67,6 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Storage unavailable — try again later' }, { status: 500 })
   }
 
-  return Response.json({ success: true, url: `/api/uploads/${id}` })
+  const url = CDN_BASE_URL ? `${CDN_BASE_URL}/${id}` : `/api/uploads/${id}`
+  return Response.json({ success: true, url })
 }

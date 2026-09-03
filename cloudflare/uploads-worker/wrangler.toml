@@ -1,0 +1,14 @@
+name = "voidhub"
+main = "index.js"
+compatibility_date = "2026-09-01"
+
+# Binds the existing voidhub-storage R2 bucket as env.VOIDHUB_BUCKET.
+[[r2_buckets]]
+binding = "VOIDHUB_BUCKET"
+bucket_name = "voidhub-storage"
+
+# Requires cdn.voidon.top to exist as a DNS record on the voidon.top zone
+# (proxied / orange-cloud) — see cloudflare/uploads-worker/README.md.
+routes = [
+  { pattern = "cdn.voidon.top/uploads/*", zone_name = "voidon.top" },
+]
