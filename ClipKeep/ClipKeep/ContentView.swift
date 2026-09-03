@@ -2,15 +2,44 @@
 //  ContentView.swift
 //  ClipKeep
 //
+//  Three tabs, matching the three ways ClipKeep is used: browse the history,
+//  set up and try the keyboard, and put the list in a floating window.
+//
 
 import Foundation
 import SwiftUI
 
 struct ContentView: View {
+    var body: some View {
+        TabView {
+            ClipListView()
+                .tabItem {
+                    Label("Clipboard", systemImage: "doc.on.clipboard")
+                }
+
+            KeyboardPreviewView()
+                .tabItem {
+                    Label("Preview", systemImage: "keyboard")
+                }
+
+            PiPView()
+                .tabItem {
+                    Label("PIP", systemImage: "pip")
+                }
+        }
+    }
+}
+
+/// The clip history itself -- what used to be the whole app.
+struct ClipListView: View {
     @EnvironmentObject private var clipboardManager: ClipboardManager
     @State private var searchText = ""
     @State private var showSettings = false
+    @State private var showSetupSteps = false
     @State private var detailTarget: ClipMetadata?
+    /// Snapshotted rather than read inline so the banner doesn't re-evaluate
+    /// shared defaults on every redraw of the list.
+    @State private var keyboardConfirmed = KeyboardSettings.isKeyboardConfirmedWorking
 
     private var pinnedItems: [ClipMetadata] {
         filteredItems.filter(\.isPinned)
@@ -66,15 +95,24 @@ struct ContentView: View {
             .sheet(isPresented: $showSettings) {
                 SettingsView()
             }
+            .sheet(isPresented: $showSetupSteps) {
+                SetupStepsView()
+            }
             .clipKeepToast($clipboardManager.toastMessage)
         }
         .onAppear {
             clipboardManager.handleDidBecomeActive()
+            keyboardConfirmed = KeyboardSettings.isKeyboardConfirmedWorking
         }
     }
 
     private var list: some View {
         List {
+            if !keyboardConfirmed {
+                Section {
+                    setupPrompt
+                }
+            }
             if !pinnedItems.isEmpty {
                 Section("Pinned") {
                     ForEach(pinnedItems) { metadata in
@@ -97,6 +135,34 @@ struct ContentView: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    /// Shown until the keyboard extension checks in for the first time, then
+    /// gone for good. Enabling a keyboard is a seven-step trip through
+    /// Settings that nobody discovers on their own.
+    private var setupPrompt: some View {
+        Button {
+            showSetupSteps = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "keyboard.badge.ellipsis")
+                    .font(.title3)
+                    .foregroundStyle(Color.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Use clips in any app")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text("Set up the ClipKeep keyboard")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func row(for metadata: ClipMetadata) -> some View {

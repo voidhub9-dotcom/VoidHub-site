@@ -24,7 +24,51 @@
 		570BAD2A793F9950CF234806 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFACDE2023FCA3F5A2654203 /* SettingsView.swift */; };
 		0F49B4A6065BBAE4B2DD02A0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4B5FE9C04E753CCD4E8CBB14 /* Assets.xcassets */; };
 		13533DF83B32A29CB2231204 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AFF7E66ABB3742D6EF680175 /* PrivacyInfo.xcprivacy */; };
+		2B3C4D000000000000000001 /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000001 /* AppGroup.swift */; };
+		2B3C4D000000000000000002 /* KeyboardSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000002 /* KeyboardSettings.swift */; };
+		2B3C4D000000000000000003 /* ClipTextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000003 /* ClipTextExtractor.swift */; };
+		2B3C4D000000000000000004 /* KeyboardClipStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000004 /* KeyboardClipStore.swift */; };
+		2B3C4D000000000000000005 /* KeyboardRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000005 /* KeyboardRootView.swift */; };
+		2B3C4D000000000000000006 /* SetupStepsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000006 /* SetupStepsView.swift */; };
+		2B3C4D000000000000000007 /* KeyboardPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000007 /* KeyboardPreviewView.swift */; };
+		2B3C4D000000000000000008 /* PiPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000008 /* PiPView.swift */; };
+		2B3C4D000000000000000009 /* ClipPiPController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000009 /* ClipPiPController.swift */; };
+		2B3C4D000000000000000042 /* ClipKeepKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000023 /* ClipKeepKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		3C4D5E000000000000000001 /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000001 /* AppGroup.swift */; };
+		3C4D5E000000000000000002 /* KeyboardSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000002 /* KeyboardSettings.swift */; };
+		3C4D5E000000000000000003 /* ClipTextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000003 /* ClipTextExtractor.swift */; };
+		3C4D5E000000000000000004 /* KeyboardClipStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000004 /* KeyboardClipStore.swift */; };
+		3C4D5E000000000000000005 /* KeyboardRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000005 /* KeyboardRootView.swift */; };
+		3C4D5E000000000000000010 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C000000000000000010 /* KeyboardViewController.swift */; };
+		3C4D5E000000000000000011 /* ClipKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9FDF17ECC7F598A59CFEC1 /* ClipKind.swift */; };
+		3C4D5E000000000000000012 /* UTIConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278BC42D08A1B40A659B96B4 /* UTIConstants.swift */; };
+		3C4D5E000000000000000013 /* ClipMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = B817CAA8A70F505A3747ADC5 /* ClipMetadata.swift */; };
+		3C4D5E000000000000000014 /* PersistenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C558A7603FCA96FD0F27CD /* PersistenceStore.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4D5E6F000000000000000037 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 076B3B07850AF745929CA92A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D5E6F000000000000000032;
+			remoteInfo = ClipKeepKeyboard;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4D5E6F000000000000000036 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				2B3C4D000000000000000042 /* ClipKeepKeyboard.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		FA1864C9721EC823335B7C8D /* ClipKeep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClipKeep.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -45,10 +89,31 @@
 		DFACDE2023FCA3F5A2654203 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4B5FE9C04E753CCD4E8CBB14 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AFF7E66ABB3742D6EF680175 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		1A2B3C000000000000000001 /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
+		1A2B3C000000000000000002 /* KeyboardSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardSettings.swift; sourceTree = "<group>"; };
+		1A2B3C000000000000000003 /* ClipTextExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipTextExtractor.swift; sourceTree = "<group>"; };
+		1A2B3C000000000000000004 /* KeyboardClipStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardClipStore.swift; sourceTree = "<group>"; };
+		1A2B3C000000000000000005 /* KeyboardRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardRootView.swift; sourceTree = "<group>"; };
+		1A2B3C000000000000000006 /* SetupStepsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupStepsView.swift; sourceTree = "<group>"; };
+		1A2B3C000000000000000007 /* KeyboardPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPreviewView.swift; sourceTree = "<group>"; };
+		1A2B3C000000000000000008 /* PiPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiPView.swift; sourceTree = "<group>"; };
+		1A2B3C000000000000000009 /* ClipPiPController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipPiPController.swift; sourceTree = "<group>"; };
+		1A2B3C000000000000000010 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
+		1A2B3C000000000000000020 /* ClipKeep.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClipKeep.entitlements; sourceTree = "<group>"; };
+		1A2B3C000000000000000021 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A2B3C000000000000000022 /* ClipKeepKeyboard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClipKeepKeyboard.entitlements; sourceTree = "<group>"; };
+		1A2B3C000000000000000023 /* ClipKeepKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClipKeepKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		2C0219760827D3919E461C47 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D5E6F000000000000000034 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -65,6 +130,7 @@
 				3E934562E92B0B57C302CC25 /* HapticsManager.swift */,
 				08F52EA4264C89AC2CA81136 /* ThumbnailCache.swift */,
 				6BFA41E0164573AB5501F146 /* ClipboardManager.swift */,
+				1A2B3C000000000000000009 /* ClipPiPController.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -79,6 +145,18 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
+		4D5E6F000000000000000030 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C000000000000000001 /* AppGroup.swift */,
+				1A2B3C000000000000000002 /* KeyboardSettings.swift */,
+				1A2B3C000000000000000003 /* ClipTextExtractor.swift */,
+				1A2B3C000000000000000004 /* KeyboardClipStore.swift */,
+				1A2B3C000000000000000005 /* KeyboardRootView.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		6A254D4CE656B33FDD402F63 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -88,6 +166,9 @@
 				7E4FA812242DB1A909908538 /* ClipRowView.swift */,
 				F044CB561E517BBCE9EF7DEC /* ClipDetailView.swift */,
 				DFACDE2023FCA3F5A2654203 /* SettingsView.swift */,
+				1A2B3C000000000000000006 /* SetupStepsView.swift */,
+				1A2B3C000000000000000007 /* KeyboardPreviewView.swift */,
+				1A2B3C000000000000000008 /* PiPView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -99,17 +180,30 @@
 				E488FBF2695DE8C2A78E35CD /* ContentView.swift */,
 				4B5FE9C04E753CCD4E8CBB14 /* Assets.xcassets */,
 				AFF7E66ABB3742D6EF680175 /* PrivacyInfo.xcprivacy */,
+				1A2B3C000000000000000020 /* ClipKeep.entitlements */,
 				46357D21205BE84ADD717726 /* Services */,
 				A85D0C0EFEF2BD42791567B1 /* Models */,
+				4D5E6F000000000000000030 /* Shared */,
 				6A254D4CE656B33FDD402F63 /* Views */,
 			);
 			path = ClipKeep;
+			sourceTree = "<group>";
+		};
+		4D5E6F000000000000000031 /* ClipKeepKeyboard */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C000000000000000010 /* KeyboardViewController.swift */,
+				1A2B3C000000000000000021 /* Info.plist */,
+				1A2B3C000000000000000022 /* ClipKeepKeyboard.entitlements */,
+			);
+			path = ClipKeepKeyboard;
 			sourceTree = "<group>";
 		};
 		82D572857CBEE614BDC1E5BA /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				FA1864C9721EC823335B7C8D /* ClipKeep.app */,
+				1A2B3C000000000000000023 /* ClipKeepKeyboard.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -118,6 +212,7 @@
 			isa = PBXGroup;
 			children = (
 				A8E0522340673422A236CF23 /* ClipKeep */,
+				4D5E6F000000000000000031 /* ClipKeepKeyboard */,
 				82D572857CBEE614BDC1E5BA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -132,15 +227,34 @@
 				1B765F61AB8B15E3B81EF0A1 /* Sources */,
 				2C0219760827D3919E461C47 /* Frameworks */,
 				1BFFB1A43B129EE9F058BBC7 /* Resources */,
+				4D5E6F000000000000000036 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				4D5E6F000000000000000038 /* PBXTargetDependency */,
 			);
 			name = ClipKeep;
 			productName = ClipKeep;
 			productReference = FA1864C9721EC823335B7C8D /* ClipKeep.app */;
 			productType = "com.apple.product-type.application";
+		};
+		4D5E6F000000000000000032 /* ClipKeepKeyboard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D5E6F000000000000000041 /* Build configuration list for PBXNativeTarget "ClipKeepKeyboard" */;
+			buildPhases = (
+				4D5E6F000000000000000033 /* Sources */,
+				4D5E6F000000000000000034 /* Frameworks */,
+				4D5E6F000000000000000035 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ClipKeepKeyboard;
+			productName = ClipKeepKeyboard;
+			productReference = 1A2B3C000000000000000023 /* ClipKeepKeyboard.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -153,6 +267,9 @@
 				LastUpgradeCheck = 1520;
 				TargetAttributes = {
 					ECF527DDB853F461BB8B117C = {
+						CreatedOnToolsVersion = 15.2;
+					};
+					4D5E6F000000000000000032 = {
 						CreatedOnToolsVersion = 15.2;
 					};
 				};
@@ -171,6 +288,7 @@
 			projectRoot = "";
 			targets = (
 				ECF527DDB853F461BB8B117C /* ClipKeep */,
+				4D5E6F000000000000000032 /* ClipKeepKeyboard */,
 			);
 		};
 /* End PBXProject section */
@@ -182,6 +300,13 @@
 			files = (
 				0F49B4A6065BBAE4B2DD02A0 /* Assets.xcassets in Resources */,
 				13533DF83B32A29CB2231204 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D5E6F000000000000000035 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -207,10 +332,44 @@
 				80B6E2ACD201C16F31506433 /* ClipRowView.swift in Sources */,
 				4EFD50F53704807F60B2BAA1 /* ClipDetailView.swift in Sources */,
 				570BAD2A793F9950CF234806 /* SettingsView.swift in Sources */,
+				2B3C4D000000000000000001 /* AppGroup.swift in Sources */,
+				2B3C4D000000000000000002 /* KeyboardSettings.swift in Sources */,
+				2B3C4D000000000000000003 /* ClipTextExtractor.swift in Sources */,
+				2B3C4D000000000000000004 /* KeyboardClipStore.swift in Sources */,
+				2B3C4D000000000000000005 /* KeyboardRootView.swift in Sources */,
+				2B3C4D000000000000000006 /* SetupStepsView.swift in Sources */,
+				2B3C4D000000000000000007 /* KeyboardPreviewView.swift in Sources */,
+				2B3C4D000000000000000008 /* PiPView.swift in Sources */,
+				2B3C4D000000000000000009 /* ClipPiPController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D5E6F000000000000000033 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C4D5E000000000000000010 /* KeyboardViewController.swift in Sources */,
+				3C4D5E000000000000000005 /* KeyboardRootView.swift in Sources */,
+				3C4D5E000000000000000004 /* KeyboardClipStore.swift in Sources */,
+				3C4D5E000000000000000003 /* ClipTextExtractor.swift in Sources */,
+				3C4D5E000000000000000002 /* KeyboardSettings.swift in Sources */,
+				3C4D5E000000000000000001 /* AppGroup.swift in Sources */,
+				3C4D5E000000000000000011 /* ClipKind.swift in Sources */,
+				3C4D5E000000000000000012 /* UTIConstants.swift in Sources */,
+				3C4D5E000000000000000013 /* ClipMetadata.swift in Sources */,
+				3C4D5E000000000000000014 /* PersistenceStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4D5E6F000000000000000038 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D5E6F000000000000000032 /* ClipKeepKeyboard */;
+			targetProxy = 4D5E6F000000000000000037 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		E23CA2867B7ECB875257552F /* Debug */ = {
@@ -342,6 +501,7 @@
 			buildSettings = {
 			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+			CODE_SIGN_ENTITLEMENTS = ClipKeep/ClipKeep.entitlements;
 			CODE_SIGN_STYLE = Automatic;
 			CURRENT_PROJECT_VERSION = 1;
 			DEVELOPMENT_ASSET_PATHS = "";
@@ -352,6 +512,7 @@
 			INFOPLIST_KEY_NSHumanReadableCopyright = "";
 			INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 			INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+			INFOPLIST_KEY_UIBackgroundModes = audio;
 			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 			INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
 			INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -375,6 +536,7 @@
 			buildSettings = {
 			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+			CODE_SIGN_ENTITLEMENTS = ClipKeep/ClipKeep.entitlements;
 			CODE_SIGN_STYLE = Automatic;
 			CURRENT_PROJECT_VERSION = 1;
 			DEVELOPMENT_ASSET_PATHS = "";
@@ -385,6 +547,7 @@
 			INFOPLIST_KEY_NSHumanReadableCopyright = "";
 			INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 			INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+			INFOPLIST_KEY_UIBackgroundModes = audio;
 			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 			INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
 			INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -400,6 +563,58 @@
 			SWIFT_EMIT_LOC_STRINGS = YES;
 			SWIFT_VERSION = 5.0;
 			TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4D5E6F000000000000000039 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ClipKeepKeyboard/ClipKeepKeyboard.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ClipKeepKeyboard/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ClipKeep;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.clipkeep.app.keyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4D5E6F000000000000000040 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ClipKeepKeyboard/ClipKeepKeyboard.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ClipKeepKeyboard/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ClipKeep;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.clipkeep.app.keyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -420,6 +635,15 @@
 			buildConfigurations = (
 				F9787D0685DFECACF97F160F /* Debug */,
 				312E37ACF17C462A78C09BFC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D5E6F000000000000000041 /* Build configuration list for PBXNativeTarget "ClipKeepKeyboard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D5E6F000000000000000039 /* Debug */,
+				4D5E6F000000000000000040 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

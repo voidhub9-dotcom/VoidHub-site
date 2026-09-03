@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Must stay identical to the group in ClipKeep.entitlements and to
+	  AppGroup.identifier in code. If a signing tool rewrites the bundle ID
+	  but not this value, the app and the keyboard end up entitled to
+	  different containers and silently stop seeing each other's data.
+	-->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.clipkeep.app</string>
+	</array>
+</dict>
+</plist>

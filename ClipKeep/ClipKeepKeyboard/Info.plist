@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Only the keys Xcode cannot generate live here; GENERATE_INFOPLIST_FILE
+	  is left on for the extension target, and the build merges the usual
+	  CFBundle* keys into this dictionary.
+
+	  RequestsOpenAccess is the important one. It does not grant anything by
+	  itself: it makes the "Allow Full Access" switch appear in Settings for
+	  this keyboard. Without Full Access, iOS denies the extension both the
+	  App Group container (so it sees no clips) and UIPasteboard (so it
+	  cannot hand images over), which is why the app ships a setup guide
+	  rather than assuming it will be found.
+	-->
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<!-- ClipKeep inserts stored clips rather than typing characters,
+			     so it cannot serve as an ASCII-capable keyboard for fields
+			     like passcode entry. Declaring false keeps iOS from offering
+			     it where it would be useless. -->
+			<key>IsASCIICapable</key>
+			<false/>
+			<key>PrefersRightToLeft</key>
+			<false/>
+			<key>PrimaryLanguage</key>
+			<string>en-US</string>
+			<key>RequestsOpenAccess</key>
+			<true/>
+		</dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.keyboard-service</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).KeyboardViewController</string>
+	</dict>
+</dict>
+</plist>

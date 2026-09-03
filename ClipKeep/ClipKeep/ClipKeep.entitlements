@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Must stay identical to the group in ClipKeepKeyboard.entitlements and
+	  to AppGroup.identifier in code. This is what lets the keyboard read the
+	  clip history the app captures; without it the app still works, but the
+	  keyboard finds nothing.
+	-->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.clipkeep.app</string>
+	</array>
+</dict>
+</plist>

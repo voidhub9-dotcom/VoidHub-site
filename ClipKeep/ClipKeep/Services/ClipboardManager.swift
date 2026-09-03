@@ -382,13 +382,14 @@ final class ClipboardManager: ObservableObject {
         }
     }
 
+    /// Delegates to the shared extractor so the preview shown in the app and
+    /// the text the keyboard actually inserts can never disagree about what a
+    /// clip says. (It also fixes a latent wrinkle: this used to iterate
+    /// `UTI.textTypes`, a Set, so which representation won was unspecified
+    /// when a clip carried both. The extractor checks them in a fixed order.)
     private static func previewFromPlainText(_ representations: [String: Data]) -> String? {
-        for type in UTI.textTypes {
-            if let data = representations[type], let string = String(data: data, encoding: .utf8) {
-                return truncate(string)
-            }
-        }
-        return nil
+        guard let text = ClipTextExtractor.plainText(from: representations) else { return nil }
+        return truncate(text)
     }
 
     private static func truncate(_ string: String, limit: Int = 400) -> String {

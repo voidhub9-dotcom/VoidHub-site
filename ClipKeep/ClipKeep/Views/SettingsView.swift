@@ -12,6 +12,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showClearAllConfirmation = false
+    @State private var showSetupSteps = false
 
     private static let retentionOptions: [(label: String, days: Int)] = [
         ("Never", 0),
@@ -78,6 +79,19 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    LabeledContent("Status", value: KeyboardSettings.isKeyboardConfirmedWorking ? "Working" : "Not confirmed")
+                    Button {
+                        showSetupSteps = true
+                    } label: {
+                        Label("Setup steps", systemImage: "list.number")
+                    }
+                } header: {
+                    Text("ClipKeep Keyboard")
+                } footer: {
+                    Text("The keyboard puts your clips inside every app with a text field. It needs Allow Full Access to read them -- iOS blocks keyboards from shared app data otherwise. \"Working\" appears once the keyboard has opened at least once with that switched on.")
+                }
+
+                Section {
                     LabeledContent("Version", value: appVersionString)
                 } header: {
                     Text("About")
@@ -89,6 +103,9 @@ struct SettingsView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .sheet(isPresented: $showSetupSteps) {
+                SetupStepsView()
             }
             .confirmationDialog(
                 "Delete all clip history? Pinned clips will be deleted too. This can't be undone.",

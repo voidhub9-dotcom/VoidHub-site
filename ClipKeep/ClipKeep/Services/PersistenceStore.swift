@@ -57,9 +57,14 @@ final class PersistenceStore {
     private let indexURL: URL
 
     private init() {
-        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? fileManager.temporaryDirectory
-        rootDirectory = appSupport.appendingPathComponent("ClipKeep", isDirectory: true)
+        // Storage lives in the App Group container so the keyboard extension
+        // -- a separate process with its own sandbox -- can read the same
+        // history. AppGroup falls back to this process's own Application
+        // Support directory when the container isn't reachable (unsigned
+        // build, or a keyboard without Full Access), so the app on its own
+        // never loses the ability to store clips; only sharing stops.
+        rootDirectory = AppGroup.storageParentDirectory(fileManager: fileManager)
+            .appendingPathComponent("ClipKeep", isDirectory: true)
         itemsDirectory = rootDirectory.appendingPathComponent("Items", isDirectory: true)
         indexURL = rootDirectory.appendingPathComponent("index.json")
 
@@ -74,6 +79,51 @@ final class PersistenceStore {
             try? excluded.setResourceValues(resourceValues)
         } catch {
             logger.fault("Failed to create storage directories: \(error.localizedDescription, privacy: .public)")
+        }
+
+        migrateLegacyStoreIfNeeded()
+    }
+
+    /// Moves history written before clip storage moved into the App Group.
+    ///
+    /// Without this, upgrading looks exactly like the app wiped everything:
+    /// the old files are still on disk, just under a path nothing reads any
+    /// more. Runs at most once -- after a successful move the legacy folder
+    /// is gone, and the `hasIndex` guard means a fresh install does no work.
+    private func migrateLegacyStoreIfNeeded() {
+        let legacyRoot = AppGroup.legacyStorageDirectory(fileManager: fileManager)
+
+        // Nothing to do when storage never moved (no group entitlement, so
+        // the legacy path *is* the current path) or when there is no old
+        // history to bring forward.
+        guard legacyRoot.standardizedFileURL != rootDirectory.standardizedFileURL else { return }
+        let legacyIndex = legacyRoot.appendingPathComponent("index.json")
+        guard fileManager.fileExists(atPath: legacyIndex.path) else { return }
+
+        // Never overwrite history already in the shared container.
+        guard !fileManager.fileExists(atPath: indexURL.path) else {
+            logger.notice("Legacy store present but shared store already initialized; leaving legacy files untouched")
+            return
+        }
+
+        do {
+            let legacyItems = legacyRoot.appendingPathComponent("Items", isDirectory: true)
+            if fileManager.fileExists(atPath: legacyItems.path) {
+                for url in try fileManager.contentsOfDirectory(at: legacyItems, includingPropertiesForKeys: nil) {
+                    let destination = itemsDirectory.appendingPathComponent(url.lastPathComponent)
+                    if !fileManager.fileExists(atPath: destination.path) {
+                        try fileManager.moveItem(at: url, to: destination)
+                    }
+                }
+            }
+            try fileManager.moveItem(at: legacyIndex, to: indexURL)
+            try? fileManager.removeItem(at: legacyRoot)
+            logger.notice("Migrated clip history into the shared App Group container")
+        } catch {
+            // A failed migration must not take the app down or destroy the
+            // old files -- the user simply starts with an empty shared
+            // history and their previous data stays recoverable on disk.
+            logger.error("Failed to migrate legacy store: \(error.localizedDescription, privacy: .public)")
         }
     }
 
