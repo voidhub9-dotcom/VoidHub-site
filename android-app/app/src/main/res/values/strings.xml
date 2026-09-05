@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PhoneMigrate</string>
+    <string name="notification_channel_transfer">Data transfer</string>
+    <string name="notification_transfer_title">PhoneMigrate transfer in progress</string>
+</resources>
