@@ -11,3 +11,8 @@
 -keepclasseswithmembers class com.voidhub.phonemigrate.data.model.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
+-keepclasseswithmembers class com.voidhub.phonemigrate.network.ControlMessage* {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keep,includedescriptorclasses class com.voidhub.phonemigrate.data.model.** { *; }
+-keep,includedescriptorclasses class com.voidhub.phonemigrate.network.ControlMessage* { *; }
