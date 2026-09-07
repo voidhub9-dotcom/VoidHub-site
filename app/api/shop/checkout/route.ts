@@ -1,4 +1,5 @@
-import { loadShopProducts, appendShopOrder, type ShopOrder } from '@/lib/shop'
+import { randomUUID } from 'crypto'
+import { loadShopProducts, appendShopOrder, updateShopOrder, type ShopOrder } from '@/lib/shop'
 import { stripeClient, stripeConfigured } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
@@ -34,6 +35,28 @@ export async function POST(req: Request) {
       return Response.json({ error: `Only ${product.keys.length} left in stock` }, { status: 409 })
     }
 
+    const receiptId = `stripe_${randomUUID()}`
+    const order: ShopOrder = {
+      id: receiptId,
+      paymentProvider: 'stripe',
+      productId: product.id,
+      productName: product.name,
+      quantity,
+      amountTotal: product.priceCents * quantity,
+      currency: product.currency,
+      presentmentAmount: null,
+      presentmentCurrency: null,
+      customerEmail: email || null,
+      status: 'pending',
+      deliveredKeys: null,
+      emailSent: false,
+      createdAt: new Date().toISOString(),
+      fulfilledAt: null,
+    }
+    // Save the receipt first. A payment must never exist without a durable
+    // record that can be fulfilled by the webhook or the success-page fallback.
+    await appendShopOrder(order)
+
     const stripe = stripeClient()!
     const origin =
       process.env.NEXT_PUBLIC_SITE_URL ||
@@ -61,28 +84,14 @@ export async function POST(req: Request) {
           },
         },
       ],
-      metadata: { productId: product.id, quantity: String(quantity) },
-      success_url: `${origin}/shop/success?session_id={CHECKOUT_SESSION_ID}`,
+      client_reference_id: receiptId,
+      metadata: { receiptId, productId: product.id, quantity: String(quantity) },
+      success_url: `${origin}/shop/success?receipt_id=${receiptId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/shop/cancel`,
     })
 
-    const order: ShopOrder = {
-      id: session.id,
-      productId: product.id,
-      productName: product.name,
-      quantity,
-      amountTotal: product.priceCents * quantity,
-      currency: product.currency,
-      presentmentAmount: null,
-      presentmentCurrency: null,
-      customerEmail: email || null,
-      status: 'pending',
-      deliveredKeys: null,
-      emailSent: false,
-      createdAt: new Date().toISOString(),
-      fulfilledAt: null,
-    }
-    await appendShopOrder(order)
+    if (!session.url) throw new Error('Stripe did not return a checkout URL')
+    await updateShopOrder(receiptId, { providerOrderId: session.id })
 
     return Response.json({ url: session.url })
   } catch (error: any) {

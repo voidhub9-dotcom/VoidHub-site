@@ -22,13 +22,14 @@ require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileMo
 let emails = 0
 let stripeSession = null
 let stripeEvent = null
+let stripeCreate = null
 const originalLoad = Module._load
 Module._load = function (request, parent, isMain) {
   if (request.startsWith('@/')) request = path.join(root, request.slice(2))
   if (request === './email' || request === path.join(root, 'lib/email')) return { sendKeyDeliveryEmail: async () => { emails++; return { ok: true } } }
-  if (request === path.join(root, 'lib/stripe')) return {
+  if (request === './stripe' || request === path.join(root, 'lib/stripe')) return {
     stripeConfigured: true,
-    stripeClient: () => ({ checkout: { sessions: { retrieve: async () => stripeSession } }, webhooks: { constructEvent: () => stripeEvent } }),
+    stripeClient: () => ({ checkout: { sessions: { retrieve: async () => stripeSession, create: async (...args) => stripeCreate(...args) } }, webhooks: { constructEvent: () => stripeEvent } }),
   }
   return originalLoad.call(this, request, parent, isMain)
 }
@@ -38,6 +39,8 @@ const { fulfillShopOrder } = require('../lib/shop-fulfillment.ts')
 const checkout = require('../app/api/shop/crypto/checkout/route.ts')
 const callback = require('../app/api/shop/crypto/callback/[orderId]/route.ts')
 const stripeWebhook = require('../app/api/shop/webhook/route.ts')
+const stripeCheckout = require('../app/api/shop/checkout/route.ts')
+const stripeConfirm = require('../app/api/shop/confirm/[receiptId]/route.ts')
 const adminOrders = require('../app/api/admin/shop/orders/route.ts')
 const publicOrder = require('../app/api/shop/order/[sessionId]/route.ts')
 const receipt = 'crypto_11111111-1111-4111-8111-111111111111'
@@ -154,6 +157,75 @@ test('payment redirects reject foreign hosts, insecure URLs and credentials', ()
   }
   assert.equal(crypto.validPaymentUrl('https://sandbox.coingate.com/invoice/test', 'sandbox'), true)
 })
+test('Stripe checkout records the receipt before opening payment and links it to the returned session', async () => {
+  await shop.mutateShopState(state => { state.products = [product()]; state.orders = [] })
+  stripeCreate = async (input) => {
+    const orders = await shop.loadShopOrders()
+    assert.equal(orders.length, 1)
+    assert.equal(orders[0].paymentProvider, 'stripe')
+    assert.equal(input.client_reference_id, orders[0].id)
+    assert.equal(input.metadata.receiptId, orders[0].id)
+    assert.match(input.success_url, new RegExp(`receipt_id=${orders[0].id}`))
+    return { id: 'cs_test_checkout', url: 'https://checkout.stripe.com/c/pay/test' }
+  }
+  const response = await stripeCheckout.POST(new Request('https://example.test/api/shop/checkout', {
+    method: 'POST', body: JSON.stringify({ productId: 'p1', quantity: 1, email: 'buyer@example.test' }),
+  }))
+  assert.equal(response.status, 200)
+  const [created] = await shop.loadShopOrders()
+  assert.equal(created.providerOrderId, 'cs_test_checkout')
+})
+
+test('Stripe webhook fulfills a new receipt referenced in Checkout metadata', async () => {
+  const stripeReceipt = 'stripe_33333333-1111-4111-8111-111111111111'
+  await shop.mutateShopState(state => {
+    state.products = [product()]
+    state.orders = [{ ...order(stripeReceipt), paymentProvider: 'stripe', providerOrderId: 'cs_test_789', cryptoEnvironment: undefined }]
+  })
+  stripeEvent = { type: 'checkout.session.completed', data: { object: {
+    id: 'cs_test_789', mode: 'payment', payment_status: 'paid', amount_total: 1250, currency: 'gbp',
+    client_reference_id: stripeReceipt, metadata: { receiptId: stripeReceipt }, customer_details: { email: 'buyer@example.test' },
+  } } }
+  const res = await stripeWebhook.POST(new Request('https://example.test', { method: 'POST', body: '{}' }))
+  assert.equal(res.status, 200)
+  assert.deepEqual((await shop.loadShopOrders())[0].deliveredKeys, ['KEY-A'])
+})
+
+test('Stripe return fallback verifies Stripe, fulfills the right receipt, and is safe to retry', async () => {
+  const stripeReceipt = 'stripe_11111111-1111-4111-8111-111111111111'
+  await shop.mutateShopState(state => {
+    state.products = [product()]
+    state.orders = [{ ...order(stripeReceipt), paymentProvider: 'stripe', providerOrderId: 'cs_test_123', cryptoEnvironment: undefined }]
+  })
+  stripeSession = {
+    id: 'cs_test_123', mode: 'payment', payment_status: 'paid', amount_total: 1250, currency: 'gbp',
+    client_reference_id: stripeReceipt, metadata: { receiptId: stripeReceipt }, customer_details: { email: 'buyer@example.test' },
+  }
+  const request = () => new Request('https://example.test', { method: 'POST', body: JSON.stringify({ sessionId: 'cs_test_123' }) })
+  const routeParams = { params: Promise.resolve({ receiptId: stripeReceipt }) }
+  assert.equal((await stripeConfirm.POST(request(), routeParams)).status, 200)
+  assert.equal((await stripeConfirm.POST(request(), routeParams)).status, 200)
+  assert.deepEqual((await shop.loadShopOrders())[0].deliveredKeys, ['KEY-A'])
+  assert.equal((await shop.loadShopProducts())[0].keys.length, 1)
+  assert.equal(emails, 1)
+})
+
+test('Stripe return fallback rejects a payment session linked to another receipt', async () => {
+  const stripeReceipt = 'stripe_22222222-1111-4111-8111-111111111111'
+  await shop.mutateShopState(state => {
+    state.products = [product()]
+    state.orders = [{ ...order(stripeReceipt), paymentProvider: 'stripe', providerOrderId: 'cs_test_456', cryptoEnvironment: undefined }]
+  })
+  stripeSession = {
+    id: 'cs_test_456', mode: 'payment', payment_status: 'paid', amount_total: 1250, currency: 'gbp',
+    client_reference_id: 'stripe_different', metadata: { receiptId: 'stripe_different' }, customer_details: { email: 'buyer@example.test' },
+  }
+  const res = await stripeConfirm.POST(new Request('https://example.test', { method: 'POST', body: JSON.stringify({ sessionId: 'cs_test_456' }) }),
+    { params: Promise.resolve({ receiptId: stripeReceipt }) })
+  assert.equal(res.status, 409)
+  assert.equal((await shop.loadShopProducts())[0].keys.length, 2)
+})
+
 test('unpaid Stripe completion cannot consume stock', async () => {
   stripeEvent = { type: 'checkout.session.completed', data: { object: { id: receipt, payment_status: 'unpaid' } } }
   const res = await stripeWebhook.POST(new Request('https://example.test', { method: 'POST', body: '{}' }))

@@ -1,7 +1,7 @@
 import { loadShopOrders, mutateShopState } from '@/lib/shop'
 import { fulfillShopOrder, paymentSnapshot } from '@/lib/shop-fulfillment'
 import { verifyCryptoPayment } from '@/lib/coingate'
-import { stripeClient } from '@/lib/stripe'
+import { verifyStripePayment } from '@/lib/stripe-payment'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,10 +34,7 @@ export async function POST(req: Request) {
     if (order.paymentProvider === 'coingate') {
       await verifyCryptoPayment(order)
     } else {
-      const session = await stripeClient()?.checkout.sessions.retrieve(order.id)
-      if (!session || session.payment_status !== 'paid' || session.amount_total !== order.amountTotal || session.currency !== order.currency) {
-        return Response.json({ error: 'Payment has not been verified' }, { status: 409 })
-      }
+      await verifyStripePayment(order, order.providerOrderId || order.id)
     }
     const result = await fulfillShopOrder(order.id, paymentSnapshot(order), true)
     if (result.order.status !== 'fulfilled') return Response.json({ error: 'Add enough stock to fulfill this order' }, { status: 409 })

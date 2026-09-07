@@ -51,6 +51,8 @@ Email is a backup to the receipt page. It is sent after the durable fulfillment 
 
 The Stripe webhook shares the same fulfillment path, ignores unpaid completions and handles `checkout.session.async_payment_succeeded`. Add that event alongside `checkout.session.completed` to the Stripe webhook subscription if enabling delayed payment methods. Stripe's dynamic payment methods are used rather than hardcoding card-only checkout.
 
+For card purchases, the site saves the random order receipt before it opens Stripe Checkout. When the buyer returns, the success page reads that exact Checkout Session from Stripe and fulfills the receipt if it is paid. This repairs delayed or missing webhooks for buyers who reach the success page. Keep the webhook configured: it is still required to fulfill customers who close the Stripe page before returning.
+
 ## Tests
 
 Run `node --test tests/crypto-checkout.test.cjs` and `./node_modules/.bin/tsc --noEmit --incremental false` after dependency installation. Tests use isolated temporary filesystem storage and mocked payment/email providers. They cover forged callbacks, invoice mismatches, concurrent duplicate fulfillment, last-stock allocation, sandbox isolation, expired/refunded receipts, server-side prices, redirect validation and unverified manual fulfillment.

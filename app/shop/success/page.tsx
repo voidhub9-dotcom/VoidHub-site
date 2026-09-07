@@ -23,6 +23,7 @@ const MAX_POLLS = 120
 function SuccessContent() {
   const searchParams = useSearchParams()
   const sessionId = searchParams.get('session_id')
+  const receiptId = searchParams.get('receipt_id') || sessionId
   const [order, setOrder] = useState<OrderStatus | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [statusError, setStatusError] = useState(false)
@@ -30,13 +31,23 @@ function SuccessContent() {
   const [pollCount, setPollCount] = useState(0)
 
   useEffect(() => {
-    if (!sessionId) return
+    if (!receiptId) return
     let cancelled = false
     let timer: ReturnType<typeof setTimeout> | undefined
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/shop/order/${sessionId}`)
+        // Stripe webhooks remain the primary background fulfillment path. This
+        // confirmation call prevents a buyer who returns immediately from being
+        // stuck when that webhook is delayed or misconfigured.
+        if (sessionId && !receiptId.startsWith('crypto_')) {
+          await fetch(`/api/shop/confirm/${encodeURIComponent(receiptId)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId }),
+          })
+        }
+        const res = await fetch(`/api/shop/order/${encodeURIComponent(receiptId)}`)
         if (res.status === 404) {
           if (!cancelled) setNotFound(true)
           return
@@ -54,7 +65,7 @@ function SuccessContent() {
 
     poll()
     return () => { cancelled = true; clearTimeout(timer) }
-  }, [sessionId, pollCount])
+  }, [receiptId, sessionId, pollCount])
 
   const handleCopy = async (key: string) => {
     try {
@@ -86,10 +97,10 @@ function SuccessContent() {
               <AlertIcon size={36} className="text-warning mx-auto mb-4" />
               <h1 className="font-heading text-xl text-white mb-2">Unable to check payment</h1>
               <p className="font-body text-silver-mid text-sm">Please try again. If you have sent funds, keep this receipt and do not pay again while the status is unknown.</p>
-              <code className="block mt-3 font-mono text-xs text-silver-muted break-all">{sessionId}</code>
+              <code className="block mt-3 font-mono text-xs text-silver-muted break-all">{receiptId}</code>
               <button className="btn-buy mt-4" onClick={() => { setStatusError(false); setPollCount(c => c + 1) }}>Try again</button>
             </>
-          ) : !sessionId || notFound ? (
+          ) : !receiptId || notFound ? (
             <>
               <AlertIcon size={36} className="text-danger mx-auto mb-4" />
               <h1 className="font-heading text-xl text-white mb-2">Order not found</h1>
@@ -103,12 +114,12 @@ function SuccessContent() {
               <div className="spinner-cyan mx-auto mb-4" />
               <h1 className="font-heading text-xl text-white mb-2">Confirming payment...</h1>
               <p className="font-body text-silver-mid text-sm">
-                {sessionId?.startsWith('crypto_')
+                {receiptId?.startsWith('crypto_')
                   ? 'Blockchain confirmation can take several minutes. Keep this receipt link; do not pay again while confirmation is pending.'
                   : 'This usually takes just a few seconds.'}
                 {pollCount >= MAX_POLLS && ' Still waiting. Check your email or contact support with the order reference below.'}
               </p>
-              <code className="block mt-3 font-mono text-xs text-silver-muted break-all">{sessionId}</code>
+              <code className="block mt-3 font-mono text-xs text-silver-muted break-all">{receiptId}</code>
               {pollCount >= MAX_POLLS && <button className="btn-buy mt-4" onClick={() => setPollCount(0)}>Check again</button>}
             </>
           ) : ['expired', 'invalid', 'canceled', 'refunded'].includes(order.status) ? (
@@ -116,7 +127,7 @@ function SuccessContent() {
               <AlertIcon size={36} className="text-warning mx-auto mb-4" />
               <h1 className="font-heading text-xl text-white mb-2">{order.status === 'refunded' ? 'Payment refunded' : 'Payment not completed'}</h1>
               <p className="font-body text-silver-mid text-sm">Invoice status: {order.status}. If you sent funds, contact support with this reference before starting another payment.</p>
-              <code className="block mt-3 font-mono text-xs text-silver-muted break-all">{sessionId}</code>
+              <code className="block mt-3 font-mono text-xs text-silver-muted break-all">{receiptId}</code>
             </>
           ) : order.status === 'fulfilled' && order.deliveredKeys && order.deliveredKeys.length > 0 ? (
             <>
@@ -175,7 +186,7 @@ function SuccessContent() {
                 Your key is being prepared and will be delivered shortly. If it doesn&apos;t
                 arrive, contact support with this order reference:
               </p>
-              <code className="font-mono text-xs text-silver-muted break-all">{sessionId}</code>
+              <code className="font-mono text-xs text-silver-muted break-all">{receiptId}</code>
             </>
           )}
 

@@ -1,6 +1,7 @@
 import Stripe from 'stripe'
 import { stripeClient, stripeConfigured } from '@/lib/stripe'
 import { fulfillShopOrder } from '@/lib/shop-fulfillment'
+import { getStripeOrderId } from '@/lib/stripe-payment'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,12 +18,14 @@ export async function POST(req: Request) {
     return Response.json({ received: true })
   }
   const session = event.data.object as Stripe.Checkout.Session
-  if (session.payment_status !== 'paid') return Response.json({ received: true })
+  if (session.payment_status !== 'paid' || session.mode !== 'payment') return Response.json({ received: true })
+  const receiptId = getStripeOrderId(session)
+  if (!receiptId) return Response.json({ error: 'Missing order reference' }, { status: 400 })
   try {
     const presentment = (session as unknown as {
       presentment_details?: { presentment_amount?: number; presentment_currency?: string }
     }).presentment_details
-    await fulfillShopOrder(session.id, {
+    await fulfillShopOrder(receiptId, {
       amountTotal: session.amount_total ?? -1, currency: session.currency || '',
       customerEmail: session.customer_details?.email,
       presentmentAmount: presentment?.presentment_amount, presentmentCurrency: presentment?.presentment_currency,
