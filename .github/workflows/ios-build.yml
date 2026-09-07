@@ -78,3 +78,112 @@ jobs:
           path: ios-app/build/ChatOnSteroids-unsigned.ipa
           if-no-files-found: error
           retention-days: 30
+
+  # Compiling proves the code is valid; it does not prove the app opens. This boots
+  # a simulator, launches the build and fails on a launch-time crash.
+  smoke-test:
+    runs-on: macos-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios-app
+        run: xcodegen generate --spec project.yml
+
+      - name: Build for simulator
+        working-directory: ios-app
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project ChatOnSteroids.xcodeproj \
+            -scheme ChatOnSteroids \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/dd \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Boot simulator, install and launch
+        working-directory: ios-app
+        run: |
+          set -euo pipefail
+          BUNDLE_ID=com.voidhub.chatonsteroids
+          APP=$(find build/dd/Build/Products -maxdepth 2 -name "ChatOnSteroids.app" -type d | head -1)
+          if [ -z "$APP" ]; then
+            echo "Simulator build produced no app bundle"; exit 1
+          fi
+          echo "App bundle: $APP"
+
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)['devices']
+          for runtime, devices in data.items():
+              if 'iOS' not in runtime:
+                  continue
+              for device in devices:
+                  if device.get('isAvailable') and 'iPhone' in device.get('name', ''):
+                      print(device['udid'])
+                      sys.exit(0)
+          sys.exit(1)
+          ")
+          echo "Simulator: $UDID"
+
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+
+          # A stale report from an earlier run must not be mistaken for this launch.
+          rm -rf ~/Library/Logs/DiagnosticReports/ChatOnSteroids* || true
+
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" "$BUNDLE_ID"
+
+          # Give SwiftUI time to build the first frame; a bad environment or a
+          # missing Info.plist key crashes well inside this window.
+          sleep 12
+
+          CRASHES=$(ls ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "ChatOnSteroids" || true)
+          if [ -n "$CRASHES" ]; then
+            echo "::error::The app crashed on launch"
+            for report in ~/Library/Logs/DiagnosticReports/ChatOnSteroids*; do
+              echo "----- $report -----"
+              head -80 "$report"
+            done
+            exit 1
+          fi
+
+          if ! xcrun simctl spawn "$UDID" launchctl list | grep -q "$BUNDLE_ID"; then
+            echo "::error::The app is not running 12s after launch and left no crash report"
+            exit 1
+          fi
+
+          echo "App launched and is still running."
+
+      - name: Screenshot the running app
+        if: success()
+        working-directory: ios-app
+        run: |
+          UDID=$(xcrun simctl list devices booted -j | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)['devices']
+          for runtime, devices in data.items():
+              for device in devices:
+                  print(device['udid'])
+                  sys.exit(0)
+          sys.exit(1)
+          ")
+          xcrun simctl io "$UDID" screenshot build/launch.png
+          ls -lh build/launch.png
+
+      - name: Upload launch screenshot
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatOnSteroids-launch-screenshot
+          path: ios-app/build/launch.png
+          if-no-files-found: warn
+          retention-days: 30
