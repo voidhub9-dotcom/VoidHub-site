@@ -37,7 +37,7 @@ function StatusChip({ status }: { status: ShopOrder['status'] }) {
   }
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.7rem] font-body border bg-warning/10 text-warning border-warning/30">
-      <ClockIcon size={11} />Pending
+      <ClockIcon size={11} />{status === 'pending' ? 'Pending' : status}
     </span>
   )
 }
@@ -71,7 +71,7 @@ export default function AdminShopOrdersPage() {
   useEffect(() => { loadOrders() }, [loadOrders])
 
   const testCount = useMemo(() => orders.filter(o => o.isTest).length, [orders])
-  const allSelected = orders.length > 0 && selected.size === orders.length
+  const allSelected = testCount > 0 && selected.size === testCount
 
   const toggleOne = (id: string) => {
     setSelected(prev => {
@@ -83,7 +83,7 @@ export default function AdminShopOrdersPage() {
   }
 
   const toggleAll = () => {
-    setSelected(allSelected ? new Set() : new Set(orders.map(o => o.id)))
+    setSelected(allSelected ? new Set() : new Set(orders.filter(o => o.isTest).map(o => o.id)))
   }
 
   const selectAllTest = () => {
@@ -175,7 +175,7 @@ export default function AdminShopOrdersPage() {
         <div className="flex flex-col items-center justify-center py-20 bg-black-card border border-border-dim rounded-xl text-center">
           <ActivityIcon size={36} className="text-silver-faint mb-4" />
           <p className="font-heading text-sm text-silver-light tracking-wider mb-1">NO ORDERS YET</p>
-          <p className="font-body text-sm text-silver-muted">Orders will show up here once Stripe checkout is live.</p>
+          <p className="font-body text-sm text-silver-muted">Card and crypto orders will appear here.</p>
         </div>
       ) : (
         <>
@@ -187,6 +187,7 @@ export default function AdminShopOrdersPage() {
                   <div className="flex items-start gap-3">
                     <input
                       type="checkbox"
+                      disabled={!order.isTest}
                       checked={selected.has(order.id)}
                       onChange={() => toggleOne(order.id)}
                       aria-label={`Select order for ${order.productName}`}
@@ -210,6 +211,7 @@ export default function AdminShopOrdersPage() {
                     </div>
                   </div>
                   <StatusChip status={order.status} />
+                  {order.paymentProvider === 'coingate' && <span className="text-xs text-silver-muted">Crypto · GBP settlement</span>}
                 </div>
                 <dl className="flex flex-col gap-1.5 text-xs font-body border-t border-border-dim pt-3">
                   <div className="flex items-center justify-between gap-2">
@@ -238,7 +240,7 @@ export default function AdminShopOrdersPage() {
                     <dd className="text-silver-mid">{new Date(order.createdAt).toLocaleString()}</dd>
                   </div>
                 </dl>
-                {order.status !== 'fulfilled' && !order.isTest && (
+                {['pending', 'paid_no_stock'].includes(order.status) && !order.isTest && (
                   <button
                     onClick={() => handleFulfill(order.id)}
                     disabled={fulfillingId === order.id}
@@ -282,7 +284,8 @@ export default function AdminShopOrdersPage() {
                     <td className="pl-4 pr-2 py-3">
                       <input
                         type="checkbox"
-                        checked={selected.has(order.id)}
+                        disabled={!order.isTest}
+                      checked={selected.has(order.id)}
                         onChange={() => toggleOne(order.id)}
                         aria-label={`Select order for ${order.productName}`}
                         className="w-4 h-4 accent-white cursor-pointer"
@@ -318,8 +321,9 @@ export default function AdminShopOrdersPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         <StatusChip status={order.status} />
+                  {order.paymentProvider === 'coingate' && <span className="text-xs text-silver-muted">Crypto · GBP settlement</span>}
                         {order.manuallyFulfilled && (
-                          <span title="Fulfilled manually by an admin, not by Stripe's webhook">
+                          <span title="Fulfilled manually by an admin, not by a payment notification">
                             <BoltIcon size={12} className="text-warning" />
                           </span>
                         )}
@@ -338,7 +342,7 @@ export default function AdminShopOrdersPage() {
                       {new Date(order.createdAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-3">
-                      {order.status !== 'fulfilled' && !order.isTest && (
+                      {['pending', 'paid_no_stock'].includes(order.status) && !order.isTest && (
                         <button
                           onClick={() => handleFulfill(order.id)}
                           disabled={fulfillingId === order.id}
@@ -361,8 +365,8 @@ export default function AdminShopOrdersPage() {
         <div className="text-center">
           <AlertIcon size={32} className="mx-auto text-danger mb-4" />
           <p className="text-silver-light font-body text-sm mb-6">
-            Delete {selected.size} order{selected.size === 1 ? '' : 's'}? This only removes the order record — it does not
-            affect stock, sold counts, or anything already delivered. This cannot be undone.
+            Delete {selected.size} test order{selected.size === 1 ? '' : 's'}? Real payment records are retained for reconciliation.
+            Removing test records cannot be undone.
           </p>
           <div className="flex items-center justify-center gap-3">
             <button onClick={() => setDeleteConfirmOpen(false)} disabled={deleting}

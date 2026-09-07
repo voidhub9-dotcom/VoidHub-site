@@ -10,6 +10,7 @@ import Modal from '@/components/Modal'
 import ShopProductModal, { ShopProductFormData } from '@/components/ShopProductModal'
 import ShopEmailTemplateModal from '@/components/ShopEmailTemplateModal'
 import StripeSetupGuide from '@/components/StripeSetupGuide'
+import CryptoSetupGuide from '@/components/CryptoSetupGuide'
 import { useToast } from '@/components/Toast'
 import type { ShopProduct } from '@/lib/shop'
 
@@ -185,6 +186,7 @@ export default function AdminShopPage() {
       </div>
 
       <StripeSetupGuide />
+      <CryptoSetupGuide />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">

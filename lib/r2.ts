@@ -232,3 +232,63 @@ export const R2_KEYS = {
   loaderVersion: (ts: number) => `scripts/loader-v${ts}.lua`,
   analyticsHits: 'analytics/loader-hits.jsonl',
 }
+
+/** Strict, versioned reads for financial state. Storage failures must not look like empty stock. */
+export async function r2ReadVersioned(key: string): Promise<{ text: string | null; etag: string | null }> {
+  const c = client()
+  if (!c) {
+    if (!useLocalFallback) throw new Error('Shop storage is not configured')
+    const fs = await import('fs/promises')
+    try {
+      const text = await fs.readFile(localPath(key), 'utf8')
+      const { createHash } = await import('crypto')
+      return { text, etag: createHash('sha256').update(text).digest('hex') }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { text: null, etag: null }
+      throw error
+    }
+  }
+  try {
+    const result = await c.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
+    if (!result.ETag) throw new Error('Missing storage version')
+    return { text: await streamToString(result.Body), etag: result.ETag }
+  } catch (error) {
+    if (['NoSuchKey', 'NotFound'].includes((error as Error).name)) return { text: null, etag: null }
+    throw error
+  }
+}
+
+export async function r2CompareAndSwap(key: string, text: string, etag: string | null): Promise<boolean> {
+  const c = client()
+  if (!c) {
+    if (!useLocalFallback) throw new Error('Shop storage is not configured')
+    const fs = await import('fs/promises')
+    await fs.mkdir(LOCAL_DIR, { recursive: true })
+    let lock
+    try { lock = await fs.open(`${localPath(key)}.lock`, 'wx') } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST') return false
+      throw error
+    }
+    try {
+      if ((await r2ReadVersioned(key)).etag !== etag) return false
+      const temporary = `${localPath(key)}.tmp`
+      await fs.writeFile(temporary, text)
+      await fs.rename(temporary, localPath(key))
+      return true
+    } finally {
+      await lock.close()
+      await fs.unlink(`${localPath(key)}.lock`)
+    }
+  }
+  try {
+    await c.send(new PutObjectCommand({
+      Bucket: BUCKET, Key: key, Body: text, ContentType: 'application/json',
+      CacheControl: 'no-store', ...(etag ? { IfMatch: etag } : { IfNoneMatch: '*' }),
+    }))
+    return true
+  } catch (error) {
+    const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode
+    if (status === 412 || status === 409) return false
+    throw error
+  }
+}

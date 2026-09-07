@@ -16,9 +16,11 @@ export async function GET(
 
   return Response.json({
     status: order.status,
+    isTest: !!order.isTest,
+    paymentProvider: order.paymentProvider || 'stripe',
     productName: order.productName,
     quantity: order.quantity,
-    deliveredKeys: order.deliveredKeys,
+    deliveredKeys: order.status === 'fulfilled' ? order.deliveredKeys : null,
     emailSent: order.emailSent,
-  })
+  }, { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } })
 }

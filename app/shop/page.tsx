@@ -16,6 +16,16 @@ function ShopPageInner() {
   const [email, setEmail] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [buying, setBuying] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'crypto'>('stripe')
+  const [methods, setMethods] = useState({ stripe: false, crypto: false, cryptoSandbox: false })
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/public/shop/payment-methods').then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then(data => { if (active) { setMethods(data); if (!data.stripe && data.crypto) setPaymentMethod('crypto') } })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     fetch('/api/public/shop/products')
@@ -43,10 +53,10 @@ function ShopPageInner() {
     if (!selected) return
     setBuying(true)
     try {
-      const res = await fetch('/api/shop/checkout', {
+      const res = await fetch(paymentMethod === 'crypto' ? '/api/shop/crypto/checkout' : '/api/shop/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: selected.id, quantity, email: email || undefined }),
+        body: JSON.stringify({ productId: selected.id, quantity, email: email.trim() || undefined }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to start checkout')
@@ -66,13 +76,13 @@ function ShopPageInner() {
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-black-card border border-border-dim rounded-full mb-4">
               <ShopIcon size={13} className="text-violet" />
-              <span className="font-body text-xs text-silver-mid tracking-wide">Instant delivery · Secure Stripe checkout</span>
+              <span className="font-body text-xs text-silver-mid tracking-wide">{methods.crypto ? 'Card & crypto checkout' : 'Secure checkout'} · Key delivery</span>
             </div>
             <h1 className="font-heading text-[clamp(2rem,4vw,3.5rem)] text-white mb-3 text-balance">
               SHOP
             </h1>
             <p className="font-body text-silver-mid text-sm md:text-base text-pretty max-w-xl mx-auto">
-              Premium script keys, delivered instantly after payment. Pick a plan, check out, and your key is ready.
+              Premium script keys, delivered after payment confirmation. Pick a plan, check out, and your key is ready.
             </p>
           </div>
 
@@ -103,7 +113,7 @@ function ShopPageInner() {
 
           <div className="mt-14 flex items-center justify-center gap-2 text-silver-muted text-xs font-body">
             <ShieldIcon size={14} />
-            <span>Payments processed securely by Stripe. Keys are delivered automatically.</span>
+            <span>{methods.crypto ? 'Cards through Stripe. Crypto through CoinGate. Keys unlock after payment confirmation.' : 'Payments processed securely by Stripe. Keys unlock after payment confirmation.'}</span>
           </div>
         </div>
       </main>
@@ -152,10 +162,35 @@ function ShopPageInner() {
                 </button>
               </div>
             </div>
+            <fieldset className="space-y-2" disabled={buying}>
+              <legend className="font-body text-xs text-silver-muted mb-2">Payment method</legend>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center gap-2 rounded-lg border border-border-mid p-3 font-body text-sm text-silver-mid">
+                  <input type="radio" name="payment-method" value="stripe" checked={paymentMethod === 'stripe'}
+                    disabled={!methods.stripe} onChange={() => setPaymentMethod('stripe')} /> Card
+                </label>
+                <label className="flex items-center gap-2 rounded-lg border border-border-mid p-3 font-body text-sm text-silver-mid">
+                  <input type="radio" name="payment-method" value="crypto" checked={paymentMethod === 'crypto'}
+                    disabled={!methods.crypto || !['gbp', 'usd', 'eur'].includes(selected.currency.toLowerCase())}
+                    onChange={() => setPaymentMethod('crypto')} /> Crypto{methods.cryptoSandbox && methods.crypto ? ' (test)' : ''}
+                </label>
+              </div>
+              {paymentMethod === 'crypto' && <p className="font-body text-xs text-silver-muted">
+                Choose your coin and network on CoinGate. Check the final amount and pay before the invoice expires.
+                Your key is delivered after the payment is confirmed, which can take several minutes.
+                {methods.cryptoSandbox && ' Test checkout — do not send real funds. You will receive a test key.'}
+              </p>}
+              {!methods.crypto && <p className="font-body text-xs text-silver-faint">Crypto payments are not available yet.</p>}
+            </fieldset>
             <div>
-              <label className="block font-body text-xs text-silver-muted mb-1.5">Email (optional — for your receipt)</label>
+              <label htmlFor="checkout-email" className="block font-body text-xs text-silver-muted mb-1.5">
+                {paymentMethod === 'crypto' ? 'Email (required for key delivery)' : 'Email (optional — for your receipt)'}
+              </label>
               <input
+                id="checkout-email"
                 type="email"
+                required={paymentMethod === 'crypto'}
+                maxLength={254}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
@@ -164,11 +199,11 @@ function ShopPageInner() {
             </div>
             <button
               onClick={handleCheckout}
-              disabled={buying}
+              disabled={buying || (paymentMethod === 'stripe' ? !methods.stripe : !methods.crypto || !email.trim() || !['gbp', 'usd', 'eur'].includes(selected.currency.toLowerCase()))}
               className="btn-buy w-full"
             >
               <CartIcon size={16} />
-              <span>{buying ? 'REDIRECTING TO STRIPE...' : 'CONTINUE TO PAYMENT'}</span>
+              <span>{buying ? 'OPENING CHECKOUT...' : paymentMethod === 'crypto' ? 'CONTINUE TO CRYPTO PAYMENT' : 'CONTINUE TO PAYMENT'}</span>
             </button>
           </div>
         )}

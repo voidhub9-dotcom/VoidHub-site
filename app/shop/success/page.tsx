@@ -8,27 +8,31 @@ import Footer from '@/components/Footer'
 import { CheckIcon, CopyIcon, ClockIcon, AlertIcon, MailIcon } from '@/components/Icons'
 
 interface OrderStatus {
-  status: 'pending' | 'fulfilled' | 'paid_no_stock'
+  status: 'pending' | 'fulfilled' | 'paid_no_stock' | 'expired' | 'invalid' | 'canceled' | 'refunded'
+  isTest: boolean
+  paymentProvider: string
   productName: string
   quantity: number
   deliveredKeys: string[] | null
   emailSent: boolean
 }
 
-const POLL_INTERVAL_MS = 2000
-const MAX_POLLS = 15
+const POLL_INTERVAL_MS = 5000
+const MAX_POLLS = 120
 
 function SuccessContent() {
   const searchParams = useSearchParams()
   const sessionId = searchParams.get('session_id')
   const [order, setOrder] = useState<OrderStatus | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [statusError, setStatusError] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [pollCount, setPollCount] = useState(0)
 
   useEffect(() => {
     if (!sessionId) return
     let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
 
     const poll = async () => {
       try {
@@ -37,18 +41,19 @@ function SuccessContent() {
           if (!cancelled) setNotFound(true)
           return
         }
+        if (!res.ok) throw new Error('Status lookup failed')
         const data = await res.json()
         if (!cancelled) setOrder(data)
         if (!cancelled && data.status === 'pending' && pollCount < MAX_POLLS) {
-          setTimeout(() => setPollCount(c => c + 1), POLL_INTERVAL_MS)
+          timer = setTimeout(() => setPollCount(c => c + 1), POLL_INTERVAL_MS)
         }
       } catch {
-        if (!cancelled) setNotFound(true)
+        if (!cancelled) setStatusError(true)
       }
     }
 
     poll()
-    return () => { cancelled = true }
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [sessionId, pollCount])
 
   const handleCopy = async (key: string) => {
@@ -76,7 +81,15 @@ function SuccessContent() {
     <main className="pt-32 pb-20 px-4 min-h-[70vh]">
       <div className="max-w-md mx-auto">
         <div className="void-card p-8 text-center">
-          {!sessionId || notFound ? (
+          {statusError ? (
+            <>
+              <AlertIcon size={36} className="text-warning mx-auto mb-4" />
+              <h1 className="font-heading text-xl text-white mb-2">Unable to check payment</h1>
+              <p className="font-body text-silver-mid text-sm">Please try again. If you have sent funds, keep this receipt and do not pay again while the status is unknown.</p>
+              <code className="block mt-3 font-mono text-xs text-silver-muted break-all">{sessionId}</code>
+              <button className="btn-buy mt-4" onClick={() => { setStatusError(false); setPollCount(c => c + 1) }}>Try again</button>
+            </>
+          ) : !sessionId || notFound ? (
             <>
               <AlertIcon size={36} className="text-danger mx-auto mb-4" />
               <h1 className="font-heading text-xl text-white mb-2">Order not found</h1>
@@ -90,13 +103,25 @@ function SuccessContent() {
               <div className="spinner-cyan mx-auto mb-4" />
               <h1 className="font-heading text-xl text-white mb-2">Confirming payment...</h1>
               <p className="font-body text-silver-mid text-sm">
-                This usually takes just a few seconds.
+                {sessionId?.startsWith('crypto_')
+                  ? 'Blockchain confirmation can take several minutes. Keep this receipt link; do not pay again while confirmation is pending.'
+                  : 'This usually takes just a few seconds.'}
+                {pollCount >= MAX_POLLS && ' Still waiting. Check your email or contact support with the order reference below.'}
               </p>
+              <code className="block mt-3 font-mono text-xs text-silver-muted break-all">{sessionId}</code>
+              {pollCount >= MAX_POLLS && <button className="btn-buy mt-4" onClick={() => setPollCount(0)}>Check again</button>}
+            </>
+          ) : ['expired', 'invalid', 'canceled', 'refunded'].includes(order.status) ? (
+            <>
+              <AlertIcon size={36} className="text-warning mx-auto mb-4" />
+              <h1 className="font-heading text-xl text-white mb-2">{order.status === 'refunded' ? 'Payment refunded' : 'Payment not completed'}</h1>
+              <p className="font-body text-silver-mid text-sm">Invoice status: {order.status}. If you sent funds, contact support with this reference before starting another payment.</p>
+              <code className="block mt-3 font-mono text-xs text-silver-muted break-all">{sessionId}</code>
             </>
           ) : order.status === 'fulfilled' && order.deliveredKeys && order.deliveredKeys.length > 0 ? (
             <>
               <CheckIcon size={36} className="text-success mx-auto mb-4" />
-              <h1 className="font-heading text-xl text-white mb-2">Payment successful</h1>
+              <h1 className="font-heading text-xl text-white mb-2">{order.isTest ? 'Test payment successful' : 'Payment successful'}</h1>
               <p className="font-body text-silver-mid text-sm mb-6">
                 {order.productName}
                 {order.deliveredKeys.length > 1 && ` · ${order.deliveredKeys.length} keys`}

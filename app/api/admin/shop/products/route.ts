@@ -1,4 +1,4 @@
-import { loadShopProducts, saveShopProducts, type ShopProduct } from '@/lib/shop'
+import { loadShopProducts, mutateShopState, type ShopProduct } from '@/lib/shop'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +35,6 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const products = await loadShopProducts()
 
     const keysToAdd: string[] = Array.isArray(body.keysToAdd)
       ? body.keysToAdd.map((k: unknown) => String(k).trim()).filter(Boolean)
@@ -57,8 +56,7 @@ export async function POST(req: Request) {
       updatedAt: new Date().toISOString(),
     }
 
-    products.unshift(newProduct)
-    await saveShopProducts(products)
+    await mutateShopState(state => { state.products.unshift(newProduct) })
 
     return Response.json(newProduct)
   } catch (error: any) {
@@ -81,38 +79,43 @@ export async function PUT(req: Request) {
       return Response.json({ error: 'Product ID required' }, { status: 400 })
     }
 
-    const products = await loadShopProducts()
-    const index = products.findIndex(p => p.id === body.id)
-    if (index === -1) {
-      return Response.json({ error: 'Product not found' }, { status: 404 })
-    }
+    return await mutateShopState(({ products }) => {
+      const index = products.findIndex(p => p.id === body.id)
+      if (index === -1) {
+        return Response.json({ error: 'Product not found' }, { status: 404 })
+      }
 
-    const keysToAdd: string[] = Array.isArray(body.keysToAdd)
-      ? body.keysToAdd.map((k: unknown) => String(k).trim()).filter(Boolean)
-      : []
-    const keysToRemove: string[] = Array.isArray(body.removeKeys)
-      ? body.removeKeys.map((k: unknown) => String(k))
-      : []
+      const keysToAdd: string[] = Array.isArray(body.keysToAdd)
+        ? body.keysToAdd.map((k: unknown) => String(k).trim()).filter(Boolean)
+        : []
+      const keysToRemove: string[] = Array.isArray(body.removeKeys)
+        ? body.removeKeys.map((k: unknown) => String(k))
+        : []
 
-    const { keysToAdd: _omit, removeKeys: _omit2, id: _id, ...updates } = body
+      const updates: Partial<ShopProduct> = {}
+      for (const field of ['name', 'description', 'durationLabel', 'imageUrl', 'category'] as const) {
+        if (typeof body[field] === 'string') updates[field] = body[field]
+      }
+      if (typeof body.active === 'boolean') updates.active = body.active
+      if (Number.isSafeInteger(body.priceCents) && body.priceCents >= 0) updates.priceCents = body.priceCents
+      if (typeof body.currency === 'string' && /^[a-z]{3}$/i.test(body.currency)) updates.currency = body.currency.toLowerCase()
 
-    let keys = products[index].keys
-    if (keysToRemove.length) {
-      const removeSet = new Set(keysToRemove)
-      keys = keys.filter(k => !removeSet.has(k))
-    }
-    if (keysToAdd.length) keys = [...keys, ...keysToAdd]
+      let keys = products[index].keys
+      if (keysToRemove.length) {
+        const removeSet = new Set(keysToRemove)
+        keys = keys.filter(k => !removeSet.has(k))
+      }
+      if (keysToAdd.length) keys = [...keys, ...keysToAdd]
 
-    products[index] = {
-      ...products[index],
-      ...updates,
-      keys,
-      updatedAt: new Date().toISOString(),
-    }
+      products[index] = {
+        ...products[index],
+        ...updates,
+        keys,
+        updatedAt: new Date().toISOString(),
+      }
 
-    await saveShopProducts(products)
-
-    return Response.json(products[index])
+      return Response.json(products[index])
+    })
   } catch (error: any) {
     console.error(error)
     return Response.json(
@@ -133,9 +136,7 @@ export async function DELETE(req: Request) {
       return Response.json({ error: 'Product ID required' }, { status: 400 })
     }
 
-    const products = await loadShopProducts()
-    const filtered = products.filter(p => p.id !== body.id)
-    await saveShopProducts(filtered)
+    await mutateShopState(state => { state.products = state.products.filter(p => p.id !== body.id) })
 
     return Response.json({ success: true, deletedId: body.id })
   } catch (error: any) {

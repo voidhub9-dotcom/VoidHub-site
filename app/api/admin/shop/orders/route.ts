@@ -1,5 +1,7 @@
-import { loadShopOrders, saveShopOrders, loadShopProducts, saveShopProducts } from '@/lib/shop'
-import { sendKeyDeliveryEmail } from '@/lib/email'
+import { loadShopOrders, mutateShopState } from '@/lib/shop'
+import { fulfillShopOrder, paymentSnapshot } from '@/lib/shop-fulfillment'
+import { verifyCryptoPayment } from '@/lib/coingate'
+import { stripeClient } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,93 +23,29 @@ export async function GET(req: Request) {
   })
 }
 
-/**
- * POST — manually fulfill an order that never got fulfilled automatically
- * (e.g. the Stripe webhook secret was wrong, or the webhook never fired).
- * The customer already paid via Stripe; this pops real stock keys and
- * delivers them exactly like the webhook would, then marks the order
- * `manuallyFulfilled` so it's clear it didn't go through Stripe's webhook.
- */
+/** Verify the provider payment again before manually releasing real stock. */
 export async function POST(req: Request) {
-  if (!authorized(req)) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  let body: unknown
+  if (!authorized(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   try {
-    body = await req.json()
+    const body = await req.json()
+    const order = (await loadShopOrders()).find(o => o.id === body.id)
+    if (!order || order.isTest) return Response.json({ error: 'Order not found' }, { status: 404 })
+    if (order.status === 'fulfilled') return Response.json({ error: 'Already fulfilled' }, { status: 409 })
+    if (order.paymentProvider === 'coingate') {
+      await verifyCryptoPayment(order)
+    } else {
+      const session = await stripeClient()?.checkout.sessions.retrieve(order.id)
+      if (!session || session.payment_status !== 'paid' || session.amount_total !== order.amountTotal || session.currency !== order.currency) {
+        return Response.json({ error: 'Payment has not been verified' }, { status: 409 })
+      }
+    }
+    const result = await fulfillShopOrder(order.id, paymentSnapshot(order), true)
+    if (result.order.status !== 'fulfilled') return Response.json({ error: 'Add enough stock to fulfill this order' }, { status: 409 })
+    return Response.json({ success: true, deliveredKeys: result.order.deliveredKeys, partial: false,
+      emailSent: result.order.emailSent, emailError: result.emailError })
   } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
+    return Response.json({ error: 'Could not verify or fulfill order; please retry' }, { status: 502 })
   }
-
-  const id = typeof (body as any)?.id === 'string' ? (body as any).id : ''
-  if (!id) {
-    return Response.json({ error: 'Order id required' }, { status: 400 })
-  }
-
-  const orders = await loadShopOrders()
-  const orderIndex = orders.findIndex(o => o.id === id)
-  if (orderIndex === -1) {
-    return Response.json({ error: 'Order not found' }, { status: 404 })
-  }
-
-  const order = orders[orderIndex]
-  if (order.status === 'fulfilled') {
-    return Response.json({ error: 'This order is already fulfilled' }, { status: 409 })
-  }
-
-  const products = await loadShopProducts()
-  const productIndex = products.findIndex(p => p.id === order.productId)
-  if (productIndex === -1) {
-    return Response.json({ error: 'The product for this order no longer exists' }, { status: 404 })
-  }
-
-  const product = products[productIndex]
-  const qty = Math.min(order.quantity, product.keys.length)
-  if (qty < 1) {
-    return Response.json({ error: 'No stock left to deliver — add more keys to this product first' }, { status: 409 })
-  }
-
-  const deliveredKeys = product.keys.slice(0, qty)
-  products[productIndex] = {
-    ...product,
-    keys: product.keys.slice(qty),
-    soldCount: product.soldCount + qty,
-    updatedAt: new Date().toISOString(),
-  }
-  await saveShopProducts(products)
-
-  let emailSent = false
-  let emailError: string | undefined
-  if (order.customerEmail) {
-    const emailResult = await sendKeyDeliveryEmail({
-      to: order.customerEmail,
-      productName: order.productName,
-      durationLabel: product.durationLabel,
-      keyValues: deliveredKeys,
-      orderId: order.id,
-    })
-    emailSent = emailResult.ok
-    emailError = emailResult.error
-  }
-
-  orders[orderIndex] = {
-    ...order,
-    status: 'fulfilled',
-    deliveredKeys,
-    emailSent,
-    manuallyFulfilled: true,
-    fulfilledAt: new Date().toISOString(),
-  }
-  await saveShopOrders(orders)
-
-  return Response.json({
-    success: true,
-    deliveredKeys,
-    partial: qty < order.quantity,
-    emailSent,
-    emailError,
-  })
 }
 
 /** DELETE — remove one or more orders by id, e.g. clearing out test orders. */
@@ -129,10 +67,12 @@ export async function DELETE(req: Request) {
   }
 
   const idSet = new Set(ids)
-  const orders = await loadShopOrders()
-  const remaining = orders.filter(o => !idSet.has(o.id))
-  const deletedCount = orders.length - remaining.length
-  await saveShopOrders(remaining)
+  const deletedCount = await mutateShopState(state => {
+    const before = state.orders.length
+    // Keep real payment records for reconciliation and callback replay safety.
+    state.orders = state.orders.filter(o => !(idSet.has(o.id) && o.isTest))
+    return before - state.orders.length
+  })
 
   return Response.json({ success: true, deletedCount })
 }
