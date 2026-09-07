@@ -1,0 +1,71 @@
+name: ChatOnSteroids
+
+options:
+  bundleIdPrefix: com.voidhub
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+# ---------------------------------------------------------------------------
+# Google Sign-In credentials.
+#
+# Both values come from ONE place: a Google Cloud OAuth 2.0 client of type iOS
+# (console.cloud.google.com -> APIs & Services -> Credentials). It is free and
+# needs no Apple Developer account.
+#
+#   GOOGLE_CLIENT_ID          e.g. 123456-abc.apps.googleusercontent.com
+#   GOOGLE_REVERSED_CLIENT_ID the same value reversed, which Google shows you:
+#                             com.googleusercontent.apps.123456-abc
+#
+# Leave them empty and the app still runs — the Google button explains what is
+# missing and "Continue without an account" works as normal.
+# ---------------------------------------------------------------------------
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+    GOOGLE_CLIENT_ID: ""
+    GOOGLE_REVERSED_CLIENT_ID: ""
+
+targets:
+  ChatOnSteroids:
+    type: application
+    platform: iOS
+    sources:
+      - path: ChatOnSteroids
+        excludes:
+          - "Info.plist"
+    settings:
+      base:
+        PRODUCT_NAME: ChatOnSteroids
+        PRODUCT_BUNDLE_IDENTIFIER: com.voidhub.chatonsteroids
+        INFOPLIST_FILE: ChatOnSteroids/Info.plist
+        GENERATE_INFOPLIST_FILE: "NO"
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: "YES"
+        # Unsigned builds: the CI archive is packaged into an .ipa by hand and
+        # signed later with Sideloadly / AltStore / a personal team.
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: ""
+
+# Declared explicitly rather than relying on auto-generation, so `xcodebuild
+# -scheme ChatOnSteroids` is guaranteed to resolve in CI.
+schemes:
+  ChatOnSteroids:
+    build:
+      targets:
+        ChatOnSteroids: all
+    run:
+      config: Debug
+    archive:
+      config: Release
