@@ -405,11 +405,13 @@ struct SettingsView: View {
         testState = .running
         do {
             let client = ClientFactory.make(settings: draft, apiKey: apiKeyField)
-            let models = try await client.availableModels()
-            testState = .ok("\(models.count) models")
+            let detail = try await client.probe(model: draft.defaultModel)
+            testState = .ok(detail)
+            Haptics.success()
         } catch {
             let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             testState = .failed(description)
+            Haptics.error()
         }
     }
 }

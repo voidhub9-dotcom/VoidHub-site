@@ -120,6 +120,10 @@ struct ChatClient: LLMClient {
         return text
     }
 
+    func probe(model: String) async throws -> String {
+        try await defaultProbe(model: model)
+    }
+
     // MARK: - Models
 
     func availableModels() async throws -> [ModelInfo] {

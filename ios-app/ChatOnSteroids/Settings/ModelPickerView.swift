@@ -124,10 +124,28 @@ struct ModelPickerView: View {
         loadError = nil
         defer { isLoading = false }
         do {
-            models = try await store.makeClient().availableModels()
+            let fetched = try await store.makeClient().availableModels()
+            if fetched.isEmpty {
+                useFallback(reason: "This endpoint returned an empty model list.")
+            } else {
+                models = fetched
+            }
         } catch {
             let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            loadError = "Could not list models: \(description). You can still type a model id above."
+            useFallback(reason: description)
+        }
+    }
+
+    /// Plenty of gateways proxy only the chat endpoint, so a missing model listing
+    /// is a normal configuration rather than a failure. Offer the known Claude
+    /// models instead of an empty screen.
+    private func useFallback(reason: String) {
+        if store.settings.provider == .anthropic {
+            models = AnthropicClient.knownModels
+            loadError = "This endpoint has no model list (\(reason)) — showing known Claude models. Anything your gateway supports can be typed above."
+        } else {
+            models = []
+            loadError = "Could not list models: \(reason). You can still type a model id above."
         }
     }
 }

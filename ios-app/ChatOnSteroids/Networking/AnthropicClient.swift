@@ -103,7 +103,24 @@ struct AnthropicClient: LLMClient {
         return text
     }
 
+    func probe(model: String) async throws -> String {
+        try await defaultProbe(model: model)
+    }
+
     // MARK: - Models
+
+    /// Current Claude model IDs, offered when the endpoint has no model listing —
+    /// which is the normal case for a gateway that only proxies `/v1/messages`.
+    /// Whether a given gateway actually serves each of these is its own business;
+    /// these are a starting point, not a promise.
+    static let knownModels: [ModelInfo] = [
+        ModelInfo(id: "claude-opus-5", name: "Claude Opus 5", contextLength: 1_000_000, promptPrice: nil, completionPrice: nil, supportsVision: true),
+        ModelInfo(id: "claude-sonnet-5", name: "Claude Sonnet 5", contextLength: 1_000_000, promptPrice: nil, completionPrice: nil, supportsVision: true),
+        ModelInfo(id: "claude-haiku-4-5", name: "Claude Haiku 4.5", contextLength: 200_000, promptPrice: nil, completionPrice: nil, supportsVision: true),
+        ModelInfo(id: "claude-opus-4-8", name: "Claude Opus 4.8", contextLength: 1_000_000, promptPrice: nil, completionPrice: nil, supportsVision: true),
+        ModelInfo(id: "claude-opus-4-7", name: "Claude Opus 4.7", contextLength: 1_000_000, promptPrice: nil, completionPrice: nil, supportsVision: true),
+        ModelInfo(id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", contextLength: 1_000_000, promptPrice: nil, completionPrice: nil, supportsVision: true),
+    ]
 
     func availableModels() async throws -> [ModelInfo] {
         guard let url = settings.modelsURL else { throw APIError.badURL }
