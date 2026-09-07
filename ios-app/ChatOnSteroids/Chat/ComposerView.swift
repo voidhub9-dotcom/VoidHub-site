@@ -5,33 +5,34 @@ import UniformTypeIdentifiers
 
 struct ComposerView: View {
     @Bindable var viewModel: ChatViewModel
+    var glass: Bool = true
 
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var showFileImporter = false
     @State private var isLoadingAttachment = false
+    @State private var sendPulse = false
     @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            Divider()
-
             if !viewModel.pendingAttachments.isEmpty || isLoadingAttachment {
                 pendingStrip
             }
 
-            HStack(alignment: .bottom, spacing: 10) {
+            HStack(alignment: .bottom, spacing: 8) {
                 Button {
+                    Haptics.tap()
                     showFileImporter = true
                 } label: {
                     Image(systemName: "paperclip")
-                        .font(.system(size: 19, weight: .medium))
+                        .font(.system(size: 18, weight: .medium))
                         .frame(width: 34, height: 34)
                         .foregroundStyle(.secondary)
                 }
 
                 PhotosPicker(selection: $photoItems, maxSelectionCount: 4, matching: .images) {
                     Image(systemName: "photo")
-                        .font(.system(size: 19, weight: .medium))
+                        .font(.system(size: 18, weight: .medium))
                         .frame(width: 34, height: 34)
                         .foregroundStyle(.secondary)
                 }
@@ -39,39 +40,33 @@ struct ComposerView: View {
                 TextField("Message", text: $viewModel.draft, axis: .vertical)
                     .lineLimit(1...6)
                     .textFieldStyle(.plain)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 14)
                     .padding(.vertical, 9)
-                    .background(Color(uiColor: .secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .glassSurface(cornerRadius: 20, enabled: glass)
                     .focused($isFocused)
-                    .submitLabel(.send)
 
-                if viewModel.isStreaming {
-                    Button {
-                        viewModel.stop()
-                    } label: {
-                        Image(systemName: "stop.circle.fill")
-                            .font(.system(size: 30))
-                            .foregroundStyle(.red)
-                    }
-                    .transition(.scale.combined(with: .opacity))
-                } else {
-                    Button {
-                        isFocused = false
-                        viewModel.send()
-                    } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 30))
-                            .foregroundStyle(viewModel.canSend ? Color.accentColor : Color.secondary.opacity(0.45))
-                    }
-                    .disabled(!viewModel.canSend)
-                }
+                sendButton
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
         }
-        .background(.bar)
-        .animation(.easeInOut(duration: 0.15), value: viewModel.isStreaming)
+        .background(alignment: .top) {
+            if glass {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .ignoresSafeArea(edges: .bottom)
+                    .overlay(alignment: .top) {
+                        Divider().opacity(0.5)
+                    }
+            } else {
+                Rectangle()
+                    .fill(Color(uiColor: .systemBackground))
+                    .ignoresSafeArea(edges: .bottom)
+                    .overlay(alignment: .top) { Divider() }
+            }
+        }
+        .animation(.spring(response: 0.32, dampingFraction: 0.75), value: viewModel.isStreaming)
+        .animation(.spring(response: 0.34, dampingFraction: 0.8), value: viewModel.pendingAttachments.count)
         .onChange(of: photoItems) { _, newItems in
             guard !newItems.isEmpty else { return }
             loadPhotos(newItems)
@@ -82,6 +77,40 @@ struct ComposerView: View {
             allowsMultipleSelection: true
         ) { result in
             handleFileImport(result)
+        }
+    }
+
+    @ViewBuilder
+    private var sendButton: some View {
+        if viewModel.isStreaming {
+            Button {
+                Haptics.warning()
+                viewModel.stop()
+            } label: {
+                Image(systemName: "stop.circle.fill")
+                    .font(.system(size: 31))
+                    .foregroundStyle(.red)
+                    .symbolEffect(.pulse, options: .repeating)
+            }
+            .transition(.scale.combined(with: .opacity))
+        } else {
+            Button {
+                isFocused = false
+                sendPulse = true
+                viewModel.send()
+                Task {
+                    try? await Task.sleep(nanoseconds: 180_000_000)
+                    sendPulse = false
+                }
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 31))
+                    .foregroundStyle(viewModel.canSend ? Color.accentColor : Color.secondary.opacity(0.4))
+                    .scaleEffect(sendPulse ? 0.82 : 1)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.5), value: sendPulse)
+            }
+            .disabled(!viewModel.canSend)
+            .transition(.scale.combined(with: .opacity))
         }
     }
 
@@ -109,6 +138,7 @@ struct ComposerView: View {
                                 .foregroundStyle(.secondary)
                         }
                         Button {
+                            Haptics.tap()
                             viewModel.removeAttachment(id: attachment.id)
                         } label: {
                             Image(systemName: "xmark.circle.fill")
@@ -118,13 +148,12 @@ struct ComposerView: View {
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .background(Color(uiColor: .secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .glassSurface(cornerRadius: 10, enabled: glass)
+                    .springEntrance()
                 }
 
                 if isLoadingAttachment {
-                    ProgressView()
-                        .padding(.horizontal, 12)
+                    ProgressView().padding(.horizontal, 12)
                 }
             }
             .padding(.horizontal, 12)
@@ -151,6 +180,7 @@ struct ComposerView: View {
             }
             photoItems = []
             isLoadingAttachment = false
+            Haptics.tap()
         }
     }
 
@@ -159,8 +189,8 @@ struct ComposerView: View {
         isLoadingAttachment = true
         Task {
             for url in urls {
-                // Files handed over by the document picker live outside the sandbox
-                // until the scope is opened.
+                // Files from the document picker live outside the sandbox until the
+                // security scope is opened.
                 let scoped = url.startAccessingSecurityScopedResource()
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
 
@@ -171,6 +201,7 @@ struct ComposerView: View {
                 }
             }
             isLoadingAttachment = false
+            Haptics.tap()
         }
     }
 }

@@ -124,8 +124,7 @@ struct ModelPickerView: View {
         loadError = nil
         defer { isLoading = false }
         do {
-            let client = ChatClient(settings: store.settings, apiKey: store.apiKey)
-            models = try await client.availableModels()
+            models = try await store.makeClient().availableModels()
         } catch {
             let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             loadError = "Could not list models: \(description). You can still type a model id above."

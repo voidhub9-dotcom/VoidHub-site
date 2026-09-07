@@ -17,7 +17,8 @@ final class ChatStore {
     private(set) var conversations: [Conversation] = []
     private(set) var projects: [Project] = []
     private(set) var settings = AppSettings()
-    private(set) var apiKey: String = ""
+    /// One key per provider, so switching between them keeps both.
+    private(set) var keysByProvider: [ProviderKind: String] = [:]
 
     @ObservationIgnored private var saveTask: Task<Void, Never>?
 
@@ -31,7 +32,9 @@ final class ChatStore {
         settings = DiskStore.load(AppSettings.self, from: File.settings) ?? AppSettings()
         projects = DiskStore.load([Project].self, from: File.projects) ?? []
         conversations = DiskStore.load([Conversation].self, from: File.conversations) ?? []
-        apiKey = Keychain.get(.providerAPIKey) ?? ""
+        for provider in ProviderKind.allCases {
+            keysByProvider[provider] = Keychain.get(.forProvider(provider)) ?? ""
+        }
         pruneExpiredHistory()
         sortConversations()
     }
@@ -115,6 +118,28 @@ final class ChatStore {
         scheduleSave()
     }
 
+    /// A copy with fresh identity, placed at the top of the list.
+    @discardableResult
+    func duplicate(_ conversation: Conversation) -> Conversation {
+        var copy = conversation
+        copy.id = UUID()
+        copy.title = conversation.title + " (branch)"
+        copy.createdAt = Date()
+        copy.updatedAt = Date()
+        copy.isPinned = false
+        // New identities for the messages too, so the two threads never collide in
+        // a ForEach or a search result.
+        copy.messages = conversation.messages.map { message in
+            var duplicated = message
+            duplicated.id = UUID()
+            return duplicated
+        }
+        conversations.insert(copy, at: 0)
+        sortConversations()
+        scheduleSave()
+        return copy
+    }
+
     func deleteConversation(id: UUID) {
         conversations.removeAll { $0.id == id }
         scheduleSave()
@@ -196,17 +221,35 @@ final class ChatStore {
         scheduleSave()
     }
 
+    /// The key for whichever provider is selected right now.
+    var apiKey: String {
+        keysByProvider[settings.provider] ?? ""
+    }
+
+    func apiKey(for provider: ProviderKind) -> String {
+        keysByProvider[provider] ?? ""
+    }
+
     func setAPIKey(_ key: String) {
+        setAPIKey(key, for: settings.provider)
+    }
+
+    func setAPIKey(_ key: String, for provider: ProviderKind) {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        apiKey = trimmed
+        keysByProvider[provider] = trimmed
         if trimmed.isEmpty {
-            Keychain.delete(.providerAPIKey)
+            Keychain.delete(.forProvider(provider))
         } else {
-            Keychain.set(trimmed, for: .providerAPIKey)
+            Keychain.set(trimmed, for: .forProvider(provider))
         }
     }
 
     var hasAPIKey: Bool { !apiKey.isEmpty }
+
+    /// Builds the client for the current provider and credentials.
+    func makeClient() -> LLMClient {
+        ClientFactory.make(settings: settings, apiKey: apiKey)
+    }
 
     /// Conversation prompt wins, then the project's, then the global default.
     func effectiveSystemPrompt(for conversation: Conversation) -> String {

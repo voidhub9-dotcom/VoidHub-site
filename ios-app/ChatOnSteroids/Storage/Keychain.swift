@@ -8,8 +8,18 @@ enum Keychain {
 
     enum Key: String {
         case providerAPIKey = "provider_api_key"
+        case anthropicAPIKey = "anthropic_api_key"
         case googleAccessToken = "google_access_token"
         case googleRefreshToken = "google_refresh_token"
+
+        /// Each provider keeps its own key, so switching back and forth does not
+        /// make the user paste a credential again.
+        static func forProvider(_ provider: ProviderKind) -> Key {
+            switch provider {
+            case .openAICompatible: return .providerAPIKey
+            case .anthropic: return .anthropicAPIKey
+            }
+        }
     }
 
     @discardableResult

@@ -1,42 +1,14 @@
 import Foundation
 
-enum APIError: LocalizedError {
-    case missingKey
-    case badURL
-    case http(status: Int, message: String?)
-    case transport(String)
-    case emptyResponse
-
-    var errorDescription: String? {
-        switch self {
-        case .missingKey:
-            return "No API key yet. Add one in Settings → Provider."
-        case .badURL:
-            return "That base URL is not a valid endpoint. Check Settings → Provider."
-        case .http(let status, let message):
-            if let message, !message.isEmpty {
-                return "\(message) (HTTP \(status))"
-            }
-            switch status {
-            case 401: return "The provider rejected the API key (HTTP 401)."
-            case 402: return "The account has no credit left for this model (HTTP 402)."
-            case 429: return "Rate limited by the provider (HTTP 429). Try again shortly."
-            default: return "The provider returned HTTP \(status)."
-            }
-        case .transport(let detail):
-            return detail
-        case .emptyResponse:
-            return "The model returned an empty answer."
-        }
-    }
-}
-
-/// Talks to any OpenAI-compatible endpoint. Stateless by design: it is rebuilt from
-/// current settings for each turn, so changing the model or key takes effect on the
-/// very next send with nothing to invalidate.
-struct ChatClient: LLMClient {
+/// Talks to Anthropic's Messages API, or to any gateway that fronts it — the base
+/// URL is appended with `/v1/messages` exactly as Anthropic's own SDKs do, so a
+/// gateway base configured for Claude Code resolves to the same endpoint here.
+struct AnthropicClient: LLMClient {
     let settings: AppSettings
     let apiKey: String
+
+    /// Required on every request; the API rejects calls without it.
+    private static let apiVersion = "2023-06-01"
 
     // MARK: - Streaming
 
@@ -66,14 +38,22 @@ struct ChatClient: LLMClient {
                     var produced = false
                     for try await line in bytes.lines {
                         if Task.isCancelled { break }
-                        guard let payload = SSE.payload(of: line) else { continue }
-                        if payload == "[DONE]" { break }
-                        guard let data = payload.data(using: .utf8),
-                              let chunk = try? JSONDecoder().decode(Wire.StreamChunk.self, from: data)
+                        guard let payload = SSE.payload(of: line),
+                              let data = payload.data(using: .utf8),
+                              let event = try? JSONDecoder().decode(AnthropicWire.StreamEvent.self, from: data)
                         else {
                             continue
                         }
-                        if let piece = chunk.choices?.first?.delta?.content, !piece.isEmpty {
+
+                        // A stream can fail after a 200 has already been sent.
+                        if event.type == "error" {
+                            throw APIError.transport(event.error?.message ?? "The provider ended the stream with an error.")
+                        }
+
+                        guard event.type == "content_block_delta" else { continue }
+                        // Thinking deltas share the event type; only text is displayable.
+                        guard event.delta?.type == "text_delta" || event.delta?.type == nil else { continue }
+                        if let piece = event.delta?.text, !piece.isEmpty {
                             produced = true
                             continuation.yield(piece)
                         }
@@ -113,10 +93,13 @@ struct ChatClient: LLMClient {
         guard (200..<300).contains(http.statusCode) else {
             throw APIError.http(status: http.statusCode, message: Wire.ErrorEnvelope.message(from: data))
         }
-        let decoded = try JSONDecoder().decode(Wire.CompletionResponse.self, from: data)
-        guard let text = decoded.choices?.first?.message?.content, !text.isEmpty else {
-            throw APIError.emptyResponse
-        }
+
+        let decoded = try JSONDecoder().decode(AnthropicWire.MessagesResponse.self, from: data)
+        let text = (decoded.content ?? [])
+            .filter { $0.type == "text" }
+            .compactMap { $0.text }
+            .joined()
+        guard !text.isEmpty else { throw APIError.emptyResponse }
         return text
     }
 
@@ -126,10 +109,7 @@ struct ChatClient: LLMClient {
         guard let url = settings.modelsURL else { throw APIError.badURL }
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
-        // Some gateways list models without a key; sending one when we have it is harmless.
-        if !apiKey.isEmpty {
-            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        }
+        applyAuth(to: &request)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
@@ -139,18 +119,15 @@ struct ChatClient: LLMClient {
             throw APIError.http(status: http.statusCode, message: Wire.ErrorEnvelope.message(from: data))
         }
 
-        let decoded = try JSONDecoder().decode(Wire.ModelListResponse.self, from: data)
-        let entries = decoded.data ?? []
-        return entries.map { entry in
-            let modalities = entry.architecture?.input_modalities ?? []
-            let modality = entry.architecture?.modality ?? ""
-            return ModelInfo(
+        let decoded = try JSONDecoder().decode(AnthropicWire.ModelListResponse.self, from: data)
+        return (decoded.data ?? []).map { entry in
+            ModelInfo(
                 id: entry.id,
-                name: entry.name ?? entry.id,
-                contextLength: entry.context_length,
-                promptPrice: entry.pricing?.prompt.flatMap { Double($0) },
-                completionPrice: entry.pricing?.completion.flatMap { Double($0) },
-                supportsVision: modalities.contains("image") || modality.contains("image")
+                name: entry.display_name ?? entry.id,
+                contextLength: entry.max_input_tokens,
+                promptPrice: nil,
+                completionPrice: nil,
+                supportsVision: true
             )
         }
         .sorted { $0.id.localizedCaseInsensitiveCompare($1.id) == .orderedAscending }
@@ -165,45 +142,64 @@ struct ChatClient: LLMClient {
         stream: Bool
     ) throws -> URLRequest {
         guard !apiKey.isEmpty else { throw APIError.missingKey }
-        guard let url = settings.chatCompletionsURL else { throw APIError.badURL }
+        guard let url = settings.anthropicMessagesURL else { throw APIError.badURL }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.timeoutInterval = 120
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(Self.apiVersion, forHTTPHeaderField: "anthropic-version")
+        applyAuth(to: &request)
         if stream {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         }
-        if settings.isOpenRouter {
-            // OpenRouter attributes traffic with these; they are optional but keep
-            // the account's dashboard readable.
-            request.setValue("https://github.com/voidhub9-dotcom", forHTTPHeaderField: "HTTP-Referer")
-            request.setValue("Chat On Steroids iOS", forHTTPHeaderField: "X-Title")
-        }
 
-        let body = Wire.CompletionRequest(
+        let trimmedSystem = systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let body = AnthropicWire.MessagesRequest(
             model: model,
-            messages: Self.wireMessages(systemPrompt: systemPrompt, history: history),
-            stream: stream,
-            temperature: settings.temperature,
-            max_tokens: settings.maxTokens > 0 ? settings.maxTokens : nil
+            max_tokens: settings.anthropicMaxTokens,
+            system: trimmedSystem.isEmpty ? nil : trimmedSystem,
+            messages: Self.wireMessages(history: history),
+            stream: stream
         )
+        // Deliberately no `temperature`: current Claude models reject sampling
+        // parameters outright, so sending one turns every request into a 400.
         request.httpBody = try JSONEncoder().encode(body)
         return request
     }
 
-    static func wireMessages(systemPrompt: String, history: [Message]) -> [Wire.RequestMessage] {
-        var result: [Wire.RequestMessage] = []
-        let trimmedSystem = systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedSystem.isEmpty {
-            result.append(Wire.RequestMessage(role: "system", content: .text(trimmedSystem)))
+    private func applyAuth(to request: inout URLRequest) {
+        guard !apiKey.isEmpty else { return }
+        switch resolvedAuthStyle {
+        case .apiKeyHeader:
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        case .bearer:
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        case .automatic:
+            break // resolvedAuthStyle never returns .automatic
         }
+    }
+
+    /// First-party keys are `sk-ant-…` and go in `x-api-key`. Anything else is
+    /// almost always a gateway token, which expects a bearer header — the same
+    /// split Anthropic's tooling makes between ANTHROPIC_API_KEY and
+    /// ANTHROPIC_AUTH_TOKEN.
+    private var resolvedAuthStyle: AnthropicAuthStyle {
+        switch settings.anthropicAuthStyle {
+        case .apiKeyHeader, .bearer:
+            return settings.anthropicAuthStyle
+        case .automatic:
+            return apiKey.hasPrefix("sk-ant-") ? .apiKeyHeader : .bearer
+        }
+    }
+
+    static func wireMessages(history: [Message]) -> [AnthropicWire.RequestMessage] {
+        var result: [AnthropicWire.RequestMessage] = []
 
         for message in history where message.role != .system && !message.isError {
             var text = message.text
-            // Text attachments have no transport of their own in this API; inline them
-            // with a header so the model can tell them apart from the user's prose.
+            // No file transport in this API either; inline text attachments with a
+            // header so the model can tell them from the user's own prose.
             let textAttachments = message.attachments.filter { $0.kind == .text }
             if !textAttachments.isEmpty {
                 let rendered = textAttachments
@@ -214,13 +210,29 @@ struct ChatClient: LLMClient {
 
             let images = message.attachments.filter { $0.kind == .image }
             if images.isEmpty {
-                result.append(Wire.RequestMessage(role: message.role.rawValue, content: .text(text)))
+                // An entirely empty turn is not valid; keep a placeholder rather than
+                // sending a message the API will reject.
+                result.append(
+                    AnthropicWire.RequestMessage(
+                        role: message.role.rawValue,
+                        content: .text(text.isEmpty ? "(no content)" : text)
+                    )
+                )
             } else {
-                var parts: [Wire.RequestMessage.Part] = []
-                if !text.isEmpty { parts.append(.text(text)) }
-                parts.append(contentsOf: images.map { .image(dataURL: $0.dataURL) })
-                result.append(Wire.RequestMessage(role: message.role.rawValue, content: .parts(parts)))
+                var blocks: [AnthropicWire.RequestMessage.Block] = images.map {
+                    .image(mediaType: $0.mimeType, base64: $0.payload)
+                }
+                // Anthropic's guidance is images first, then the question about them.
+                if !text.isEmpty { blocks.append(.text(text)) }
+                result.append(
+                    AnthropicWire.RequestMessage(role: message.role.rawValue, content: .blocks(blocks))
+                )
             }
+        }
+
+        // The conversation must open on a user turn.
+        while let first = result.first, first.role != MessageRole.user.rawValue {
+            result.removeFirst()
         }
         return result
     }

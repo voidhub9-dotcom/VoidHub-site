@@ -3,9 +3,15 @@ import UIKit
 
 struct MessageRow: View {
     let message: Message
+    var style: BubbleStyle = .glass
+    var glass: Bool = true
+    var showTokens: Bool = false
+    var showTimestamp: Bool = false
+    var tokenCount: Int = 0
     var canRetry: Bool = false
     var onDelete: () -> Void = {}
     var onRetry: () -> Void = {}
+    var onEdit: () -> Void = {}
 
     private var isUser: Bool { message.role == .user }
 
@@ -28,73 +34,137 @@ struct MessageRow: View {
             if !isUser { Spacer(minLength: 44) }
         }
         .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
+        .springEntrance()
     }
 
+    // MARK: - Bubble
+
+    @ViewBuilder
     private var bubble: some View {
-        MessageContentView(text: message.text, isUser: isUser)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(bubbleBackground)
-            .foregroundStyle(bubbleForeground)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.bubbleCorner, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.bubbleCorner, style: .continuous)
-                    .stroke(message.isError ? Color.red.opacity(0.45) : Color.clear, lineWidth: 1)
-            )
-            .contextMenu {
-                Button {
-                    UIPasteboard.general.string = message.text
-                } label: {
-                    Label("Copy text", systemImage: "doc.on.doc")
-                }
-                if canRetry && message.role == .assistant {
-                    Button {
-                        onRetry()
-                    } label: {
-                        Label("Retry this answer", systemImage: "arrow.clockwise")
-                    }
-                }
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Label("Delete message", systemImage: "trash")
-                }
+        let content = MessageContentView(text: message.text, isUser: isUser)
+            .padding(.horizontal, paddedBubble ? 14 : 0)
+            .padding(.vertical, paddedBubble ? 10 : 0)
+
+        Group {
+            if message.isError {
+                content
+                    .background(
+                        RoundedRectangle(cornerRadius: Theme.bubbleCorner, style: .continuous)
+                            .fill(Color.red.opacity(0.12))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.bubbleCorner, style: .continuous)
+                            .strokeBorder(Color.red.opacity(0.45), lineWidth: 1)
+                    )
+            } else if isUser {
+                content
+                    .foregroundStyle(.white)
+                    .background(userBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.bubbleCorner, style: .continuous))
+                    .shadow(color: Color.accentColor.opacity(glass ? 0.25 : 0), radius: 10, y: 4)
+            } else {
+                assistantBubble(content)
             }
+        }
+        .contextMenu { menu }
+    }
+
+    /// Minimal drops the assistant's bubble entirely, so the padding goes with it.
+    private var paddedBubble: Bool {
+        !(style == .minimal && !isUser && !message.isError)
+    }
+
+    private var userBackground: some View {
+        LinearGradient(
+            colors: [Color.accentColor, Color.accentColor.opacity(0.82)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     @ViewBuilder
-    private var bubbleBackground: some View {
-        if message.isError {
-            Color.red.opacity(0.12)
-        } else if isUser {
-            Color.accentColor
-        } else {
-            Color(uiColor: .secondarySystemBackground)
+    private func assistantBubble(_ content: some View) -> some View {
+        switch style {
+        case .glass:
+            content.glassSurface(cornerRadius: Theme.bubbleCorner, enabled: glass)
+        case .solid:
+            content.background(
+                RoundedRectangle(cornerRadius: Theme.bubbleCorner, style: .continuous)
+                    .fill(Color(uiColor: .secondarySystemBackground))
+            )
+        case .minimal:
+            content
         }
     }
 
-    private var bubbleForeground: Color {
-        if message.isError { return .primary }
-        return isUser ? .white : .primary
+    // MARK: - Menu
+
+    @ViewBuilder
+    private var menu: some View {
+        Button {
+            UIPasteboard.general.string = message.text
+            Haptics.success()
+        } label: {
+            Label("Copy text", systemImage: "doc.on.doc")
+        }
+
+        if isUser {
+            Button {
+                onEdit()
+            } label: {
+                Label("Edit and resend", systemImage: "pencil")
+            }
+        }
+
+        if canRetry && message.role == .assistant {
+            Button {
+                onRetry()
+            } label: {
+                Label("Regenerate", systemImage: "arrow.clockwise")
+            }
+        }
+
+        Button(role: .destructive) {
+            onDelete()
+        } label: {
+            Label("Delete message", systemImage: "trash")
+        }
     }
+
+    // MARK: - Footer
 
     @ViewBuilder
     private var footer: some View {
-        HStack(spacing: 6) {
-            if message.isError {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.red)
-                Text("Not delivered")
-            } else if let model = message.model, !isUser {
-                Text(model)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+        let pieces = footerPieces
+        if !pieces.isEmpty {
+            HStack(spacing: 6) {
+                if message.isError {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                }
+                Text(pieces.joined(separator: " · "))
             }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 4)
         }
-        .font(.caption2)
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 4)
+    }
+
+    private var footerPieces: [String] {
+        var pieces: [String] = []
+        if message.isError {
+            pieces.append("Not delivered")
+        } else if let model = message.model, !isUser {
+            pieces.append(model)
+        }
+        if showTokens && tokenCount > 0 {
+            pieces.append("~\(TokenEstimator.format(tokenCount)) tok")
+        }
+        if showTimestamp {
+            pieces.append(message.createdAt.formatted(date: .omitted, time: .shortened))
+        }
+        return pieces
     }
 }
 
@@ -113,6 +183,10 @@ struct AttachmentPreviewRow: View {
                             .scaledToFill()
                             .frame(width: 108, height: 108)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(.white.opacity(0.18), lineWidth: 0.8)
+                            )
                     }
                 case .text:
                     HStack(spacing: 6) {
@@ -128,8 +202,7 @@ struct AttachmentPreviewRow: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
-                    .background(Color(uiColor: .secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .glassSurface(cornerRadius: 10)
                 }
             }
         }

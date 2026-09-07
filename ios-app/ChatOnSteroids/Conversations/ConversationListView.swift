@@ -27,14 +27,21 @@ struct ConversationListView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            Group {
+            ZStack {
+                AuroraBackground(
+                    palette: store.settings.accent,
+                    enabled: store.settings.glassEffects && store.settings.animatedBackground
+                )
+
                 if store.conversations.isEmpty {
                     emptyState
                 } else {
                     list
+                        .scrollContentBackground(.hidden)
                 }
             }
             .navigationTitle(projectFilter == nil ? "Chats" : (store.project(id: projectFilter)?.name ?? "Chats"))
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .searchable(text: $query, prompt: "Search chats and messages")
             .toolbar { toolbarContent }
             .navigationDestination(for: Conversation.self) { conversation in
@@ -98,8 +105,10 @@ struct ConversationListView: View {
                     NavigationLink(value: conversation) {
                         row(conversation)
                     }
+                    .listRowBackground(rowBackground)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
+                            Haptics.warning()
                             store.deleteConversation(id: conversation.id)
                         } label: {
                             Label("Delete", systemImage: "trash")
@@ -107,6 +116,7 @@ struct ConversationListView: View {
                     }
                     .swipeActions(edge: .leading) {
                         Button {
+                            Haptics.tap()
                             store.togglePin(id: conversation.id)
                         } label: {
                             Label(conversation.isPinned ? "Unpin" : "Pin", systemImage: "pin")
@@ -117,6 +127,15 @@ struct ConversationListView: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    @ViewBuilder
+    private var rowBackground: some View {
+        if store.settings.glassEffects {
+            Rectangle().fill(.ultraThinMaterial)
+        } else {
+            Color(uiColor: .secondarySystemGroupedBackground)
+        }
     }
 
     private func row(_ conversation: Conversation) -> some View {
@@ -218,6 +237,7 @@ struct ConversationListView: View {
     }
 
     private func newChat() {
+        Haptics.tap()
         let conversation = store.createConversation(projectID: projectFilter)
         path.append(conversation)
     }

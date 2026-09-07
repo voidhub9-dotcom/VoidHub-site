@@ -88,6 +88,51 @@ final class ChatViewModel {
         store.update(conversation)
     }
 
+    /// Rewrites a user turn and drops everything that came after it, because the
+    /// rest of the thread was an answer to the old wording.
+    func editAndResend(id: UUID, newText: String) {
+        guard !isStreaming else { return }
+        guard let index = conversation.messages.firstIndex(where: { $0.id == id }) else { return }
+        let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        conversation.messages[index].text = trimmed
+        if conversation.messages.count > index + 1 {
+            conversation.messages.removeSubrange((index + 1)...)
+        }
+        store.update(conversation)
+        beginTurn()
+    }
+
+    /// Re-asks the last question on a different model without disturbing the
+    /// conversation's own default.
+    func regenerate(using model: String? = nil) {
+        guard !isStreaming else { return }
+        if let model, model != conversation.model {
+            conversation.model = model
+        }
+        retryLast()
+    }
+
+    /// Copies the thread into a new chat so an experiment does not overwrite it.
+    @discardableResult
+    func branch() -> Conversation? {
+        guard !isStreaming else { return nil }
+        return store.duplicate(conversation)
+    }
+
+    func exportMarkdown() -> URL? {
+        let markdown = ConversationExport.markdown(
+            conversation,
+            projectName: store.project(id: conversation.projectID)?.name
+        )
+        return ConversationExport.temporaryFile(named: conversation.title, contents: markdown)
+    }
+
+    func tokenEstimate(for message: Message) -> Int {
+        TokenEstimator.estimate(message)
+    }
+
     func clearMessages() {
         stop()
         conversation.messages.removeAll()
@@ -112,6 +157,7 @@ final class ChatViewModel {
         draft = ""
         pendingAttachments = []
         store.update(conversation)
+        Haptics.send()
         beginTurn()
     }
 
@@ -139,7 +185,7 @@ final class ChatViewModel {
         streamingText = ""
         isStreaming = true
 
-        let client = ChatClient(settings: store.settings, apiKey: store.apiKey)
+        let client = store.makeClient()
         let system = store.effectiveSystemPrompt(for: conversation)
         let history = conversation.messages
         let model = conversation.model
@@ -175,6 +221,7 @@ final class ChatViewModel {
             }
             conversation.messages.append(message)
             store.update(conversation)
+            if !interrupted { Haptics.success() }
         }
         streamingText = ""
         isStreaming = false
@@ -196,5 +243,6 @@ final class ChatViewModel {
         streamingText = ""
         isStreaming = false
         streamTask = nil
+        Haptics.error()
     }
 }

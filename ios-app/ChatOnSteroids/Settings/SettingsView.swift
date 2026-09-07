@@ -10,6 +10,8 @@ struct SettingsView: View {
     @State private var showModelPicker = false
     @State private var testState: TestState = .idle
     @State private var showDeleteAll = false
+    @State private var showResetSettings = false
+    @State private var share: SharePayload?
     @State private var loaded = false
 
     private enum TestState: Equatable {
@@ -23,8 +25,10 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 providerSection
+                appearanceSection
                 defaultsSection
                 generationSection
+                behaviourSection
                 dataSection
                 accountSection
                 aboutSection
@@ -41,10 +45,13 @@ struct SettingsView: View {
                     draft.defaultModel = model
                 }
             }
+            .sheet(item: $share) { payload in
+                ShareSheet(items: [payload.url])
+            }
             .onAppear {
                 guard !loaded else { return }
                 draft = store.settings
-                apiKeyField = store.apiKey
+                apiKeyField = store.apiKey(for: store.settings.provider)
                 loaded = true
             }
             .onChange(of: draft) { _, newValue in
@@ -52,17 +59,56 @@ struct SettingsView: View {
             }
             .alert("Delete all chats?", isPresented: $showDeleteAll) {
                 Button("Cancel", role: .cancel) {}
-                Button("Delete", role: .destructive) { store.deleteAllConversations() }
+                Button("Delete", role: .destructive) {
+                    store.deleteAllConversations()
+                    Haptics.warning()
+                }
             } message: {
                 Text("This removes every conversation stored on this device. It cannot be undone.")
+            }
+            .alert("Reset settings?", isPresented: $showResetSettings) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    // Chats, projects and saved keys are deliberately untouched.
+                    draft = AppSettings()
+                    store.updateSettings(draft)
+                    Haptics.warning()
+                }
+            } message: {
+                Text("Puts every setting back to its default. Your chats and API keys are kept.")
             }
         }
     }
 
     // MARK: - Sections
 
+    /// Changing provider has to run through `switchProvider` (which moves the URL
+    /// and model defaults) and swap in that provider's stored key, so the picker
+    /// binds through here rather than straight at the property.
+    private var providerBinding: Binding<ProviderKind> {
+        Binding(
+            get: { draft.provider },
+            set: { newValue in
+                draft.switchProvider(to: newValue)
+                apiKeyField = store.apiKey(for: newValue)
+                testState = .idle
+            }
+        )
+    }
+
     private var providerSection: some View {
         Section {
+            Picker("API format", selection: providerBinding) {
+                ForEach(ProviderKind.allCases) { kind in
+                    Text(kind.label).tag(kind)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Text(draft.provider.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             TextField("Base URL", text: $draft.baseURL)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
@@ -74,9 +120,17 @@ struct SettingsView: View {
                 .onSubmit { store.setAPIKey(apiKeyField) }
 
             Button("Save key") {
-                store.setAPIKey(apiKeyField)
+                store.setAPIKey(apiKeyField, for: draft.provider)
             }
-            .disabled(apiKeyField == store.apiKey)
+            .disabled(apiKeyField == store.apiKey(for: draft.provider))
+
+            if draft.provider == .anthropic {
+                Picker("Send key as", selection: $draft.anthropicAuthStyle) {
+                    ForEach(AnthropicAuthStyle.allCases) { style in
+                        Text(style.label).tag(style)
+                    }
+                }
+            }
 
             Button {
                 Task { await testConnection() }
@@ -108,7 +162,43 @@ struct SettingsView: View {
         } header: {
             Text("Provider")
         } footer: {
-            Text("Any OpenAI-compatible endpoint. OpenRouter by default. The key is stored in the iOS keychain and never leaves this device except to the endpoint above.")
+            if draft.provider == .anthropic {
+                Text("Requests go to \(draft.normalizedBaseURL)/v1/messages. \"Automatic\" sends sk-ant-… keys as x-api-key and anything else as a bearer token, which is what gateways expect. The key is stored in the iOS keychain.")
+            } else {
+                Text("Any OpenAI-compatible endpoint. OpenRouter by default. The key is stored in the iOS keychain and never leaves this device except to the endpoint above.")
+            }
+        }
+    }
+
+    private var appearanceSection: some View {
+        Section {
+            NavigationLink {
+                AppearanceSettingsView(settings: $draft)
+            } label: {
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(draft.accent.color)
+                        .frame(width: 22, height: 22)
+                        .overlay(Circle().strokeBorder(.white.opacity(0.4), lineWidth: 1))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Appearance")
+                        Text("\(draft.theme.label) · \(draft.accent.label) · \(draft.bubbleStyle.label)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    private var behaviourSection: some View {
+        Section {
+            Toggle("Haptic feedback", isOn: $draft.hapticsEnabled)
+            Toggle("Starter prompts on empty chats", isOn: $draft.starterPromptsEnabled)
+            Toggle("Show token estimate per message", isOn: $draft.showMessageTokens)
+            Toggle("Show timestamps", isOn: $draft.showTimestamps)
+        } header: {
+            Text("Behaviour")
         }
     }
 
@@ -156,19 +246,23 @@ struct SettingsView: View {
         Section {
             Toggle("Stream answers", isOn: $draft.streamResponses)
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Temperature")
-                    Spacer()
-                    Text(String(format: "%.2f", draft.temperature))
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+            // Current Claude models reject sampling parameters outright, so the
+            // slider is hidden rather than silently turning every send into a 400.
+            if draft.provider == .openAICompatible {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Temperature")
+                        Spacer()
+                        Text(String(format: "%.2f", draft.temperature))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: $draft.temperature, in: 0...2, step: 0.05)
                 }
-                Slider(value: $draft.temperature, in: 0...2, step: 0.05)
             }
 
             Stepper(
-                draft.maxTokens > 0 ? "Max tokens: \(draft.maxTokens)" : "Max tokens: provider default",
+                maxTokensLabel,
                 value: $draft.maxTokens,
                 in: 0...32_000,
                 step: 256
@@ -185,8 +279,20 @@ struct SettingsView: View {
         } header: {
             Text("Generation")
         } footer: {
-            Text("The context budget only drives the meter in the chat toolbar. It is a local estimate, not the provider's counter.")
+            if draft.provider == .anthropic {
+                Text("Claude models set their own sampling and reject a temperature, so that control is hidden here. The context budget only drives the meter in the chat toolbar — a local estimate, not the provider's counter.")
+            } else {
+                Text("The context budget only drives the meter in the chat toolbar. It is a local estimate, not the provider's counter.")
+            }
         }
+    }
+
+    private var maxTokensLabel: String {
+        if draft.maxTokens > 0 { return "Max tokens: \(draft.maxTokens)" }
+        // Anthropic requires the field, so "provider default" would be a lie there.
+        return draft.provider == .anthropic
+            ? "Max tokens: \(draft.anthropicMaxTokens)"
+            : "Max tokens: provider default"
     }
 
     private var dataSection: some View {
@@ -206,13 +312,24 @@ struct SettingsView: View {
                     .font(.footnote)
             }
 
+            Button {
+                exportBackup()
+            } label: {
+                Label("Export a backup", systemImage: "square.and.arrow.up")
+            }
+            .disabled(store.conversations.isEmpty && store.projects.isEmpty)
+
+            Button("Reset settings", role: .destructive) {
+                showResetSettings = true
+            }
+
             Button("Delete all chats", role: .destructive) {
                 showDeleteAll = true
             }
         } header: {
             Text("Data")
         } footer: {
-            Text("Pinned chats are never pruned by the retention setting.")
+            Text("The backup is a JSON file of every chat and project. Pinned chats are never pruned by the retention setting.")
         }
     }
 
@@ -270,11 +387,24 @@ struct SettingsView: View {
         return "\(short) (\(build))"
     }
 
+    private func exportBackup() {
+        guard let data = ConversationExport.backupJSON(
+            conversations: store.conversations,
+            projects: store.projects
+        ) else { return }
+        let stamp = ISO8601DateFormatter().string(from: Date()).prefix(10)
+        guard let url = ConversationExport.temporaryFile(
+            named: "chat-on-steroids-backup-\(stamp).json",
+            data: data
+        ) else { return }
+        share = SharePayload(url: url)
+    }
+
     private func testConnection() async {
-        store.setAPIKey(apiKeyField)
+        store.setAPIKey(apiKeyField, for: draft.provider)
         testState = .running
         do {
-            let client = ChatClient(settings: draft, apiKey: apiKeyField)
+            let client = ClientFactory.make(settings: draft, apiKey: apiKeyField)
             let models = try await client.availableModels()
             testState = .ok("\(models.count) models")
         } catch {
