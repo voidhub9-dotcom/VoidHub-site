@@ -17,10 +17,18 @@ interface OrderStatus {
 
 const POLL_INTERVAL_MS = 2000
 const MAX_POLLS = 15
+// Crypto confirmations can take a couple of minutes on-chain, so poll for
+// longer than the card flow (which usually confirms in seconds).
+const MAX_POLLS_CRYPTO = 90
 
 function SuccessContent() {
   const searchParams = useSearchParams()
-  const sessionId = searchParams.get('session_id')
+  // `session_id` comes from Stripe Checkout; `order_id` from the crypto flow
+  // (NOWPayments has no URL-templating for its invoice id, so we mint our
+  // own order id up front for that path — see /api/shop/checkout-crypto).
+  const isCrypto = searchParams.has('order_id')
+  const sessionId = searchParams.get('session_id') || searchParams.get('order_id')
+  const maxPolls = isCrypto ? MAX_POLLS_CRYPTO : MAX_POLLS
   const [order, setOrder] = useState<OrderStatus | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
@@ -39,7 +47,7 @@ function SuccessContent() {
         }
         const data = await res.json()
         if (!cancelled) setOrder(data)
-        if (!cancelled && data.status === 'pending' && pollCount < MAX_POLLS) {
+        if (!cancelled && data.status === 'pending' && pollCount < maxPolls) {
           setTimeout(() => setPollCount(c => c + 1), POLL_INTERVAL_MS)
         }
       } catch {
@@ -49,7 +57,7 @@ function SuccessContent() {
 
     poll()
     return () => { cancelled = true }
-  }, [sessionId, pollCount])
+  }, [sessionId, pollCount, maxPolls])
 
   const handleCopy = async (key: string) => {
     try {
@@ -86,13 +94,25 @@ function SuccessContent() {
               </p>
             </>
           ) : !order || order.status === 'pending' ? (
-            <>
-              <div className="spinner-cyan mx-auto mb-4" />
-              <h1 className="font-heading text-xl text-white mb-2">Confirming payment...</h1>
-              <p className="font-body text-silver-mid text-sm">
-                This usually takes just a few seconds.
-              </p>
-            </>
+            isCrypto ? (
+              <>
+                <ClockIcon size={36} className="text-warning mx-auto mb-4" />
+                <h1 className="font-heading text-xl text-white mb-2">Payment confirming</h1>
+                <p className="font-body text-silver-mid text-sm">
+                  Your crypto payment is being confirmed on-chain — usually takes a couple
+                  of minutes. This page will update automatically, and a copy of your key
+                  will also be emailed to you.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="spinner-cyan mx-auto mb-4" />
+                <h1 className="font-heading text-xl text-white mb-2">Confirming payment...</h1>
+                <p className="font-body text-silver-mid text-sm">
+                  This usually takes just a few seconds.
+                </p>
+              </>
+            )
           ) : order.status === 'fulfilled' && order.deliveredKeys && order.deliveredKeys.length > 0 ? (
             <>
               <CheckIcon size={36} className="text-success mx-auto mb-4" />

@@ -6,7 +6,9 @@ import Footer from '@/components/Footer'
 import Modal from '@/components/Modal'
 import ShopProductCard, { PublicShopProduct } from '@/components/ShopProductCard'
 import { ToastProvider, useToast } from '@/components/Toast'
-import { ShopIcon, CartIcon, ShieldIcon, PlusIcon } from '@/components/Icons'
+import { ShopIcon, CartIcon, ShieldIcon, PlusIcon, CreditCardIcon, CoinIcon } from '@/components/Icons'
+
+type PaymentMethod = 'card' | 'crypto'
 
 function ShopPageInner() {
   const { showToast } = useToast()
@@ -15,6 +17,7 @@ function ShopPageInner() {
   const [selected, setSelected] = useState<PublicShopProduct | null>(null)
   const [email, setEmail] = useState('')
   const [quantity, setQuantity] = useState(1)
+  const [method, setMethod] = useState<PaymentMethod | null>(null)
   const [buying, setBuying] = useState(false)
 
   useEffect(() => {
@@ -33,6 +36,8 @@ function ShopPageInner() {
     setSelected(product)
     setEmail('')
     setQuantity(1)
+    // Intentionally not pre-selected — the buyer picks Card or Crypto themselves.
+    setMethod(null)
   }
 
   const adjustQuantity = (delta: number) => {
@@ -40,10 +45,15 @@ function ShopPageInner() {
   }
 
   const handleCheckout = async () => {
-    if (!selected) return
+    if (!selected || !method) return
+    if (method === 'crypto' && !email.trim()) {
+      showToast('Email is required for crypto payments', 'error')
+      return
+    }
     setBuying(true)
     try {
-      const res = await fetch('/api/shop/checkout', {
+      const endpoint = method === 'crypto' ? '/api/shop/checkout-crypto' : '/api/shop/checkout'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId: selected.id, quantity, email: email || undefined }),
@@ -66,7 +76,7 @@ function ShopPageInner() {
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-black-card border border-border-dim rounded-full mb-4">
               <ShopIcon size={13} className="text-violet" />
-              <span className="font-body text-xs text-silver-mid tracking-wide">Instant delivery · Secure Stripe checkout</span>
+              <span className="font-body text-xs text-silver-mid tracking-wide">Instant delivery · Card or crypto checkout</span>
             </div>
             <h1 className="font-heading text-[clamp(2rem,4vw,3.5rem)] text-white mb-3 text-balance">
               SHOP
@@ -103,7 +113,7 @@ function ShopPageInner() {
 
           <div className="mt-14 flex items-center justify-center gap-2 text-silver-muted text-xs font-body">
             <ShieldIcon size={14} />
-            <span>Payments processed securely by Stripe. Keys are delivered automatically.</span>
+            <span>Card payments via Stripe, crypto via NOWPayments. Keys are delivered automatically.</span>
           </div>
         </div>
       </main>
@@ -152,8 +162,41 @@ function ShopPageInner() {
                 </button>
               </div>
             </div>
+
             <div>
-              <label className="block font-body text-xs text-silver-muted mb-1.5">Email (optional — for your receipt)</label>
+              <label className="block font-body text-xs text-silver-muted mb-1.5">Payment method</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMethod('card')}
+                  className={`flex items-center justify-center gap-2 h-11 rounded-lg border font-body text-sm transition-all duration-150 ${
+                    method === 'card'
+                      ? 'border-white bg-white text-black'
+                      : 'border-border-mid text-silver-mid hover:border-white hover:text-white'
+                  }`}
+                >
+                  <CreditCardIcon size={16} />
+                  Card
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMethod('crypto')}
+                  className={`flex items-center justify-center gap-2 h-11 rounded-lg border font-body text-sm transition-all duration-150 ${
+                    method === 'crypto'
+                      ? 'border-white bg-white text-black'
+                      : 'border-border-mid text-silver-mid hover:border-white hover:text-white'
+                  }`}
+                >
+                  <CoinIcon size={16} />
+                  Crypto
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-body text-xs text-silver-muted mb-1.5">
+                Email {method === 'crypto' ? '(required — your key is delivered here)' : '(optional — for your receipt)'}
+              </label>
               <input
                 type="email"
                 value={email}
@@ -162,13 +205,22 @@ function ShopPageInner() {
                 className="void-input"
               />
             </div>
+
             <button
               onClick={handleCheckout}
-              disabled={buying}
+              disabled={buying || !method}
               className="btn-buy w-full"
             >
               <CartIcon size={16} />
-              <span>{buying ? 'REDIRECTING TO STRIPE...' : 'CONTINUE TO PAYMENT'}</span>
+              <span>
+                {buying
+                  ? method === 'crypto'
+                    ? 'REDIRECTING TO NOWPAYMENTS...'
+                    : 'REDIRECTING TO STRIPE...'
+                  : method
+                    ? 'CONTINUE TO PAYMENT'
+                    : 'SELECT A PAYMENT METHOD'}
+              </span>
             </button>
           </div>
         )}

@@ -1,17 +1,11 @@
+import { randomUUID } from 'crypto'
 import { loadShopProducts, appendShopOrder, type ShopOrder } from '@/lib/shop'
-import { stripeClient, stripeConfigured } from '@/lib/stripe'
+import { createNowPaymentsInvoice } from '@/lib/nowpayments'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
-    if (!stripeConfigured) {
-      return Response.json(
-        { error: 'The shop is not accepting card payments yet — Stripe is not configured.' },
-        { status: 503 },
-      )
-    }
-
     const body = await req.json().catch(() => ({}))
     const productId = String(body.productId || '')
     const email = typeof body.email === 'string' && body.email.trim() ? body.email.trim() : undefined
@@ -19,6 +13,13 @@ export async function POST(req: Request) {
 
     if (!productId) {
       return Response.json({ error: 'Product ID required' }, { status: 400 })
+    }
+    if (!email) {
+      // NOWPayments' hosted invoice page doesn't collect an email the way
+      // Stripe Checkout does, and there's no session id to poll our own
+      // success page with until the redirect happens — email is the
+      // reliable fallback if the buyer closes the tab. Require it.
+      return Response.json({ error: 'Email is required for crypto payments' }, { status: 400 })
     }
 
     const products = await loadShopProducts()
@@ -34,50 +35,40 @@ export async function POST(req: Request) {
       return Response.json({ error: `Only ${product.keys.length} left in stock` }, { status: 409 })
     }
 
-    const stripe = stripeClient()!
     const origin =
       process.env.NEXT_PUBLIC_SITE_URL ||
       req.headers.get('origin') ||
       new URL(req.url).origin
 
-    // Always create the session in your settlement currency. If Adaptive
-    // Pricing is enabled in the Stripe Dashboard (Settings > Adaptive
-    // Pricing), Stripe automatically detects the buyer's location and
-    // localizes the displayed price + payment methods on its hosted
-    // checkout page — no per-region logic needed on our end.
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      customer_email: email,
-      line_items: [
-        {
-          quantity,
-          price_data: {
-            currency: product.currency,
-            unit_amount: product.priceCents,
-            product_data: {
-              name: product.name,
-              description: product.description || undefined,
-            },
-          },
-        },
-      ],
-      metadata: { productId: product.id, quantity: String(quantity) },
-      success_url: `${origin}/shop/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/shop/cancel`,
+    const amountTotal = product.priceCents * quantity
+    const amountDecimal = (amountTotal / 100).toFixed(2)
+
+    // Our own order id, threaded through as NOWPayments' order_id — the IPN
+    // webhook echoes it back, so we can match on it directly instead of
+    // NOWPayments' internal payment id.
+    const orderId = randomUUID()
+
+    const invoice = await createNowPaymentsInvoice({
+      priceAmount: amountDecimal,
+      priceCurrency: product.currency,
+      orderId,
+      orderDescription: product.name,
+      ipnCallbackUrl: `${origin}/api/shop/webhook-crypto`,
+      successUrl: `${origin}/shop/success?order_id=${orderId}`,
+      cancelUrl: `${origin}/shop/cancel`,
     })
 
     const order: ShopOrder = {
-      id: session.id,
-      paymentMethod: 'card',
+      id: orderId,
+      paymentMethod: 'crypto',
       productId: product.id,
       productName: product.name,
       quantity,
-      amountTotal: product.priceCents * quantity,
+      amountTotal,
       currency: product.currency,
       presentmentAmount: null,
       presentmentCurrency: null,
-      customerEmail: email || null,
+      customerEmail: email,
       status: 'pending',
       deliveredKeys: null,
       emailSent: false,
@@ -86,11 +77,11 @@ export async function POST(req: Request) {
     }
     await appendShopOrder(order)
 
-    return Response.json({ url: session.url })
+    return Response.json({ url: invoice.invoice_url })
   } catch (error: any) {
     console.error(error)
     return Response.json(
-      { error: error?.message || 'Failed to start checkout' },
+      { error: error?.message || 'Failed to start crypto checkout' },
       { status: 500 },
     )
   }

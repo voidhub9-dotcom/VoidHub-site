@@ -4,9 +4,10 @@ import type { ShopEmailTemplate } from './shop-email-render'
 export type { ShopEmailTemplate }
 
 /**
- * Paid key shop — Stripe Checkout products with an admin-managed stock of
- * keys. Separate from the free ad-gated `/getkey` flow in `key-page.ts`.
- * Stored as JSON blobs in KV, same pattern as `key-page.ts` / `site-links.ts`.
+ * Paid key shop — Stripe Checkout / Coinbase Commerce products with an
+ * admin-managed stock of keys. Separate from the free ad-gated `/getkey`
+ * flow in `key-page.ts`. Stored as JSON blobs in KV, same pattern as
+ * `key-page.ts` / `site-links.ts`.
  */
 
 export interface ShopProduct {
@@ -30,10 +31,13 @@ export interface ShopProduct {
 }
 
 export type ShopOrderStatus = 'pending' | 'fulfilled' | 'paid_no_stock'
+export type ShopPaymentMethod = 'card' | 'crypto'
 
 export interface ShopOrder {
-  /** Stripe Checkout Session id */
+  /** Stripe Checkout Session id, or Coinbase Commerce charge code for crypto orders */
   id: string
+  /** Which processor this order was paid through. Defaults to 'card' for pre-crypto orders. */
+  paymentMethod: ShopPaymentMethod
   productId: string
   productName: string
   /** How many keys this order is for. Defaults to 1 for pre-quantity orders. */
@@ -45,7 +49,7 @@ export interface ShopOrder {
    * What the buyer actually paid, if Stripe Adaptive Pricing converted it to
    * their local currency at checkout (from the webhook's `presentment_details`).
    * Null when the buyer paid in your settlement currency, or Adaptive Pricing
-   * isn't enabled on the Stripe account.
+   * isn't enabled on the Stripe account. Always null for crypto orders.
    */
   presentmentAmount: number | null
   presentmentCurrency: string | null
@@ -67,13 +71,15 @@ const MAX_ORDERS = 500
 
 /**
  * Normalizes a raw stored order into the current shape — backfills
- * `quantity` (didn't exist pre-quantity-feature) and `deliveredKeys`
- * (was a single `deliveredKey` string) so old records still render
- * correctly instead of breaking on the new fields.
+ * `quantity` (didn't exist pre-quantity-feature), `deliveredKeys` (was a
+ * single `deliveredKey` string), and `paymentMethod` (didn't exist
+ * pre-crypto — every pre-existing order was paid by card) so old records
+ * still render correctly instead of breaking on the new fields.
  */
 function normalizeOrder(raw: any): ShopOrder {
   return {
     id: raw.id,
+    paymentMethod: raw.paymentMethod === 'crypto' ? 'crypto' : 'card',
     productId: raw.productId,
     productName: raw.productName,
     quantity: typeof raw.quantity === 'number' && raw.quantity > 0 ? raw.quantity : 1,
