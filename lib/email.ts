@@ -2,24 +2,24 @@
  * Transactional email for the shop — sends a copy of the delivered key to
  * the buyer's inbox as a backup to the on-page reveal on `/shop/success`.
  *
- * Uses the Resend HTTP API directly (no SDK dependency, same
+ * Uses the published Resend template directly (no SDK dependency, same
  * gated/no-op-until-configured shape as `lib/stripe.ts` / `lib/r2.ts`).
  *
  * Required environment variable (Vercel → Settings → Environment Variables):
  *   RESEND_API_KEY
  * Optional:
- *   EMAIL_FROM — sender address, must be on a domain verified in Resend.
+ *   EMAIL_FROM — sender address on a domain verified in Resend.
  *                Defaults to "VoidHub <keys@voidon.top>".
+ *   RESEND_KEY_DELIVERY_TEMPLATE — published Resend template ID or alias.
+ *                Defaults to "voidhub-key-delivery".
  *
  * If RESEND_API_KEY is not set, sendKeyDeliveryEmail() is a no-op that
  * returns false — the on-page key reveal keeps working either way.
  */
 
-import { loadShopEmailTemplate } from './shop'
-import { renderShopEmail } from './shop-email-render'
-
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const FROM_ADDRESS = process.env.EMAIL_FROM || 'VoidHub <keys@voidon.top>'
+const FROM_ADDRESS = process.env.EMAIL_FROM?.trim() || 'VoidHub <keys@voidon.top>'
+const KEY_DELIVERY_TEMPLATE = process.env.RESEND_KEY_DELIVERY_TEMPLATE?.trim() || 'voidhub-key-delivery'
 
 export const emailConfigured = Boolean(RESEND_API_KEY)
 
@@ -47,20 +47,25 @@ export async function sendKeyDeliveryEmail(params: {
   if (!RESEND_API_KEY) return { ok: false, error: 'RESEND_API_KEY is not set' }
 
   try {
-    const template = await loadShopEmailTemplate()
-    const { subject, html, text } = renderShopEmail(params, template)
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
+        'Idempotency-Key': `voidhub-key-delivery-${params.orderId}`,
       },
       body: JSON.stringify({
         from: FROM_ADDRESS,
         to: params.to,
-        subject,
-        html,
-        text,
+        template: {
+          id: KEY_DELIVERY_TEMPLATE,
+          variables: {
+            product: params.productName,
+            duration: params.durationLabel,
+            key: params.keyValues.join('\n'),
+            orderId: params.orderId,
+          },
+        },
       }),
     })
     if (!res.ok) {

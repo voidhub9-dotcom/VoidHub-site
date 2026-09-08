@@ -165,8 +165,9 @@ export default function StripeSetupGuide() {
                 </a>{' '}
                 → Add endpoint. Paste this as the endpoint URL:
                 <CopyField label="webhook URL" value={webhookUrl} />
-                Then select the <strong className="text-silver-light">checkout.session.completed</strong> event
-                (that&apos;s the only one this site listens for).
+                Select <strong className="text-silver-light">checkout.session.completed</strong> and
+                <strong className="text-silver-light"> checkout.session.async_payment_succeeded</strong>. The shop also
+                verifies payment when the buyer returns to the success page, but webhooks are still needed if they close it.
               </Step>
 
               <Step n={4} title="Add the webhook signing secret">

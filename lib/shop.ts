@@ -157,10 +157,10 @@ export async function updateShopOrder(
  * shop-email-render.ts so it can be imported client-side too.
  */
 export const DEFAULT_SHOP_EMAIL_TEMPLATE: ShopEmailTemplate = {
-  subject: 'Your VoidHub key — {product}',
+  subject: 'Your VoidHub key is ready — {product}',
   heading: 'Your key is ready',
-  introText: "Save this key somewhere safe — you'll need it to run the loader.",
-  footerNote: "Didn't make this purchase? Ignore this email.",
+  introText: "Keep this key private and save it somewhere safe. You'll need it to use VoidHub.",
+  footerNote: "You received this because a VoidHub key was purchased. If this wasn't you, you can safely ignore this email.",
 }
 
 export async function loadShopEmailTemplate(): Promise<ShopEmailTemplate> {
