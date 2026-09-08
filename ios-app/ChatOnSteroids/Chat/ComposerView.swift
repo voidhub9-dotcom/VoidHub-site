@@ -80,21 +80,16 @@ struct ComposerView: View {
         }
     }
 
-    @ViewBuilder
+    /// One button whose icon morphs between send and stop, instead of two buttons
+    /// cross-fading — `.contentTransition(.symbolEffect(.replace))` animates the
+    /// glyph change itself (the arrow folding into a stop square) rather than just
+    /// fading one out and the other in.
     private var sendButton: some View {
-        if viewModel.isStreaming {
-            Button {
+        Button {
+            if viewModel.isStreaming {
                 Haptics.warning()
                 viewModel.stop()
-            } label: {
-                Image(systemName: "stop.circle.fill")
-                    .font(.system(size: 31))
-                    .foregroundStyle(.red)
-                    .symbolEffect(.pulse, options: .repeating)
-            }
-            .transition(.scale.combined(with: .opacity))
-        } else {
-            Button {
+            } else {
                 isFocused = false
                 sendPulse = true
                 viewModel.send()
@@ -102,16 +97,23 @@ struct ComposerView: View {
                     try? await Task.sleep(nanoseconds: 180_000_000)
                     sendPulse = false
                 }
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 31))
-                    .foregroundStyle(viewModel.canSend ? Color.accentColor : Color.secondary.opacity(0.4))
-                    .scaleEffect(sendPulse ? 0.82 : 1)
-                    .animation(.spring(response: 0.25, dampingFraction: 0.5), value: sendPulse)
             }
-            .disabled(!viewModel.canSend)
-            .transition(.scale.combined(with: .opacity))
+        } label: {
+            Image(systemName: viewModel.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
+                .font(.system(size: 31))
+                .foregroundStyle(sendButtonColor)
+                .contentTransition(.symbolEffect(.replace))
+                .symbolEffect(.pulse, options: .repeating, isActive: viewModel.isStreaming)
+                .scaleEffect(sendPulse ? 0.82 : 1)
         }
+        .disabled(!viewModel.isStreaming && !viewModel.canSend)
+        .animation(.spring(response: 0.32, dampingFraction: 0.68), value: viewModel.isStreaming)
+        .animation(.spring(response: 0.25, dampingFraction: 0.5), value: sendPulse)
+    }
+
+    private var sendButtonColor: Color {
+        if viewModel.isStreaming { return .red }
+        return viewModel.canSend ? Color.accentColor : Color.secondary.opacity(0.4)
     }
 
     private var pendingStrip: some View {

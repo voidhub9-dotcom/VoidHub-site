@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ChatView: View {
     @Environment(ChatStore.self) private var store
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel: ChatViewModel
 
     @State private var showModelPicker = false
@@ -20,6 +21,8 @@ struct ChatView: View {
         _viewModel = State(initialValue: ChatViewModel(conversation: conversation, store: store))
     }
 
+    @State private var appeared = false
+
     private var glass: Bool { store.settings.glassEffects }
 
     var body: some View {
@@ -32,6 +35,15 @@ struct ChatView: View {
             VStack(spacing: 0) {
                 transcript
                 ComposerView(viewModel: viewModel, glass: glass)
+            }
+            .opacity(appeared ? 1 : 0)
+            .scaleEffect(appeared ? 1 : 0.985)
+            .onAppear {
+                guard !reduceMotion else {
+                    appeared = true
+                    return
+                }
+                withAnimation(.easeOut(duration: 0.28)) { appeared = true }
             }
 
             if !atBottom {
@@ -106,6 +118,7 @@ struct ChatView: View {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     if viewModel.conversation.messages.isEmpty && !viewModel.isStreaming {
                         emptyState
+                            .transition(.opacity.combined(with: .scale(scale: 0.97)))
                     }
 
                     ForEach(viewModel.conversation.messages) { message in
@@ -137,6 +150,7 @@ struct ChatView: View {
                 .padding(.horizontal, 14)
                 .padding(.top, 14)
                 .padding(.bottom, 8)
+                .animation(.easeInOut(duration: 0.22), value: viewModel.conversation.messages.isEmpty)
             }
             .scrollDismissesKeyboard(.interactively)
             .onAppear { proxy.scrollTo(bottomAnchor, anchor: .bottom) }

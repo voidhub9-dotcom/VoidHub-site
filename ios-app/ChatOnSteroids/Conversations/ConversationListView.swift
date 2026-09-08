@@ -35,11 +35,16 @@ struct ConversationListView: View {
 
                 if store.conversations.isEmpty {
                     emptyState
+                        .transition(.opacity)
                 } else {
                     list
                         .scrollContentBackground(.hidden)
+                        .transition(.opacity)
+                        .id(projectFilter) // cross-fades the whole list on filter change
                 }
             }
+            .animation(.easeInOut(duration: 0.25), value: store.conversations.isEmpty)
+            .animation(.easeInOut(duration: 0.2), value: projectFilter)
             .navigationTitle(projectFilter == nil ? "Chats" : (store.project(id: projectFilter)?.name ?? "Chats"))
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .searchable(text: $query, prompt: "Search chats and messages")
@@ -152,11 +157,13 @@ struct ConversationListView: View {
                         Image(systemName: "pin.fill")
                             .font(.caption2)
                             .foregroundStyle(.orange)
+                            .transition(.scale.combined(with: .opacity))
                     }
                     Text(conversation.title)
                         .font(.body.weight(.medium))
                         .lineLimit(1)
                 }
+                .animation(.spring(response: 0.3, dampingFraction: 0.65), value: conversation.isPinned)
                 Text(conversation.preview)
                     .font(.caption)
                     .foregroundStyle(.secondary)

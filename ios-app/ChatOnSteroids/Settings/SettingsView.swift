@@ -33,6 +33,7 @@ struct SettingsView: View {
                 accountSection
                 aboutSection
             }
+            .animation(.easeInOut(duration: 0.2), value: draft.provider)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -89,9 +90,12 @@ struct SettingsView: View {
         Binding(
             get: { draft.provider },
             set: { newValue in
-                draft.switchProvider(to: newValue)
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    draft.switchProvider(to: newValue)
+                }
                 apiKeyField = store.apiKey(for: newValue)
                 testState = .idle
+                Haptics.selection()
             }
         )
     }

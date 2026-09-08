@@ -9,7 +9,12 @@ struct ModelPickerView: View {
 
     @State private var models: [ModelInfo] = []
     @State private var isLoading = false
+    /// A real problem: auth failed, DNS failed, the endpoint is wrong.
     @State private var loadError: String?
+    /// Not a problem: this endpoint just doesn't publish a model list, which is
+    /// normal for a gateway that only proxies chat. Shown in neutral styling so it
+    /// doesn't read as broken.
+    @State private var infoNote: String?
     @State private var query = ""
     @State private var manualEntry = ""
 
@@ -32,16 +37,19 @@ struct ModelPickerView: View {
                         Button("Use") {
                             let trimmed = manualEntry.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !trimmed.isEmpty else { return }
+                            Haptics.selection()
                             onSelect(trimmed)
                             dismiss()
                         }
                         .disabled(manualEntry.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 } footer: {
-                    Text("Currently using \(selected)")
+                    Text(store.settings.provider == .anthropic
+                         ? "Currently using \(selected). Known Claude model IDs are listed below — tap one, or type any other id your gateway supports above."
+                         : "Currently using \(selected).")
                 }
 
-                if isLoading {
+                if isLoading && models.isEmpty {
                     HStack(spacing: 10) {
                         ProgressView()
                         Text("Loading models…")
@@ -49,9 +57,19 @@ struct ModelPickerView: View {
                     }
                 }
 
+                if let infoNote {
+                    Section {
+                        Label(infoNote, systemImage: "info.circle")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Button("Check for a live model list again") { Task { await load() } }
+                            .font(.footnote)
+                    }
+                }
+
                 if let loadError {
                     Section {
-                        Text(loadError)
+                        Label(loadError, systemImage: "exclamationmark.triangle.fill")
                             .font(.footnote)
                             .foregroundStyle(.red)
                         Button("Try again") { Task { await load() } }
@@ -62,6 +80,7 @@ struct ModelPickerView: View {
                     Section(vendor) {
                         ForEach(filtered.filter { $0.vendor == vendor }) { model in
                             Button {
+                                Haptics.selection()
                                 onSelect(model.id)
                                 dismiss()
                             } label: {
@@ -91,6 +110,7 @@ struct ModelPickerView: View {
                                     if model.id == selected {
                                         Image(systemName: "checkmark")
                                             .foregroundStyle(Color.accentColor)
+                                            .transition(.scale.combined(with: .opacity))
                                     }
                                 }
                             }
@@ -99,6 +119,7 @@ struct ModelPickerView: View {
                     }
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: models)
             .searchable(text: $query, prompt: "Filter models")
             .navigationTitle("Model")
             .navigationBarTitleDisplayMode(.inline)
@@ -120,29 +141,38 @@ struct ModelPickerView: View {
     }
 
     private func load() async {
+        // Most gateways that front Anthropic's API proxy only /v1/messages, so
+        // waiting on a network round trip before showing anything just looks like
+        // the picker is broken. Show known Claude models the instant the sheet
+        // opens; a live list, if this endpoint actually has one, replaces it below.
+        if store.settings.provider == .anthropic && models.isEmpty {
+            models = AnthropicClient.knownModels
+        }
+
         isLoading = true
         loadError = nil
+        infoNote = nil
         defer { isLoading = false }
+
         do {
             let fetched = try await store.makeClient().availableModels()
             if fetched.isEmpty {
-                useFallback(reason: "This endpoint returned an empty model list.")
+                handleNoListing(reason: "it returned an empty list")
             } else {
-                models = fetched
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    models = fetched
+                }
             }
         } catch {
             let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            useFallback(reason: description)
+            handleNoListing(reason: description)
         }
     }
 
-    /// Plenty of gateways proxy only the chat endpoint, so a missing model listing
-    /// is a normal configuration rather than a failure. Offer the known Claude
-    /// models instead of an empty screen.
-    private func useFallback(reason: String) {
+    private func handleNoListing(reason: String) {
         if store.settings.provider == .anthropic {
-            models = AnthropicClient.knownModels
-            loadError = "This endpoint has no model list (\(reason)) — showing known Claude models. Anything your gateway supports can be typed above."
+            infoNote = "This endpoint doesn't publish a model list (\(reason))."
+            // models already holds the known-model fallback from load()'s start.
         } else {
             models = []
             loadError = "Could not list models: \(reason). You can still type a model id above."

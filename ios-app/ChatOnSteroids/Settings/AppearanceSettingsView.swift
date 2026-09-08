@@ -13,6 +13,7 @@ struct AppearanceSettingsView: View {
                 }
                 .pickerStyle(.segmented)
             }
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: settings.theme)
 
             Section {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 54), spacing: 14)], spacing: 14) {
@@ -66,10 +67,11 @@ struct AppearanceSettingsView: View {
             } footer: {
                 Text("Standard text size follows whatever you set in iOS Settings.")
             }
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: settings.bubbleStyle)
 
             Section {
-                Toggle("Glass surfaces", isOn: $settings.glassEffects)
-                Toggle("Animated background", isOn: $settings.animatedBackground)
+                Toggle("Glass surfaces", isOn: $settings.glassEffects.animation(.spring(response: 0.32, dampingFraction: 0.78)))
+                Toggle("Animated background", isOn: $settings.animatedBackground.animation(.spring(response: 0.32, dampingFraction: 0.78)))
                     .disabled(!settings.glassEffects)
             } header: {
                 Text("Effects")
@@ -82,6 +84,8 @@ struct AppearanceSettingsView: View {
             } header: {
                 Text("Preview")
             }
+            .animation(.easeInOut(duration: 0.25), value: settings.glassEffects)
+            .animation(.easeInOut(duration: 0.25), value: settings.animatedBackground)
         }
         .navigationTitle("Appearance")
         .navigationBarTitleDisplayMode(.inline)
