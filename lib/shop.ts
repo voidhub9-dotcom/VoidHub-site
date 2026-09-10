@@ -30,11 +30,11 @@ export interface ShopProduct {
   updatedAt: string
 }
 
-export type ShopOrderStatus = 'pending' | 'fulfilled' | 'paid_no_stock'
+export type ShopOrderStatus = 'pending' | 'fulfilled' | 'paid_no_stock' | 'cancelled'
 export type ShopPaymentMethod = 'card' | 'crypto'
 
 export interface ShopOrder {
-  /** Stripe Checkout Session id, or Coinbase Commerce charge code for crypto orders */
+  /** Stripe Checkout Session id, or our own generated order id for crypto orders */
   id: string
   /** Which processor this order was paid through. Defaults to 'card' for pre-crypto orders. */
   paymentMethod: ShopPaymentMethod
@@ -55,7 +55,13 @@ export interface ShopOrder {
   presentmentCurrency: string | null
   customerEmail: string | null
   status: ShopOrderStatus
-  /** One entry per key delivered. May be shorter than `quantity` if stock ran out mid-fulfillment. */
+  /**
+   * Keys reserved for this order. Populated at CHECKOUT CREATION time (not
+   * webhook time) so two buyers can never be sold the same key — see
+   * `reserveKeysForOrder`. `fulfilled` orders have already emailed these;
+   * `pending` orders are holding them until payment confirms; `cancelled`
+   * orders have released them back to stock and cleared this to null.
+   */
   deliveredKeys: string[] | null
   /** Whether the key-delivery email (backup to the on-page reveal) was sent successfully. */
   emailSent: boolean
@@ -146,6 +152,58 @@ export async function updateShopOrder(
   orders[index] = { ...orders[index], ...updates }
   await saveShopOrders(orders)
   return orders[index]
+}
+
+/**
+ * Atomically reserves `quantity` keys for a brand-new order — call this
+ * during checkout SESSION/INVOICE CREATION, not in the webhook. This is
+ * what actually prevents overselling: two buyers checking out for the same
+ * scarce product can no longer both pass a "is there enough stock" check
+ * and then both get told by their webhook that stock is there. Whoever
+ * calls this first takes the keys out of the pool immediately; the second
+ * caller sees the now-smaller pool and fails honestly at checkout time
+ * instead of after being charged.
+ *
+ * Returns the reserved keys, or null if there isn't enough stock — caller
+ * should refuse to create the checkout session/invoice in that case.
+ */
+export async function reserveKeysForOrder(productId: string, quantity: number): Promise<string[] | null> {
+  const products = await loadShopProducts()
+  const productIndex = products.findIndex(p => p.id === productId)
+  if (productIndex === -1) return null
+
+  const product = products[productIndex]
+  if (!product.active || product.keys.length < quantity) return null
+
+  const reserved = product.keys.slice(0, quantity)
+  products[productIndex] = {
+    ...product,
+    keys: product.keys.slice(quantity),
+    updatedAt: new Date().toISOString(),
+  }
+  await saveShopProducts(products)
+  return reserved
+}
+
+/**
+ * Releases previously-reserved keys back to a product's stock — call this
+ * when a pending order's payment expires, fails, or is cancelled, so
+ * abandoned checkouts don't permanently shrink the stock pool. Safe to call
+ * even if the product was deleted in the meantime (silently no-ops).
+ */
+export async function releaseReservedKeys(productId: string, keys: string[]): Promise<void> {
+  if (keys.length === 0) return
+  const products = await loadShopProducts()
+  const productIndex = products.findIndex(p => p.id === productId)
+  if (productIndex === -1) return
+
+  const product = products[productIndex]
+  products[productIndex] = {
+    ...product,
+    keys: [...keys, ...product.keys],
+    updatedAt: new Date().toISOString(),
+  }
+  await saveShopProducts(products)
 }
 
 /**

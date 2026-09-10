@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { loadShopProducts, appendShopOrder, type ShopOrder } from '@/lib/shop'
+import { loadShopProducts, appendShopOrder, reserveKeysForOrder, releaseReservedKeys, type ShopOrder } from '@/lib/shop'
 import { createNowPaymentsInvoice } from '@/lib/nowpayments'
 
 export const dynamic = 'force-dynamic'
@@ -35,6 +35,15 @@ export async function POST(req: Request) {
       return Response.json({ error: `Only ${product.keys.length} left in stock` }, { status: 409 })
     }
 
+    // Reserve the keys NOW, atomically. Crypto confirmations can take
+    // several minutes, which is a much wider window for two buyers to
+    // collide on the same last few keys than Stripe's few-second gap — so
+    // this matters even more here than on the card path.
+    const reservedKeys = await reserveKeysForOrder(product.id, quantity)
+    if (!reservedKeys) {
+      return Response.json({ error: 'Someone just bought the last of this stock — refresh and try again' }, { status: 409 })
+    }
+
     const origin =
       process.env.NEXT_PUBLIC_SITE_URL ||
       req.headers.get('origin') ||
@@ -48,15 +57,22 @@ export async function POST(req: Request) {
     // NOWPayments' internal payment id.
     const orderId = randomUUID()
 
-    const invoice = await createNowPaymentsInvoice({
-      priceAmount: amountDecimal,
-      priceCurrency: product.currency,
-      orderId,
-      orderDescription: product.name,
-      ipnCallbackUrl: `${origin}/api/shop/webhook-crypto`,
-      successUrl: `${origin}/shop/success?order_id=${orderId}`,
-      cancelUrl: `${origin}/shop/cancel`,
-    })
+    let invoice
+    try {
+      invoice = await createNowPaymentsInvoice({
+        priceAmount: amountDecimal,
+        priceCurrency: product.currency,
+        orderId,
+        orderDescription: product.name,
+        ipnCallbackUrl: `${origin}/api/shop/webhook-crypto`,
+        successUrl: `${origin}/shop/success?order_id=${orderId}`,
+        cancelUrl: `${origin}/shop/cancel`,
+      })
+    } catch (invoiceError) {
+      // Invoice creation failed after we already took the keys — give them back.
+      await releaseReservedKeys(product.id, reservedKeys)
+      throw invoiceError
+    }
 
     const order: ShopOrder = {
       id: orderId,
@@ -70,7 +86,9 @@ export async function POST(req: Request) {
       presentmentCurrency: null,
       customerEmail: email,
       status: 'pending',
-      deliveredKeys: null,
+      // Already reserved above — the webhook just confirms + emails these,
+      // it never touches product stock again.
+      deliveredKeys: reservedKeys,
       emailSent: false,
       createdAt: new Date().toISOString(),
       fulfilledAt: null,

@@ -23,10 +23,18 @@ export async function GET(req: Request) {
 
 /**
  * POST — manually fulfill an order that never got fulfilled automatically
- * (e.g. the Stripe webhook secret was wrong, or the webhook never fired).
- * The customer already paid via Stripe; this pops real stock keys and
- * delivers them exactly like the webhook would, then marks the order
- * `manuallyFulfilled` so it's clear it didn't go through Stripe's webhook.
+ * (e.g. the Stripe/NOWPayments webhook secret was wrong, or the webhook
+ * never fired). The customer already paid; this delivers the keys exactly
+ * like the webhook would, then marks the order `manuallyFulfilled` so it's
+ * clear it didn't go through the automatic webhook path.
+ *
+ * Since checkout now reserves keys onto the order at CREATION time
+ * (reserveKeysForOrder — see checkout/route.ts and checkout-crypto/route.ts),
+ * a normal pending order already has its keys sitting in
+ * `order.deliveredKeys` and this just confirms + emails them — it does NOT
+ * pop anything further from the product's stock pool. Only legacy orders
+ * created before that reservation existed (deliveredKeys empty) fall back
+ * to popping from current stock.
  */
 export async function POST(req: Request) {
   if (!authorized(req)) {
@@ -63,16 +71,28 @@ export async function POST(req: Request) {
   }
 
   const product = products[productIndex]
-  const qty = Math.min(order.quantity, product.keys.length)
-  if (qty < 1) {
-    return Response.json({ error: 'No stock left to deliver — add more keys to this product first' }, { status: 409 })
+
+  // Normal path — keys already reserved on this order at checkout time.
+  let deliveredKeys = order.deliveredKeys
+
+  // Legacy fallback — order predates reservation, pop from current stock.
+  if (!deliveredKeys?.length) {
+    const qty = Math.min(order.quantity, product.keys.length)
+    if (qty < 1) {
+      return Response.json({ error: 'No stock left to deliver — add more keys to this product first' }, { status: 409 })
+    }
+    deliveredKeys = product.keys.slice(0, qty)
+    products[productIndex] = {
+      ...product,
+      keys: product.keys.slice(qty),
+      updatedAt: new Date().toISOString(),
+    }
+    await saveShopProducts(products)
   }
 
-  const deliveredKeys = product.keys.slice(0, qty)
   products[productIndex] = {
-    ...product,
-    keys: product.keys.slice(qty),
-    soldCount: product.soldCount + qty,
+    ...products[productIndex],
+    soldCount: products[productIndex].soldCount + deliveredKeys.length,
     updatedAt: new Date().toISOString(),
   }
   await saveShopProducts(products)
@@ -104,7 +124,7 @@ export async function POST(req: Request) {
   return Response.json({
     success: true,
     deliveredKeys,
-    partial: qty < order.quantity,
+    partial: deliveredKeys.length < order.quantity,
     emailSent,
     emailError,
   })

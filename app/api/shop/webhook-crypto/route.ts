@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto'
-import { loadShopProducts, saveShopProducts, loadShopOrders, saveShopOrders } from '@/lib/shop'
+import { loadShopOrders, saveShopOrders, loadShopProducts, saveShopProducts, releaseReservedKeys } from '@/lib/shop'
 import { NOWPAYMENTS_IPN_SECRET } from '@/lib/nowpayments'
 import { sendKeyDeliveryEmail } from '@/lib/email'
 
@@ -49,18 +49,11 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  // NOWPayments fires the IPN repeatedly as a payment moves through
-  // waiting -> confirming -> confirmed -> sending -> finished (or
-  // partially_paid / failed / expired / refunded). Only fulfill on
-  // `finished` — the equivalent of Stripe's `checkout.session.completed`.
   const paymentStatus = payload?.payment_status
   const orderId = payload?.order_id
 
-  if (paymentStatus !== 'finished') {
-    return Response.json({ received: true })
-  }
   if (!orderId) {
-    console.error('[shop webhook-crypto] finished payment with no order_id')
+    console.error('[shop webhook-crypto] IPN with no order_id', paymentStatus)
     return Response.json({ received: true })
   }
 
@@ -73,37 +66,66 @@ export async function POST(req: Request) {
       return Response.json({ received: true })
     }
 
-    // Already fulfilled — NOWPayments can resend the same IPN.
+    // Idempotency guard — NOWPayments can resend the same IPN, and this
+    // also means only one terminal state ever gets applied to an order.
     if (orders[orderIndex].status !== 'pending') {
       return Response.json({ received: true })
     }
 
-    const products = await loadShopProducts()
-    const productIndex = products.findIndex(p => p.id === orders[orderIndex].productId)
-
-    if (productIndex === -1) {
-      orders[orderIndex] = { ...orders[orderIndex], status: 'paid_no_stock' }
+    // `failed` / `expired` — payment never completed. Release the keys
+    // reserved at checkout-crypto time back to stock instead of leaving
+    // them stranded off an abandoned invoice.
+    if (paymentStatus === 'failed' || paymentStatus === 'expired') {
+      const order = orders[orderIndex]
+      if (order.deliveredKeys?.length) {
+        await releaseReservedKeys(order.productId, order.deliveredKeys)
+      }
+      orders[orderIndex] = { ...order, status: 'cancelled', deliveredKeys: null }
       await saveShopOrders(orders)
       return Response.json({ received: true })
     }
 
-    const product = products[productIndex]
-    const qty = Math.min(orders[orderIndex].quantity, product.keys.length)
-    const deliveredKeys = qty > 0 ? product.keys.slice(0, qty) : null
+    // Only fulfill on `finished` — every other status (waiting, confirming,
+    // confirmed, sending, partially_paid) is still in progress.
+    if (paymentStatus !== 'finished') {
+      return Response.json({ received: true })
+    }
 
-    if (deliveredKeys) {
+    const order = orders[orderIndex]
+    const products = await loadShopProducts()
+    const product = products.find(p => p.id === order.productId)
+
+    // Normal path: keys were already reserved onto the order at
+    // checkout-crypto creation time — just confirm + email, no further
+    // stock mutation. Fallback below only covers legacy pre-reservation orders.
+    let deliveredKeys = order.deliveredKeys
+    if (!deliveredKeys?.length && product) {
+      const qty = Math.min(order.quantity, product.keys.length)
+      deliveredKeys = qty > 0 ? product.keys.slice(0, qty) : null
+      if (deliveredKeys) {
+        const productIndex = products.findIndex(p => p.id === product.id)
+        products[productIndex] = {
+          ...product,
+          keys: product.keys.slice(qty),
+          updatedAt: new Date().toISOString(),
+        }
+        await saveShopProducts(products)
+      }
+    }
+
+    if (product && deliveredKeys?.length) {
+      const productIndex = products.findIndex(p => p.id === product.id)
       products[productIndex] = {
-        ...product,
-        keys: product.keys.slice(qty),
-        soldCount: product.soldCount + qty,
+        ...products[productIndex],
+        soldCount: products[productIndex].soldCount + deliveredKeys.length,
         updatedAt: new Date().toISOString(),
       }
       await saveShopProducts(products)
     }
 
     let emailSent = false
-    const recipientEmail = orders[orderIndex].customerEmail
-    if (deliveredKeys && recipientEmail) {
+    const recipientEmail = order.customerEmail
+    if (deliveredKeys?.length && recipientEmail && product) {
       const emailResult = await sendKeyDeliveryEmail({
         to: recipientEmail,
         productName: product.name,
@@ -115,11 +137,11 @@ export async function POST(req: Request) {
     }
 
     orders[orderIndex] = {
-      ...orders[orderIndex],
-      status: deliveredKeys ? 'fulfilled' : 'paid_no_stock',
+      ...order,
+      status: deliveredKeys?.length ? 'fulfilled' : 'paid_no_stock',
       deliveredKeys,
       emailSent,
-      fulfilledAt: deliveredKeys ? new Date().toISOString() : null,
+      fulfilledAt: deliveredKeys?.length ? new Date().toISOString() : null,
     }
     await saveShopOrders(orders)
 

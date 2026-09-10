@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { ChevronLeftIcon, RefreshIcon, ActivityIcon, CheckIcon, ClockIcon, AlertIcon, MailIcon, TrashIcon, BoltIcon, CreditCardIcon, CoinIcon } from '@/components/Icons'
+import { ChevronLeftIcon, RefreshIcon, ActivityIcon, CheckIcon, ClockIcon, AlertIcon, MailIcon, TrashIcon, BoltIcon, CreditCardIcon, CoinIcon, XIcon } from '@/components/Icons'
 import Modal from '@/components/Modal'
 import { useToast } from '@/components/Toast'
 import type { ShopOrder } from '@/lib/shop'
@@ -32,6 +32,13 @@ function StatusChip({ status }: { status: ShopOrder['status'] }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.7rem] font-body border bg-danger/10 text-danger border-danger/30">
         <AlertIcon size={11} />Paid — out of stock
+      </span>
+    )
+  }
+  if (status === 'cancelled') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.7rem] font-body border bg-silver-faint/10 text-silver-faint border-border-mid">
+        <XIcon size={11} />Cancelled — stock released
       </span>
     )
   }
@@ -101,6 +108,8 @@ export default function AdminShopOrdersPage() {
   const selectAllTest = () => {
     setSelected(new Set(orders.filter(o => o.isTest).map(o => o.id)))
   }
+
+  const canFulfill = (order: ShopOrder) => order.status !== 'fulfilled' && order.status !== 'cancelled' && !order.isTest
 
   const handleFulfill = async (id: string) => {
     setFulfillingId(id)
@@ -251,7 +260,7 @@ export default function AdminShopOrdersPage() {
                     <dd className="text-silver-mid">{new Date(order.createdAt).toLocaleString()}</dd>
                   </div>
                 </dl>
-                {order.status !== 'fulfilled' && !order.isTest && (
+                {canFulfill(order) && (
                   <button
                     onClick={() => handleFulfill(order.id)}
                     disabled={fulfillingId === order.id}
@@ -352,7 +361,7 @@ export default function AdminShopOrdersPage() {
                       {new Date(order.createdAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-3">
-                      {order.status !== 'fulfilled' && !order.isTest && (
+                      {canFulfill(order) && (
                         <button
                           onClick={() => handleFulfill(order.id)}
                           disabled={fulfillingId === order.id}
