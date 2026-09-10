@@ -10,6 +10,8 @@ import { ShopIcon, CartIcon, ShieldIcon, PlusIcon, CreditCardIcon, CoinIcon } fr
 
 type PaymentMethod = 'card' | 'crypto'
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 function ShopPageInner() {
   const { showToast } = useToast()
   const [products, setProducts] = useState<PublicShopProduct[]>([])
@@ -45,18 +47,27 @@ function ShopPageInner() {
   }
 
   const handleCheckout = async () => {
-    if (!selected || !method) return
-    if (method === 'crypto' && !email.trim()) {
+    if (!selected || !method || buying) return
+
+    const trimmedEmail = email.trim()
+    if (method === 'crypto' && !trimmedEmail) {
       showToast('Email is required for crypto payments', 'error')
       return
     }
+    // Optional for card, but if they typed something, it has to be valid —
+    // catches typos before they get redirected to Stripe/NOWPayments.
+    if (trimmedEmail && !EMAIL_REGEX.test(trimmedEmail)) {
+      showToast('Enter a valid email address', 'error')
+      return
+    }
+
     setBuying(true)
     try {
       const endpoint = method === 'crypto' ? '/api/shop/checkout-crypto' : '/api/shop/checkout'
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: selected.id, quantity, email: email || undefined }),
+        body: JSON.stringify({ productId: selected.id, quantity, email: trimmedEmail || undefined }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to start checkout')
@@ -64,6 +75,13 @@ function ShopPageInner() {
     } catch (e: any) {
       showToast(e.message, 'error')
       setBuying(false)
+    }
+  }
+
+  const handleEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleCheckout()
     }
   }
 
@@ -201,6 +219,7 @@ function ShopPageInner() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
+                onKeyDown={handleEmailKeyDown}
                 placeholder="you@example.com"
                 className="void-input"
               />
