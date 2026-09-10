@@ -127,6 +127,7 @@ struct AnthropicClient: LLMClient {
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
         applyAuth(to: &request)
+        settings.applyExtraHeaders(to: &request)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
@@ -158,8 +159,12 @@ struct AnthropicClient: LLMClient {
         history: [Message],
         stream: Bool
     ) throws -> URLRequest {
-        guard !apiKey.isEmpty else { throw APIError.missingKey }
-        guard let url = settings.anthropicMessagesURL else { throw APIError.badURL }
+        if settings.requireAPIKey {
+            guard !apiKey.isEmpty else { throw APIError.missingKey }
+        }
+        guard let url = settings.requestURL(defaultPath: "/v1/messages", applyPathOverride: true) else {
+            throw APIError.badURL
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -170,6 +175,7 @@ struct AnthropicClient: LLMClient {
         if stream {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         }
+        settings.applyExtraHeaders(to: &request)
 
         let trimmedSystem = systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let body = AnthropicWire.MessagesRequest(
@@ -187,6 +193,7 @@ struct AnthropicClient: LLMClient {
 
     private func applyAuth(to request: inout URLRequest) {
         guard !apiKey.isEmpty else { return }
+        guard !settings.applyAuthOverride(apiKey: apiKey, to: &request) else { return }
         switch resolvedAuthStyle {
         case .apiKeyHeader:
             request.setValue(apiKey, forHTTPHeaderField: "x-api-key")

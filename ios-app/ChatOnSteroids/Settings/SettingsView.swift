@@ -118,10 +118,10 @@ struct SettingsView: View {
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
 
-            SecureField("API key", text: $apiKeyField)
+            SecureField(draft.requireAPIKey ? "API key" : "API key (optional)", text: $apiKeyField)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-                .onSubmit { store.setAPIKey(apiKeyField) }
+                .onSubmit { store.setAPIKey(apiKeyField, for: draft.provider) }
 
             Button("Save key") {
                 store.setAPIKey(apiKeyField, for: draft.provider)
@@ -162,6 +162,20 @@ struct SettingsView: View {
                 Text(message)
                     .font(.footnote)
                     .foregroundStyle(.red)
+            }
+
+            NavigationLink {
+                CustomEndpointSettingsView(settings: $draft)
+            } label: {
+                HStack {
+                    Text("Custom endpoint")
+                    Spacer()
+                    if let summary = customEndpointSummary {
+                        Text(summary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         } header: {
             Text("Provider")
@@ -289,6 +303,17 @@ struct SettingsView: View {
                 Text("The context budget only drives the meter in the chat toolbar. It is a local estimate, not the provider's counter.")
             }
         }
+    }
+
+    /// Nil when nothing has been customized, so the row stays quiet by default.
+    private var customEndpointSummary: String? {
+        var parts: [String] = []
+        if !draft.customPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { parts.append("custom path") }
+        if draft.hasAuthOverride { parts.append("custom auth") }
+        if !draft.extraHeaders.isEmpty { parts.append("\(draft.extraHeaders.count) header\(draft.extraHeaders.count == 1 ? "" : "s")") }
+        if !draft.extraQueryItems.isEmpty { parts.append("\(draft.extraQueryItems.count) param\(draft.extraQueryItems.count == 1 ? "" : "s")") }
+        if !draft.requireAPIKey { parts.append("no key required") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private var maxTokensLabel: String {

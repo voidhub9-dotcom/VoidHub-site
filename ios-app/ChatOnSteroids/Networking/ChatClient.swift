@@ -131,9 +131,10 @@ struct ChatClient: LLMClient {
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
         // Some gateways list models without a key; sending one when we have it is harmless.
-        if !apiKey.isEmpty {
+        if !apiKey.isEmpty && !settings.applyAuthOverride(apiKey: apiKey, to: &request) {
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
+        settings.applyExtraHeaders(to: &request)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
@@ -168,14 +169,20 @@ struct ChatClient: LLMClient {
         history: [Message],
         stream: Bool
     ) throws -> URLRequest {
-        guard !apiKey.isEmpty else { throw APIError.missingKey }
-        guard let url = settings.chatCompletionsURL else { throw APIError.badURL }
+        if settings.requireAPIKey {
+            guard !apiKey.isEmpty else { throw APIError.missingKey }
+        }
+        guard let url = settings.requestURL(defaultPath: "/chat/completions", applyPathOverride: true) else {
+            throw APIError.badURL
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.timeoutInterval = 120
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        if !apiKey.isEmpty && !settings.applyAuthOverride(apiKey: apiKey, to: &request) {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
         if stream {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         }
@@ -185,6 +192,7 @@ struct ChatClient: LLMClient {
             request.setValue("https://github.com/voidhub9-dotcom", forHTTPHeaderField: "HTTP-Referer")
             request.setValue("Chat On Steroids iOS", forHTTPHeaderField: "X-Title")
         }
+        settings.applyExtraHeaders(to: &request)
 
         let body = Wire.CompletionRequest(
             model: model,

@@ -91,6 +91,28 @@ struct AppSettings: Codable, Sendable, Equatable {
     var showTimestamps: Bool = false
     var starterPromptsEnabled: Bool = true
 
+    // MARK: - Custom endpoint
+
+    /// Non-empty overrides the provider's default request path — the one thing
+    /// that lets a server which doesn't use exactly "/chat/completions" or
+    /// "/v1/messages" be reached at all without new Swift code.
+    var customPath: String = ""
+    /// Non-empty replaces the provider's normal auth header entirely: any header
+    /// name, with any prefix in front of the key. Covers `api-key: <key>`
+    /// (Azure), a bespoke header name, or a prefix other than "Bearer ".
+    var authHeaderName: String = ""
+    var authValuePrefix: String = ""
+    /// Sent on every request to this endpoint on top of whatever auth header is
+    /// resolved above — an org id, a version pin, a routing header, anything a
+    /// specific server wants that isn't a credential.
+    var extraHeaders: [CustomHeader] = []
+    /// Appended to the request URL's query string on every request, e.g. Azure
+    /// OpenAI's required `api-version`.
+    var extraQueryItems: [CustomHeader] = []
+    /// Off for a local, unauthenticated server (Ollama, LM Studio, llama.cpp)
+    /// where there is no key to send at all.
+    var requireAPIKey: Bool = true
+
     init() {}
 
     /// Decoded field by field so a settings file written by an older build — which
@@ -123,6 +145,13 @@ struct AppSettings: Codable, Sendable, Equatable {
         showMessageTokens = try container.decodeIfPresent(Bool.self, forKey: .showMessageTokens) ?? fallback.showMessageTokens
         showTimestamps = try container.decodeIfPresent(Bool.self, forKey: .showTimestamps) ?? fallback.showTimestamps
         starterPromptsEnabled = try container.decodeIfPresent(Bool.self, forKey: .starterPromptsEnabled) ?? fallback.starterPromptsEnabled
+
+        customPath = try container.decodeIfPresent(String.self, forKey: .customPath) ?? fallback.customPath
+        authHeaderName = try container.decodeIfPresent(String.self, forKey: .authHeaderName) ?? fallback.authHeaderName
+        authValuePrefix = try container.decodeIfPresent(String.self, forKey: .authValuePrefix) ?? fallback.authValuePrefix
+        extraHeaders = try container.decodeIfPresent([CustomHeader].self, forKey: .extraHeaders) ?? fallback.extraHeaders
+        extraQueryItems = try container.decodeIfPresent([CustomHeader].self, forKey: .extraQueryItems) ?? fallback.extraQueryItems
+        requireAPIKey = try container.decodeIfPresent(Bool.self, forKey: .requireAPIKey) ?? fallback.requireAPIKey
     }
 
     var normalizedBaseURL: String {
@@ -131,19 +160,56 @@ struct AppSettings: Codable, Sendable, Equatable {
         return trimmed
     }
 
-    // MARK: - OpenAI-compatible endpoints
+    // MARK: - Request URL
 
-    var chatCompletionsURL: URL? {
-        URL(string: normalizedBaseURL + "/chat/completions")
+    /// Builds a request URL for `defaultPath`, always appending any configured
+    /// query items. `applyPathOverride` is only meaningful for the chat/completion
+    /// endpoint — the one the custom path setting exists to redirect; the model
+    /// listing endpoint keeps its own default path even when it's set, since the
+    /// override isn't a models-list URL.
+    func requestURL(defaultPath: String, applyPathOverride: Bool = false) -> URL? {
+        let path: String
+        if applyPathOverride {
+            let overridden = customPath.trimmingCharacters(in: .whitespacesAndNewlines)
+            path = overridden.isEmpty ? defaultPath : (overridden.hasPrefix("/") ? overridden : "/\(overridden)")
+        } else {
+            path = defaultPath
+        }
+        guard var components = URLComponents(string: normalizedBaseURL + path) else { return nil }
+        let items = extraQueryItems.compactMap { item -> URLQueryItem? in
+            let name = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            return name.isEmpty ? nil : URLQueryItem(name: name, value: item.value)
+        }
+        if !items.isEmpty {
+            components.queryItems = (components.queryItems ?? []) + items
+        }
+        return components.url
     }
 
-    // MARK: - Anthropic endpoints
+    /// True once a header name is set to replace the provider's own auth scheme.
+    var hasAuthOverride: Bool {
+        !authHeaderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
-    /// Anthropic's SDKs append `/v1/messages` to the configured base URL, so a
-    /// gateway base such as `https://host/anthropic` resolves exactly as it does
-    /// for Claude Code.
-    var anthropicMessagesURL: URL? {
-        URL(string: normalizedBaseURL + "/v1/messages")
+    /// Applies the auth override, when one is configured. Providers that need
+    /// their own scheme when no override is set (Anthropic's x-api-key/Bearer
+    /// heuristic) apply that separately and call this first.
+    func applyAuthOverride(apiKey: String, to request: inout URLRequest) -> Bool {
+        guard hasAuthOverride else { return false }
+        let name = authHeaderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        request.setValue(authValuePrefix + apiKey, forHTTPHeaderField: name)
+        return true
+    }
+
+    /// Applied last, so a header configured here always wins over anything a
+    /// client set as a built-in default (including its own auth header, if the
+    /// user pointed a custom header at the same name).
+    func applyExtraHeaders(to request: inout URLRequest) {
+        for header in extraHeaders {
+            let name = header.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { continue }
+            request.setValue(header.value, forHTTPHeaderField: name)
+        }
     }
 
     // MARK: - Shared
@@ -151,9 +217,9 @@ struct AppSettings: Codable, Sendable, Equatable {
     var modelsURL: URL? {
         switch provider {
         case .openAICompatible:
-            return URL(string: normalizedBaseURL + "/models")
+            return requestURL(defaultPath: "/models")
         case .anthropic:
-            return URL(string: normalizedBaseURL + "/v1/models")
+            return requestURL(defaultPath: "/v1/models")
         }
     }
 
