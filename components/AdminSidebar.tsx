@@ -13,6 +13,7 @@ import {
   BoltIcon,
   KeyIcon,
   ShopIcon,
+  MailIcon,
 } from '@/components/Icons'
 import { logout, getUsername } from '@/lib/storage'
 
@@ -24,6 +25,7 @@ const mainLinks = [
   { href: '/admin/executors', label: 'Executors', icon: BoltIcon },
   { href: '/admin/loader', label: 'Loader', icon: TerminalIcon },
   { href: '/admin/keys', label: 'Keys', icon: KeyIcon },
+  { href: '/admin/email', label: 'Send Email', icon: MailIcon },
   { href: '/admin/activity', label: 'Activity', icon: ActivityIcon },
 ]
 

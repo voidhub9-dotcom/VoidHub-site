@@ -27,6 +27,37 @@ export interface EmailSendResult {
   ok: boolean
   /** Human-readable failure reason — surfaced to the admin test-delivery UI for debugging. */
   error?: string
+  id?: string
+}
+
+async function postToResend(body: Record<string, unknown>): Promise<EmailSendResult> {
+  if (!RESEND_API_KEY) return { ok: false, error: 'RESEND_API_KEY is not set' }
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+    const bodyText = await res.text().catch(() => '')
+    let parsed: any = null
+    try {
+      parsed = bodyText ? JSON.parse(bodyText) : null
+    } catch {
+      // not JSON
+    }
+    if (!res.ok) {
+      console.error('[email] Resend send failed:', res.status, bodyText)
+      return { ok: false, error: `Resend ${res.status}: ${parsed?.message || bodyText || 'request failed'}` }
+    }
+    return { ok: true, id: parsed?.id }
+  } catch (error: any) {
+    console.error('[email] send error:', error)
+    return { ok: false, error: error?.message || 'Network error reaching Resend' }
+  }
 }
 
 /**
@@ -44,45 +75,51 @@ export async function sendKeyDeliveryEmail(params: {
   keyValues: string[]
   orderId: string
 }): Promise<EmailSendResult> {
-  if (!RESEND_API_KEY) return { ok: false, error: 'RESEND_API_KEY is not set' }
-
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Idempotency-Key': `voidhub-key-delivery-${params.orderId}`,
+  return postToResend({
+    from: FROM_ADDRESS,
+    to: params.to,
+    headers: { 'Idempotency-Key': `voidhub-key-delivery-${params.orderId}` },
+    template: {
+      id: KEY_DELIVERY_TEMPLATE,
+      variables: {
+        product: params.productName,
+        duration: params.durationLabel,
+        key: params.keyValues.join('\n'),
+        orderId: params.orderId,
       },
-      body: JSON.stringify({
-        from: FROM_ADDRESS,
-        to: params.to,
-        template: {
-          id: KEY_DELIVERY_TEMPLATE,
-          variables: {
-            product: params.productName,
-            duration: params.durationLabel,
-            key: params.keyValues.join('\n'),
-            orderId: params.orderId,
-          },
-        },
-      }),
-    })
-    if (!res.ok) {
-      const bodyText = await res.text().catch(() => '')
-      let message = bodyText
-      try {
-        const parsed = JSON.parse(bodyText)
-        message = parsed?.message || bodyText
-      } catch {
-        // not JSON — use raw text
-      }
-      console.error('[email] Resend send failed:', res.status, bodyText)
-      return { ok: false, error: `Resend ${res.status}: ${message || 'request failed'}` }
-    }
-    return { ok: true }
-  } catch (error: any) {
-    console.error('[email] send error:', error)
-    return { ok: false, error: error?.message || 'Network error reaching Resend' }
-  }
+    },
+  })
+}
+
+/**
+ * Sends a free-form email to any recipient — used by the admin "Send Email"
+ * panel (`/admin/email`) for one-off manual sends (support replies, ad-hoc
+ * notices) outside the automated key-delivery flow. Plain text is wrapped
+ * in <pre> so line breaks survive; pass `html` directly for anything richer.
+ */
+export async function sendCustomEmail(params: {
+  to: string
+  subject: string
+  html?: string
+  text?: string
+  from?: string
+}): Promise<EmailSendResult> {
+  const html = params.html || (params.text ? `<pre style="font-family:inherit;white-space:pre-wrap">${escapeHtml(params.text)}</pre>` : undefined)
+  if (!html) return { ok: false, error: 'Email body is empty' }
+
+  return postToResend({
+    from: params.from?.trim() || FROM_ADDRESS,
+    to: params.to,
+    subject: params.subject,
+    html,
+  })
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }

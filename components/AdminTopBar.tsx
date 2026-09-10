@@ -16,6 +16,7 @@ import {
   ShopIcon,
   BoltIcon,
   KeyIcon,
+  MailIcon,
 } from '@/components/Icons'
 import AnimatedLogo from '@/components/AnimatedLogo'
 import { logout } from '@/lib/storage'
@@ -30,6 +31,7 @@ const mobileLinks = [
   { href: '/admin/executors', label: 'Executors', icon: BoltIcon },
   { href: '/admin/loader', label: 'Loader', icon: TerminalIcon },
   { href: '/admin/keys', label: 'Keys', icon: KeyIcon },
+  { href: '/admin/email', label: 'Send Email', icon: MailIcon },
   { href: '/admin/activity', label: 'Activity', icon: ActivityIcon },
   { href: '/admin/settings', label: 'Settings', icon: SettingsIcon },
 ]
