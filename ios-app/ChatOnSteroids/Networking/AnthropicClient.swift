@@ -16,7 +16,7 @@ struct AnthropicClient: LLMClient {
         model: String,
         systemPrompt: String,
         history: [Message]
-    ) -> AsyncThrowingStream<String, Error> {
+    ) -> AsyncThrowingStream<StreamPiece, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -51,11 +51,18 @@ struct AnthropicClient: LLMClient {
                         }
 
                         guard event.type == "content_block_delta" else { continue }
-                        // Thinking deltas share the event type; only text is displayable.
-                        guard event.delta?.type == "text_delta" || event.delta?.type == nil else { continue }
-                        if let piece = event.delta?.text, !piece.isEmpty {
-                            produced = true
-                            continuation.yield(piece)
+                        switch event.delta?.type {
+                        case "thinking_delta":
+                            if let piece = event.delta?.thinking, !piece.isEmpty {
+                                continuation.yield(.thinking(piece))
+                            }
+                        case "text_delta", nil:
+                            if let piece = event.delta?.text, !piece.isEmpty {
+                                produced = true
+                                continuation.yield(.text(piece))
+                            }
+                        default:
+                            continue
                         }
                     }
 
@@ -95,12 +102,41 @@ struct AnthropicClient: LLMClient {
         }
 
         let decoded = try JSONDecoder().decode(AnthropicWire.MessagesResponse.self, from: data)
-        let text = (decoded.content ?? [])
-            .filter { $0.type == "text" }
-            .compactMap { $0.text }
-            .joined()
+        let text = Self.renderContent(decoded.content ?? [])
         guard !text.isEmpty else { throw APIError.emptyResponse }
         return text
+    }
+
+    /// Interleaves Claude's prose with the code it ran and that code's output, since
+    /// this app has no separate UI surface for server-side tool activity — the whole
+    /// turn has to read as one answer, formatted with fenced code blocks that the
+    /// existing markdown renderer already knows how to draw.
+    private static func renderContent(_ blocks: [AnthropicWire.MessagesResponse.Block]) -> String {
+        var parts: [String] = []
+        for block in blocks {
+            switch block.type {
+            case "text":
+                if let text = block.text, !text.isEmpty { parts.append(text) }
+            case "server_tool_use":
+                guard block.name == "code_execution", let code = block.input?.code, !code.isEmpty else { continue }
+                parts.append("```python\n\(code)\n```")
+            case "bash_code_execution_tool_result":
+                guard let result = block.content else { continue }
+                if let error = result.error_code {
+                    parts.append("_Code execution failed: \(error)_")
+                    continue
+                }
+                if let stdout = result.stdout, !stdout.isEmpty {
+                    parts.append("```\n\(stdout)\n```")
+                }
+                if let stderr = result.stderr, !stderr.isEmpty {
+                    parts.append("**stderr:**\n```\n\(stderr)\n```")
+                }
+            default:
+                continue
+            }
+        }
+        return parts.joined(separator: "\n\n")
     }
 
     func probe(model: String) async throws -> String {
@@ -183,7 +219,9 @@ struct AnthropicClient: LLMClient {
             max_tokens: settings.anthropicMaxTokens,
             system: trimmedSystem.isEmpty ? nil : trimmedSystem,
             messages: Self.wireMessages(history: history),
-            stream: stream
+            stream: stream,
+            thinking: settings.thinkingEnabled ? .adaptive : nil,
+            tools: settings.codeExecutionEnabled ? [.codeExecution] : nil
         )
         // Deliberately no `temperature`: current Claude models reject sampling
         // parameters outright, so sending one turns every request into a 400.

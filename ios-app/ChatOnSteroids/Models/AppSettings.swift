@@ -113,6 +113,26 @@ struct AppSettings: Codable, Sendable, Equatable {
     /// where there is no key to send at all.
     var requireAPIKey: Bool = true
 
+    // MARK: - Anthropic-only capabilities
+
+    /// Requests visible extended thinking and streams it above the answer while it
+    /// generates. Off by default: only current-generation Claude models (Opus/Sonnet
+    /// 4.6 and newer) accept adaptive thinking — Haiku 4.5 and older models reject it
+    /// outright, so this stays an explicit choice rather than something the app
+    /// silently attaches to every Anthropic request.
+    var thinkingEnabled: Bool = false
+    /// Lets the model write and run real Python in Anthropic's own sandbox — not on
+    /// this device — and shows the code and its output inline. Forces non-streaming
+    /// for that turn, since the tool's result blocks arrive as a unit.
+    var codeExecutionEnabled: Bool = false
+
+    // MARK: - Image generation
+
+    /// Hits `{baseURL}/images/generations`, the OpenAI-compatible image endpoint —
+    /// a different request/response shape from chat completion, so it always uses
+    /// this model id rather than the chat `defaultModel`.
+    var imageGenModel: String = "dall-e-3"
+
     init() {}
 
     /// Decoded field by field so a settings file written by an older build — which
@@ -152,6 +172,11 @@ struct AppSettings: Codable, Sendable, Equatable {
         extraHeaders = try container.decodeIfPresent([CustomHeader].self, forKey: .extraHeaders) ?? fallback.extraHeaders
         extraQueryItems = try container.decodeIfPresent([CustomHeader].self, forKey: .extraQueryItems) ?? fallback.extraQueryItems
         requireAPIKey = try container.decodeIfPresent(Bool.self, forKey: .requireAPIKey) ?? fallback.requireAPIKey
+
+        thinkingEnabled = try container.decodeIfPresent(Bool.self, forKey: .thinkingEnabled) ?? fallback.thinkingEnabled
+        codeExecutionEnabled = try container.decodeIfPresent(Bool.self, forKey: .codeExecutionEnabled) ?? fallback.codeExecutionEnabled
+
+        imageGenModel = try container.decodeIfPresent(String.self, forKey: .imageGenModel) ?? fallback.imageGenModel
     }
 
     var normalizedBaseURL: String {
@@ -227,11 +252,13 @@ struct AppSettings: Codable, Sendable, Equatable {
         provider == .openAICompatible && normalizedBaseURL.contains("openrouter.ai")
     }
 
-    /// Anthropic requires `max_tokens` on every request; there is no "provider
-    /// default". This keeps answers long enough to be useful without pushing a
-    /// non-streaming request into an HTTP timeout.
+    /// Anthropic requires `max_tokens` on every request — there is no way to omit
+    /// it and get "the provider's own maximum" the way OpenAI-compatible servers
+    /// allow. When the user asks for unlimited (maxTokens == 0), this sends the
+    /// highest ceiling current Claude models generally accept instead of a small
+    /// default that would silently cut answers short.
     var anthropicMaxTokens: Int {
-        maxTokens > 0 ? maxTokens : 16_000
+        maxTokens > 0 ? maxTokens : 64_000
     }
 
     /// Switching provider moves the endpoint and model to that provider's defaults,

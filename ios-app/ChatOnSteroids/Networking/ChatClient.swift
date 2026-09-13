@@ -44,7 +44,7 @@ struct ChatClient: LLMClient {
         model: String,
         systemPrompt: String,
         history: [Message]
-    ) -> AsyncThrowingStream<String, Error> {
+    ) -> AsyncThrowingStream<StreamPiece, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -75,7 +75,7 @@ struct ChatClient: LLMClient {
                         }
                         if let piece = chunk.choices?.first?.delta?.content, !piece.isEmpty {
                             produced = true
-                            continuation.yield(piece)
+                            continuation.yield(.text(piece))
                         }
                     }
 

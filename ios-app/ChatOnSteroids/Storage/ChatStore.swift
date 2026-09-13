@@ -12,11 +12,13 @@ final class ChatStore {
         static let conversations = "conversations.json"
         static let projects = "projects.json"
         static let settings = "settings.json"
+        static let memory = "memory.json"
     }
 
     private(set) var conversations: [Conversation] = []
     private(set) var projects: [Project] = []
     private(set) var settings = AppSettings()
+    private(set) var memoryNotes: [MemoryNote] = []
     /// One key per provider, so switching between them keeps both.
     private(set) var keysByProvider: [ProviderKind: String] = [:]
 
@@ -32,6 +34,7 @@ final class ChatStore {
         settings = DiskStore.load(AppSettings.self, from: File.settings) ?? AppSettings()
         projects = DiskStore.load([Project].self, from: File.projects) ?? []
         conversations = DiskStore.load([Conversation].self, from: File.conversations) ?? []
+        memoryNotes = DiskStore.load([MemoryNote].self, from: File.memory) ?? []
         for provider in ProviderKind.allCases {
             keysByProvider[provider] = Keychain.get(.forProvider(provider)) ?? ""
         }
@@ -62,6 +65,7 @@ final class ChatStore {
         let conversationsSnapshot = conversations
         let projectsSnapshot = projects
         let settingsSnapshot = settings
+        let memorySnapshot = memoryNotes
         saveTask = Task.detached(priority: .utility) {
             // Coalesce the bursts that streaming produces: one write per idle moment,
             // not one per token. Encoding stays off the main actor.
@@ -70,6 +74,7 @@ final class ChatStore {
             DiskStore.save(conversationsSnapshot, to: File.conversations)
             DiskStore.save(projectsSnapshot, to: File.projects)
             DiskStore.save(settingsSnapshot, to: File.settings)
+            DiskStore.save(memorySnapshot, to: File.memory)
         }
     }
 
@@ -81,6 +86,7 @@ final class ChatStore {
         DiskStore.save(conversations, to: File.conversations)
         DiskStore.save(projects, to: File.projects)
         DiskStore.save(settings, to: File.settings)
+        DiskStore.save(memoryNotes, to: File.memory)
     }
 
     // MARK: - Conversations
@@ -251,6 +257,12 @@ final class ChatStore {
         ClientFactory.make(settings: settings, apiKey: apiKey)
     }
 
+    /// Image generation always speaks the OpenAI-compatible shape, so it uses that
+    /// provider's stored key regardless of which provider the chat client is set to.
+    func makeImageClient() -> ImageGenClient {
+        ImageGenClient(settings: settings, apiKey: apiKey(for: .openAICompatible))
+    }
+
     /// Conversation prompt wins, then the project's, then the global default.
     func effectiveSystemPrompt(for conversation: Conversation) -> String {
         let own = conversation.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -260,6 +272,47 @@ final class ChatStore {
             if !projectPrompt.isEmpty { return projectPrompt }
         }
         return settings.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// The prompt actually sent to the model: the effective system prompt plus a
+    /// block of remembered facts, so memory applies underneath whichever prompt
+    /// layer wins rather than only when nothing else is set.
+    func promptForModel(conversation: Conversation) -> String {
+        let base = effectiveSystemPrompt(for: conversation)
+        guard !memoryNotes.isEmpty else { return base }
+        let block = "Known facts about the user, remembered from earlier conversations:\n"
+            + memoryNotes.map { "- \($0.text)" }.joined(separator: "\n")
+        return base.isEmpty ? block : "\(base)\n\n\(block)"
+    }
+
+    // MARK: - Memory
+
+    @discardableResult
+    func addMemory(_ text: String) -> MemoryNote? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let note = MemoryNote(text: trimmed)
+        memoryNotes.append(note)
+        scheduleSave()
+        return note
+    }
+
+    func updateMemory(id: UUID, text: String) {
+        guard let index = memoryNotes.firstIndex(where: { $0.id == id }) else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        memoryNotes[index].text = trimmed
+        scheduleSave()
+    }
+
+    func deleteMemory(id: UUID) {
+        memoryNotes.removeAll { $0.id == id }
+        scheduleSave()
+    }
+
+    func deleteAllMemory() {
+        memoryNotes.removeAll()
+        scheduleSave()
     }
 
     // MARK: - Search

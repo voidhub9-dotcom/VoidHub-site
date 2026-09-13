@@ -1,9 +1,17 @@
 import Foundation
 
+/// One streamed fragment. Kept as two cases rather than plain `String` so a
+/// provider that streams visible reasoning (Anthropic's extended thinking) can be
+/// told apart from the answer itself without a client-side parsing trick.
+enum StreamPiece: Sendable {
+    case thinking(String)
+    case text(String)
+}
+
 /// The chat surface every provider has to supply. The view model talks to this and
 /// never learns which wire format is underneath.
 protocol LLMClient {
-    func stream(model: String, systemPrompt: String, history: [Message]) -> AsyncThrowingStream<String, Error>
+    func stream(model: String, systemPrompt: String, history: [Message]) -> AsyncThrowingStream<StreamPiece, Error>
     func complete(model: String, systemPrompt: String, history: [Message]) async throws -> String
     func availableModels() async throws -> [ModelInfo]
 

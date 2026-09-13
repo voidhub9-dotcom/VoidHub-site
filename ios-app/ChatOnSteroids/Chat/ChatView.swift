@@ -13,9 +13,11 @@ struct ChatView: View {
     @State private var editingMessage: Message?
     @State private var share: SharePayload?
     @State private var atBottom = true
-    @State private var branchToast = false
+    @State private var toastText: String?
 
     private let bottomAnchor = "chat-bottom-anchor"
+
+    @State private var thinkingExpanded = true
 
     init(conversation: Conversation, store: ChatStore) {
         _viewModel = State(initialValue: ChatViewModel(conversation: conversation, store: store))
@@ -64,8 +66,8 @@ struct ChatView: View {
                 .allowsHitTesting(true)
             }
 
-            if branchToast {
-                toast("Branched into a new chat")
+            if let toastText {
+                toast(toastText)
             }
         }
         .navigationTitle(viewModel.conversation.title)
@@ -132,7 +134,12 @@ struct ChatView: View {
                             canRetry: message.id == viewModel.conversation.messages.last?.id,
                             onDelete: { viewModel.deleteMessage(id: message.id) },
                             onRetry: { viewModel.retryLast() },
-                            onEdit: { editingMessage = message }
+                            onEdit: { editingMessage = message },
+                            onRemember: {
+                                store.addMemory(message.text)
+                                Haptics.success()
+                                showToast("Remembered")
+                            }
                         )
                         .id(message.id)
                     }
@@ -174,6 +181,9 @@ struct ChatView: View {
     private var streamingBubble: some View {
         HStack(alignment: .top, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
+                if !viewModel.streamingThinking.isEmpty {
+                    thinkingStreamView
+                }
                 if viewModel.streamingText.isEmpty {
                     ThinkingIndicator(glass: glass)
                 } else {
@@ -189,6 +199,29 @@ struct ChatView: View {
             Spacer(minLength: 44)
         }
         .transition(.opacity)
+    }
+
+    /// Claude's extended-thinking summary, shown live above the answer. Ephemeral —
+    /// it belongs to the in-flight turn only and is never written to the transcript.
+    private var thinkingStreamView: some View {
+        DisclosureGroup(isExpanded: $thinkingExpanded) {
+            Text(viewModel.streamingThinking)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .padding(.top, 4)
+                .transition(.opacity)
+        } label: {
+            Label("Thinking", systemImage: "brain")
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.secondary)
+                .symbolEffect(.pulse, isActive: viewModel.streamingText.isEmpty)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .glassSurface(cornerRadius: Theme.bubbleCorner, enabled: glass)
+        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
+        .animation(.easeInOut(duration: 0.2), value: viewModel.streamingThinking)
     }
 
     private var emptyState: some View {
@@ -231,6 +264,14 @@ struct ChatView: View {
                 .padding(.bottom, 100)
         }
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private func showToast(_ text: String) {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { toastText = text }
+        Task {
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            withAnimation { toastText = nil }
+        }
     }
 
     // MARK: - Toolbar
@@ -297,11 +338,7 @@ struct ChatView: View {
                 Button {
                     if viewModel.branch() != nil {
                         Haptics.success()
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { branchToast = true }
-                        Task {
-                            try? await Task.sleep(nanoseconds: 1_800_000_000)
-                            withAnimation { branchToast = false }
-                        }
+                        showToast("Branched into a new chat")
                     }
                 } label: {
                     Label("Branch this chat", systemImage: "arrow.triangle.branch")

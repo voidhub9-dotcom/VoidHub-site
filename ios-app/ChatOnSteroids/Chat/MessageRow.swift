@@ -12,6 +12,7 @@ struct MessageRow: View {
     var onDelete: () -> Void = {}
     var onRetry: () -> Void = {}
     var onEdit: () -> Void = {}
+    var onRemember: () -> Void = {}
 
     private var isUser: Bool { message.role == .user }
 
@@ -113,6 +114,14 @@ struct MessageRow: View {
                 onEdit()
             } label: {
                 Label("Edit and resend", systemImage: "pencil")
+            }
+        }
+
+        if !message.text.isEmpty {
+            Button {
+                onRemember()
+            } label: {
+                Label("Remember this", systemImage: "brain")
             }
         }
 

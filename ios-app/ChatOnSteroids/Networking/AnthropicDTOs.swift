@@ -51,12 +51,33 @@ enum AnthropicWire {
         }
     }
 
+    /// Extended thinking config. Only current-generation models (Opus/Sonnet 4.6+)
+    /// accept `adaptive`; older models such as Haiku 4.5 reject it outright, which is
+    /// why this is only ever sent when the user opts in explicitly.
+    struct ThinkingConfig: Encodable {
+        let type: String
+        let display: String?
+
+        static let adaptive = ThinkingConfig(type: "adaptive", display: "summarized")
+    }
+
+    /// A server-side tool declaration. No `input_schema` — Anthropic runs these
+    /// entirely on its own infrastructure; the app never executes anything itself.
+    struct Tool: Encodable {
+        let type: String
+        let name: String
+
+        static let codeExecution = Tool(type: "code_execution_20260120", name: "code_execution")
+    }
+
     struct MessagesRequest: Encodable {
         let model: String
         let max_tokens: Int
         let system: String?
         let messages: [RequestMessage]
         let stream: Bool
+        let thinking: ThinkingConfig?
+        let tools: [Tool]?
     }
 
     /// One streamed event. Only `content_block_delta` carries text; the rest
@@ -66,6 +87,8 @@ enum AnthropicWire {
         struct Delta: Decodable {
             let type: String?
             let text: String?
+            /// Present on `thinking_delta` events — the model's visible reasoning.
+            let thinking: String?
         }
 
         struct ErrorDetail: Decodable {
@@ -79,9 +102,28 @@ enum AnthropicWire {
     }
 
     struct MessagesResponse: Decodable {
+        /// `server_tool_use` blocks carry the code Claude chose to run as `input.code`.
+        struct ToolInput: Decodable {
+            let code: String?
+        }
+
+        /// The payload of a `bash_code_execution_tool_result` block. `error_code` is
+        /// set instead of `stdout`/`stderr`/`return_code` when the sandbox itself
+        /// failed (e.g. container setup), rather than the code returning nonzero.
+        struct ExecutionResult: Decodable {
+            let type: String?
+            let stdout: String?
+            let stderr: String?
+            let return_code: Int?
+            let error_code: String?
+        }
+
         struct Block: Decodable {
             let type: String
             let text: String?
+            let name: String?
+            let input: ToolInput?
+            let content: ExecutionResult?
         }
 
         let content: [Block]?

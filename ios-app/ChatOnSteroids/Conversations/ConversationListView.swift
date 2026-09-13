@@ -8,6 +8,9 @@ struct ConversationListView: View {
     @State private var projectFilter: UUID?
     @State private var showSettings = false
     @State private var showProjects = false
+    @State private var editMode: EditMode = .inactive
+    @State private var selectedIDs: Set<UUID> = []
+    @State private var showBulkDeleteConfirm = false
 
     private var visibleConversations: [Conversation] {
         let base = store.conversations(in: projectFilter)
@@ -49,6 +52,7 @@ struct ConversationListView: View {
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .searchable(text: $query, prompt: "Search chats and messages")
             .toolbar { toolbarContent }
+            .environment(\.editMode, $editMode)
             .navigationDestination(for: Conversation.self) { conversation in
                 ChatView(conversation: conversation, store: store)
             }
@@ -58,12 +62,50 @@ struct ConversationListView: View {
             .sheet(isPresented: $showProjects) {
                 ProjectsView(selection: $projectFilter)
             }
+            .safeAreaInset(edge: .bottom) {
+                if editMode == .active && !selectedIDs.isEmpty {
+                    bulkActionBar
+                }
+            }
+            .onChange(of: editMode) { _, newValue in
+                if newValue == .inactive { selectedIDs = [] }
+            }
+            .alert("Delete \(selectedIDs.count) chat\(selectedIDs.count == 1 ? "" : "s")?", isPresented: $showBulkDeleteConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    Haptics.warning()
+                    store.deleteConversations(ids: selectedIDs)
+                    selectedIDs = []
+                    editMode = .inactive
+                }
+            } message: {
+                Text("This cannot be undone.")
+            }
         }
     }
 
+    private var bulkActionBar: some View {
+        HStack {
+            Text("\(selectedIDs.count) selected")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button(role: .destructive) {
+                showBulkDeleteConfirm = true
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.bar)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selectedIDs.isEmpty)
+    }
+
     private var list: some View {
-        List {
-            if !store.hasAPIKey {
+        List(selection: $selectedIDs) {
+            if !store.hasAPIKey && editMode == .inactive {
                 Section {
                     Button {
                         showSettings = true
@@ -84,7 +126,7 @@ struct ConversationListView: View {
                 }
             }
 
-            if !searchHits.isEmpty {
+            if !searchHits.isEmpty && editMode == .inactive {
                 Section("Matching messages") {
                     ForEach(searchHits) { hit in
                         Button {
@@ -226,12 +268,19 @@ struct ConversationListView: View {
             }
         }
 
+        if !store.conversations.isEmpty {
+            ToolbarItem(placement: .topBarLeading) {
+                EditButton()
+            }
+        }
+
         ToolbarItem(placement: .topBarTrailing) {
             Button {
                 showProjects = true
             } label: {
                 Image(systemName: projectFilter == nil ? "folder" : "folder.fill")
             }
+            .disabled(editMode == .active)
         }
 
         ToolbarItem(placement: .topBarTrailing) {
@@ -240,6 +289,7 @@ struct ConversationListView: View {
             } label: {
                 Image(systemName: "square.and.pencil")
             }
+            .disabled(editMode == .active)
         }
     }
 

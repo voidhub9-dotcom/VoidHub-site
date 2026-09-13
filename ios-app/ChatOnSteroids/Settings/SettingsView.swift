@@ -215,6 +215,19 @@ struct SettingsView: View {
             Toggle("Starter prompts on empty chats", isOn: $draft.starterPromptsEnabled)
             Toggle("Show token estimate per message", isOn: $draft.showMessageTokens)
             Toggle("Show timestamps", isOn: $draft.showTimestamps)
+
+            NavigationLink {
+                MemorySettingsView()
+            } label: {
+                HStack {
+                    Text("Memory")
+                    Spacer()
+                    if !store.memoryNotes.isEmpty {
+                        Text("\(store.memoryNotes.count)")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
         } header: {
             Text("Behaviour")
         }
@@ -255,8 +268,24 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            if draft.provider == .openAICompatible {
+                HStack {
+                    Text("Image model")
+                    Spacer()
+                    TextField("dall-e-3", text: $draft.imageGenModel)
+                        .multilineTextAlignment(.trailing)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .foregroundStyle(.secondary)
+                }
+            }
         } header: {
             Text("Defaults for new chats")
+        } footer: {
+            if draft.provider == .openAICompatible {
+                Text("The sparkles button in a chat sends the draft to \(draft.normalizedBaseURL)/images/generations instead of the chat endpoint, using this model id and the OpenAI-compatible key above.")
+            }
         }
     }
 
@@ -279,12 +308,19 @@ struct SettingsView: View {
                 }
             }
 
-            Stepper(
-                maxTokensLabel,
-                value: $draft.maxTokens,
-                in: 0...32_000,
-                step: 256
-            )
+            Toggle("Unlimited max tokens", isOn: unlimitedTokensBinding)
+
+            if draft.maxTokens > 0 {
+                Stepper(
+                    maxTokensLabel,
+                    value: $draft.maxTokens,
+                    in: 256...128_000,
+                    step: 256
+                )
+            } else {
+                Text(maxTokensLabel)
+                    .foregroundStyle(.secondary)
+            }
 
             Picker("Context budget", selection: $draft.contextLimit) {
                 Text("32k").tag(32_000)
@@ -294,15 +330,32 @@ struct SettingsView: View {
                 Text("400k").tag(400_000)
                 Text("1M").tag(1_000_000)
             }
+
+            if draft.provider == .anthropic {
+                Toggle("Show thinking", isOn: $draft.thinkingEnabled)
+                Toggle("Python code execution", isOn: $draft.codeExecutionEnabled)
+            }
         } header: {
             Text("Generation")
         } footer: {
             if draft.provider == .anthropic {
-                Text("Claude models set their own sampling and reject a temperature, so that control is hidden here. The context budget only drives the meter in the chat toolbar — a local estimate, not the provider's counter.")
+                Text("Claude models set their own sampling and reject a temperature, so that control is hidden here. Anthropic requires a numeric cap on every request — \"Unlimited\" sends the highest ceiling current models generally accept (64,000) rather than truly no limit. The context budget only drives the meter in the chat toolbar — a local estimate, not the provider's counter. \"Show thinking\" streams Claude's reasoning above the answer — turn it off for older models like Haiku 4.5 that reject it. \"Python code execution\" runs code in Anthropic's cloud sandbox, not on this phone, and answers arrive all at once instead of streaming while it's on.")
             } else {
-                Text("The context budget only drives the meter in the chat toolbar. It is a local estimate, not the provider's counter.")
+                Text("\"Unlimited\" omits the limit entirely, so the provider applies its own maximum. The context budget only drives the meter in the chat toolbar. It is a local estimate, not the provider's counter.")
             }
         }
+    }
+
+    /// Bridges the maxTokens==0 sentinel to a plain switch, and picks a sane
+    /// starting point (4096) if the user turns unlimited back off.
+    private var unlimitedTokensBinding: Binding<Bool> {
+        Binding(
+            get: { draft.maxTokens == 0 },
+            set: { isUnlimited in
+                Haptics.selection()
+                draft.maxTokens = isUnlimited ? 0 : 4096
+            }
+        )
     }
 
     /// Nil when nothing has been customized, so the row stays quiet by default.
@@ -320,8 +373,8 @@ struct SettingsView: View {
         if draft.maxTokens > 0 { return "Max tokens: \(draft.maxTokens)" }
         // Anthropic requires the field, so "provider default" would be a lie there.
         return draft.provider == .anthropic
-            ? "Max tokens: \(draft.anthropicMaxTokens)"
-            : "Max tokens: provider default"
+            ? "Sends max_tokens: \(draft.anthropicMaxTokens)"
+            : "Provider's own maximum"
     }
 
     private var dataSection: some View {

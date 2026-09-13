@@ -4,6 +4,7 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct ComposerView: View {
+    @Environment(ChatStore.self) private var store
     @Bindable var viewModel: ChatViewModel
     var glass: Bool = true
 
@@ -17,6 +18,10 @@ struct ComposerView: View {
         VStack(spacing: 0) {
             if !viewModel.pendingAttachments.isEmpty || isLoadingAttachment {
                 pendingStrip
+            }
+
+            if viewModel.isGeneratingImage {
+                generatingImageStrip
             }
 
             HStack(alignment: .bottom, spacing: 8) {
@@ -35,6 +40,23 @@ struct ComposerView: View {
                         .font(.system(size: 18, weight: .medium))
                         .frame(width: 34, height: 34)
                         .foregroundStyle(.secondary)
+                }
+
+                if store.settings.provider == .openAICompatible {
+                    Button {
+                        Haptics.tap()
+                        viewModel.generateImage()
+                    } label: {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 18, weight: .medium))
+                            .frame(width: 34, height: 34)
+                            .foregroundStyle(.secondary)
+                    }
+                    .disabled(
+                        viewModel.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || viewModel.isStreaming
+                        || viewModel.isGeneratingImage
+                    )
                 }
 
                 TextField("Message", text: $viewModel.draft, axis: .vertical)
@@ -67,6 +89,7 @@ struct ComposerView: View {
         }
         .animation(.spring(response: 0.32, dampingFraction: 0.75), value: viewModel.isStreaming)
         .animation(.spring(response: 0.34, dampingFraction: 0.8), value: viewModel.pendingAttachments.count)
+        .animation(.spring(response: 0.32, dampingFraction: 0.75), value: viewModel.isGeneratingImage)
         .onChange(of: photoItems) { _, newItems in
             guard !newItems.isEmpty else { return }
             loadPhotos(newItems)
@@ -161,6 +184,20 @@ struct ComposerView: View {
             .padding(.horizontal, 12)
             .padding(.top, 10)
         }
+    }
+
+    private var generatingImageStrip: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .scaleEffect(0.8)
+            Text("Generating image…")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .transition(.opacity)
     }
 
     private func decoded(_ attachment: Attachment) -> UIImage? {

@@ -8,6 +8,10 @@ final class ChatViewModel {
     private(set) var isStreaming = false
     /// The answer as it arrives, rendered as a live bubble until the turn completes.
     private(set) var streamingText = ""
+    /// Anthropic's extended-thinking summary as it arrives. Ephemeral — shown only
+    /// while the turn is live and never saved onto the finished `Message`.
+    private(set) var streamingThinking = ""
+    private(set) var isGeneratingImage = false
     var errorMessage: String?
     var draft = ""
     var pendingAttachments: [Attachment] = []
@@ -23,14 +27,14 @@ final class ChatViewModel {
     // MARK: - Derived state
 
     var canSend: Bool {
-        guard !isStreaming else { return false }
+        guard !isStreaming, !isGeneratingImage else { return false }
         let hasText = !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return hasText || !pendingAttachments.isEmpty
     }
 
     var estimatedTokens: Int {
         var total = TokenEstimator.estimate(conversation.messages)
-        total += TokenEstimator.estimate(store.effectiveSystemPrompt(for: conversation))
+        total += TokenEstimator.estimate(store.promptForModel(conversation: conversation))
         if !streamingText.isEmpty { total += TokenEstimator.estimate(streamingText) }
         return total
     }
@@ -161,6 +165,49 @@ final class ChatViewModel {
         beginTurn()
     }
 
+    /// Sends the draft to the image endpoint instead of the chat endpoint. Kept
+    /// entirely separate from `send()`/`beginTurn()`: this is a single request with
+    /// no streaming, no history, and a different client, not a variant of a chat turn.
+    func generateImage() {
+        guard !isStreaming, !isGeneratingImage else { return }
+        let prompt = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !prompt.isEmpty else { return }
+        guard store.hasAPIKey else {
+            errorMessage = APIError.missingKey.localizedDescription
+            return
+        }
+
+        draft = ""
+        conversation.messages.append(Message.user(prompt))
+        if conversation.title == "New chat" {
+            conversation.title = Conversation.derivedTitle(from: prompt)
+        }
+        store.update(conversation)
+        Haptics.send()
+
+        isGeneratingImage = true
+        errorMessage = nil
+        let client = store.makeImageClient()
+        let model = store.settings.imageGenModel
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let attachment = try await client.generate(prompt: prompt, model: model)
+                self.conversation.messages.append(Message(role: .assistant, text: "", attachments: [attachment]))
+                self.store.update(self.conversation)
+                Haptics.success()
+            } catch {
+                let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                self.conversation.messages.append(Message.failure(description))
+                self.store.update(self.conversation)
+                self.errorMessage = description
+                Haptics.error()
+            }
+            self.isGeneratingImage = false
+        }
+    }
+
     /// Drops the last assistant turn and asks again from the same user message.
     func retryLast() {
         guard !isStreaming else { return }
@@ -183,13 +230,18 @@ final class ChatViewModel {
         streamTask?.cancel()
         errorMessage = nil
         streamingText = ""
+        streamingThinking = ""
         isStreaming = true
 
         let client = store.makeClient()
-        let system = store.effectiveSystemPrompt(for: conversation)
+        let system = store.promptForModel(conversation: conversation)
         let history = conversation.messages
         let model = conversation.model
-        let useStreaming = store.settings.streamResponses
+        // Streamed code-execution turns arrive as server_tool_use / tool_result
+        // events this client doesn't parse, so that combination always waits for
+        // the full response instead of rendering a partial, unparseable stream.
+        let codeExecutionTurn = store.settings.provider == .anthropic && store.settings.codeExecutionEnabled
+        let useStreaming = store.settings.streamResponses && !codeExecutionTurn
 
         streamTask = Task { [weak self] in
             guard let self else { return }
@@ -197,7 +249,12 @@ final class ChatViewModel {
                 if useStreaming {
                     for try await piece in client.stream(model: model, systemPrompt: system, history: history) {
                         if Task.isCancelled { break }
-                        self.streamingText += piece
+                        switch piece {
+                        case .text(let text):
+                            self.streamingText += text
+                        case .thinking(let thinking):
+                            self.streamingThinking += thinking
+                        }
                     }
                 } else {
                     let whole = try await client.complete(model: model, systemPrompt: system, history: history)
@@ -224,6 +281,7 @@ final class ChatViewModel {
             if !interrupted { Haptics.success() }
         }
         streamingText = ""
+        streamingThinking = ""
         isStreaming = false
         streamTask = nil
     }
@@ -241,6 +299,7 @@ final class ChatViewModel {
 
         errorMessage = description
         streamingText = ""
+        streamingThinking = ""
         isStreaming = false
         streamTask = nil
         Haptics.error()
