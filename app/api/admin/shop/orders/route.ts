@@ -23,18 +23,17 @@ export async function GET(req: Request) {
 
 /**
  * POST — manually fulfill an order that never got fulfilled automatically
- * (e.g. the Stripe/NOWPayments webhook secret was wrong, or the webhook
- * never fired). The customer already paid; this delivers the keys exactly
- * like the webhook would, then marks the order `manuallyFulfilled` so it's
- * clear it didn't go through the automatic webhook path.
+ * (e.g. the Stripe webhook secret was wrong, or the webhook never fired).
+ * The customer already paid; this delivers the keys exactly like the
+ * webhook would, then marks the order `manuallyFulfilled` so it's clear it
+ * didn't go through the automatic webhook path.
  *
  * Since checkout now reserves keys onto the order at CREATION time
- * (reserveKeysForOrder — see checkout/route.ts and checkout-crypto/route.ts),
- * a normal pending order already has its keys sitting in
- * `order.deliveredKeys` and this just confirms + emails them — it does NOT
- * pop anything further from the product's stock pool. Only legacy orders
- * created before that reservation existed (deliveredKeys empty) fall back
- * to popping from current stock.
+ * (reserveKeysForOrder — see checkout/route.ts), a normal pending order
+ * already has its keys sitting in `order.deliveredKeys` and this just
+ * confirms + emails them — it does NOT pop anything further from the
+ * product's stock pool. Only legacy orders created before that reservation
+ * existed (deliveredKeys empty) fall back to popping from current stock.
  */
 export async function POST(req: Request) {
   if (!authorized(req)) {

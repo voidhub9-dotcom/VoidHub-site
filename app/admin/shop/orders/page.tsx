@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { ChevronLeftIcon, RefreshIcon, ActivityIcon, CheckIcon, ClockIcon, AlertIcon, MailIcon, TrashIcon, BoltIcon, CreditCardIcon, CoinIcon, XIcon } from '@/components/Icons'
+import { ChevronLeftIcon, RefreshIcon, ActivityIcon, CheckIcon, ClockIcon, AlertIcon, MailIcon, TrashIcon, BoltIcon, XIcon } from '@/components/Icons'
 import Modal from '@/components/Modal'
 import { useToast } from '@/components/Toast'
 import type { ShopOrder } from '@/lib/shop'
@@ -45,18 +45,6 @@ function StatusChip({ status }: { status: ShopOrder['status'] }) {
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.7rem] font-body border bg-warning/10 text-warning border-warning/30">
       <ClockIcon size={11} />Pending
-    </span>
-  )
-}
-
-function PaymentMethodIcon({ method }: { method: ShopOrder['paymentMethod'] }) {
-  return method === 'crypto' ? (
-    <span title="Paid with crypto (NOWPayments)">
-      <CoinIcon size={12} className="text-silver-muted shrink-0" />
-    </span>
-  ) : (
-    <span title="Paid by card (Stripe)">
-      <CreditCardIcon size={12} className="text-silver-muted shrink-0" />
     </span>
   )
 }
@@ -215,7 +203,6 @@ export default function AdminShopOrdersPage() {
                     />
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <PaymentMethodIcon method={order.paymentMethod} />
                         <p className="font-body text-sm text-white">{order.productName}</p>
                         {order.isTest && (
                           <span className="px-1.5 py-0.5 rounded border border-warning/40 bg-warning/10 text-warning font-body text-[0.6rem] uppercase tracking-wider">Test</span>
@@ -312,7 +299,6 @@ export default function AdminShopOrdersPage() {
                     </td>
                     <td className="px-4 py-3 text-white">
                       <div className="flex items-center gap-1.5">
-                        <PaymentMethodIcon method={order.paymentMethod} />
                         <span>{order.productName}</span>
                         {order.isTest && (
                           <span className="px-1.5 py-0.5 rounded border border-warning/40 bg-warning/10 text-warning font-body text-[0.6rem] uppercase tracking-wider">Test</span>

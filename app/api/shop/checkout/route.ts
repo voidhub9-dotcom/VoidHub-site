@@ -87,7 +87,6 @@ export async function POST(req: Request) {
 
     const order: ShopOrder = {
       id: session.id,
-      paymentMethod: 'card',
       productId: product.id,
       productName: product.name,
       quantity,
