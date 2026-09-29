@@ -1,10 +1,13 @@
-import { loadShopProducts, appendShopOrder, reserveKeysForOrder, releaseReservedKeys, type ShopOrder } from '@/lib/shop'
+import { SHOP_ENABLED, loadShopProducts, appendShopOrder, reserveKeysForOrder, releaseReservedKeys, type ShopOrder } from '@/lib/shop'
 import { stripeClient, stripeConfigured } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
+    if (!SHOP_ENABLED) {
+      return Response.json({ error: 'The shop is closed. VoidHub is free and keyless.' }, { status: 410 })
+    }
     if (!stripeConfigured) {
       return Response.json(
         { error: 'The shop is not accepting card payments yet — Stripe is not configured.' },

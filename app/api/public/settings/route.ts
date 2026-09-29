@@ -1,4 +1,4 @@
-import { kvGet, KV_KEYS } from '@/lib/kv'
+import { kvGet, KV_KEYS, discordLink } from '@/lib/kv'
 import { loadLinks } from '@/lib/site-links'
 
 export const dynamic = 'force-dynamic'
@@ -12,7 +12,7 @@ export async function GET() {
   ])
 
   return Response.json({
-    discord: discord || 'https://discord.gg/kPPsdZtndn',
+    discord: discordLink(discord),
     tagline: tagline || 'Free. Powerful. No Limits.',
     maintenance: maintenance === 'true',
     links,

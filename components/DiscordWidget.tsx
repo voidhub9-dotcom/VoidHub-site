@@ -40,7 +40,7 @@ export default function DiscordWidget() {
         <span className="flex items-center gap-1.5">
           <span className="relative flex h-2 w-2" aria-hidden="true">
             <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-60 animate-ping" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-success shadow-[0_0_6px_rgba(0,255,136,0.6)]" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-success shadow-[0_0_6px_rgba(74,222,128,0.6)]" />
           </span>
           {stats.onlineCount.toLocaleString()} online
         </span>

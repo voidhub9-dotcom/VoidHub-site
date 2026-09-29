@@ -26,12 +26,9 @@ export default function UnauthorizedPage() {
   const done = shown >= LINES.length
 
   return (
-    <main className="relative min-h-screen bg-black-void flex items-center justify-center px-4 overflow-hidden">
-      <div className="fixed inset-0 hero-grid animate-gridDrift opacity-30 pointer-events-none" />
-      <div className="fixed inset-0 pointer-events-none flex items-center justify-center">
-        <div className="w-[560px] h-[380px] rounded-full blur-[160px]"
-          style={{ background: 'radial-gradient(ellipse, rgba(255,51,51,0.08) 0%, transparent 70%)' }} />
-      </div>
+    <main className="relative min-h-screen bg-black font-display flex items-center justify-center px-4 overflow-hidden mono-grain">
+      <div className="absolute inset-0 mono-spot pointer-events-none" />
+      <div className="absolute inset-0 mono-dots pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-[480px]">
 
@@ -46,8 +43,8 @@ export default function UnauthorizedPage() {
         </div>
 
         <div className="text-center mb-6">
-          <h1 className="font-heading text-2xl text-white tracking-wide mb-2">
-            THIS ENDPOINT IS <span className="text-glow">EXECUTOR-ONLY</span>
+          <h1 className="text-3xl font-semibold tracking-[-0.03em] text-chrome mb-2">
+            Executors only.
           </h1>
           <p className="font-body text-sm text-silver-muted leading-relaxed">
             You reached it from a browser, so you got a decoy instead of the real script.
@@ -55,7 +52,7 @@ export default function UnauthorizedPage() {
         </div>
 
         {/* Live log — admin-panel treatment, no fake window chrome */}
-        <div className="admin-panel mb-5">
+        <div className="mono-card overflow-hidden mb-5">
           <div className="flex items-center justify-between px-4 h-9 border-b border-border-dim">
             <span className="font-body text-[0.65rem] tracking-widest uppercase text-silver-muted">access_control</span>
             <span className={`flex items-center gap-1.5 font-body text-[0.65rem] tracking-widest uppercase ${done ? 'text-danger' : 'text-silver-muted'}`}>
@@ -63,7 +60,7 @@ export default function UnauthorizedPage() {
               {done ? 'blocked' : 'checking'}
             </span>
           </div>
-          <div className="px-5 py-5 min-h-[132px] font-mono">
+          <div className="px-5 py-5 min-h-[132px] font-gmono">
             {LINES.slice(0, shown).map((l, i) => (
               <div key={i} className={`text-xs leading-7 tracking-wide ${l.cls}`}>
                 <span className="text-silver-faint">{'>'} </span>{l.text}
@@ -76,12 +73,10 @@ export default function UnauthorizedPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/"
-            className="flex-1 h-10 rounded-lg border border-silver-faint text-silver-mid font-body text-sm flex items-center justify-center hover:border-white hover:text-white transition-all">
+          <Link href="/" className="flex-1 btn-outline h-11 text-sm">
             ← Back to VoidHub
           </Link>
-          <a href="https://discord.gg/kPPsdZtndn" target="_blank" rel="noopener noreferrer"
-            className="flex-1 h-10 rounded-lg border border-silver-faint text-silver-mid font-body text-sm flex items-center justify-center gap-2 hover:bg-white hover:text-black hover:border-white transition-all">
+          <a href="https://discord.gg/UrTqzfq9DF" target="_blank" rel="noopener noreferrer" className="flex-1 btn-white h-11 text-sm">
             <DiscordIcon size={16} />
             Discord
           </a>

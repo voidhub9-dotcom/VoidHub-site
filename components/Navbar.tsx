@@ -3,178 +3,116 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { HomeIcon, GamesIcon, AboutIcon, DiscordIcon, MenuIcon, XIcon, ActivityIcon, HelpIcon, KeyIcon, ShopIcon } from '@/components/Icons'
-import AnimatedLogo from '@/components/AnimatedLogo'
+import { HomeIcon, GamesIcon, AboutIcon, DiscordIcon, MenuIcon, XIcon, ActivityIcon, HelpIcon, ChevronRightIcon } from '@/components/Icons'
 import { getDiscordLink } from '@/lib/storage'
 
 const navLinks = [
-  { href: '/', label: 'Home', icon: HomeIcon },
-  { href: '/games', label: 'Games', icon: GamesIcon },
-  { href: '/shop', label: 'Shop', icon: ShopIcon },
-  { href: '/status', label: 'Status', icon: ActivityIcon },
-  { href: '/faq', label: 'FAQ', icon: HelpIcon },
-  { href: '/about', label: 'About', icon: AboutIcon },
+  { href: '/', label: 'home' },
+  { href: '/games', label: 'games' },
+  { href: '/status', label: 'status' },
+  { href: '/faq', label: 'faq' },
+  { href: '/about', label: 'about' },
 ]
 
-// Primary tabs live in the mobile bottom bar — the "More" sheet only needs
-// what's left over, so it doesn't just duplicate the tab bar.
+// Primary tabs live in the mobile bottom bar; the "More" sheet holds the rest.
 const tabBarLinks = [
   { href: '/', label: 'Home', icon: HomeIcon },
   { href: '/games', label: 'Games', icon: GamesIcon },
-  { href: '/shop', label: 'Shop', icon: ShopIcon },
   { href: '/status', label: 'Status', icon: ActivityIcon },
+  { href: '/faq', label: 'FAQ', icon: HelpIcon },
 ]
 const moreSheetLinks = [
-  { href: '/faq', label: 'FAQ', icon: HelpIcon },
   { href: '/about', label: 'About', icon: AboutIcon },
 ]
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [discordLink, setDiscordLink] = useState('https://discord.gg/kPPsdZtndn')
-  const [keyPageEnabled, setKeyPageEnabled] = useState(false)
+  const [discordLink, setDiscordLink] = useState('https://discord.gg/UrTqzfq9DF')
   const [siteName, setSiteName] = useState('VoidHub')
   const [logoUrl, setLogoUrl] = useState('')
   const pathname = usePathname()
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
-    }
+    const handleScroll = () => setIsScrolled(window.scrollY > 10)
+    handleScroll()
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   useEffect(() => {
-    const loadPublicSettings = async () => {
-      try {
-        const res = await fetch('/api/public/settings')
-        const data = await res.json()
-        setDiscordLink(data.discord)
+    fetch('/api/public/settings')
+      .then(r => r.json())
+      .then(data => {
+        if (data.discord) setDiscordLink(data.discord)
         if (data.links?.siteName) setSiteName(data.links.siteName)
         if (data.links?.logoUrl) setLogoUrl(data.links.logoUrl)
-      } catch (e) {
-        console.error('Navbar: Failed to load settings:', e)
-        setDiscordLink(getDiscordLink())
-      }
-    }
-    const loadKeyPage = async () => {
-      try {
-        const res = await fetch('/api/public/keypage')
-        const data = await res.json()
-        setKeyPageEnabled(!!data.enabled)
-      } catch {
-        setKeyPageEnabled(false)
-      }
-    }
-    loadPublicSettings()
-    loadKeyPage()
+      })
+      .catch(() => setDiscordLink(getDiscordLink()))
   }, [])
 
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
   }, [isMobileMenuOpen])
 
   return (
     <>
-      <nav
-        className={`
-          fixed top-0 left-0 right-0 z-50 h-16 md:h-[64px]
-          bg-black-deep/85 backdrop-blur-xl
-          border-b transition-all duration-300
-          ${isScrolled ? 'border-silver-faint/30 shadow-lg' : 'border-border-dim'}
-        `}
-      >
-        <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <AnimatedLogo
-              src={logoUrl.trim() || '/logo.png'}
-              alt={`${siteName} Logo`}
-              size={36}
-            />
-            <span className="font-heading text-xl tracking-wider">
-              {siteName === 'VoidHub' ? (
-                <>Void<span className="text-glow">Hub</span></>
-              ) : (
-                <span className="text-glow">{siteName}</span>
-              )}
+      <nav className="fixed top-0 left-0 right-0 z-50 px-3 md:px-4 pt-3">
+        <div
+          className={`
+            max-w-5xl mx-auto h-14 md:h-[58px] pl-4 pr-2 md:pl-5 md:pr-2.5
+            flex items-center justify-between
+            rounded-full border backdrop-blur-xl transition-all duration-300
+            ${isScrolled
+              ? 'bg-black-deep/85 border-border-mid shadow-[0_10px_40px_-12px_rgba(0,0,0,0.8)]'
+              : 'bg-black-deep/50 border-border-dim'}
+          `}
+        >
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <img src={logoUrl.trim() || '/logo.png'} alt="" className="w-8 h-8 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.25)]" />
+            <span className="font-display font-semibold text-[1.05rem] tracking-tight">
+              {siteName === 'VoidHub' ? <>Void<span className="text-glow">Hub</span></> : <span className="text-glow">{siteName}</span>}
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-1">
             {navLinks.map(link => {
-              const Icon = link.icon
               const isActive = pathname === link.href
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={`
-                    flex items-center gap-2 text-sm font-body
-                    transition-all duration-200 relative py-1
+                    relative px-4 py-2 text-sm font-body lowercase transition-colors duration-200
                     ${isActive ? 'text-white' : 'text-silver-mid hover:text-white'}
                   `}
                 >
-                  <Icon size={18} />
-                  <span>{link.label}</span>
+                  {link.label}
                   {isActive && (
-                    <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-white rounded-full" />
+                    <span className="absolute left-1/2 -translate-x-1/2 -bottom-[3px] w-6 h-[2px] rounded-full bg-white" />
                   )}
                 </Link>
               )
             })}
-          </div>
-
-          {/* Desktop actions */}
-          <div className="hidden md:flex items-center gap-2">
-            {keyPageEnabled && (
-              <Link
-                href="/getkey"
-                className={`
-                  flex items-center gap-2 px-4 py-2
-                  border rounded-md text-sm font-body
-                  transition-all duration-200
-                  ${pathname === '/getkey'
-                    ? 'border-success/60 text-success bg-success/10'
-                    : 'border-success/40 text-success hover:bg-success/10'
-                  }
-                `}
-              >
-                <KeyIcon size={18} />
-                <span>Get Key</span>
-              </Link>
-            )}
             <a
               href={discordLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="
-                flex items-center gap-2 px-4 py-2
-                border border-silver-faint text-silver-mid
-                rounded-md text-sm font-body
-                transition-all duration-200
-                hover:bg-white hover:text-black hover:border-white
-              "
+              className="px-4 py-2 text-sm font-body lowercase text-silver-mid hover:text-white transition-colors"
             >
-              <DiscordIcon size={18} />
-              <span>Discord</span>
+              discord
             </a>
           </div>
 
+          <Link href="/#get" className="btn-white h-9 md:h-10 px-4 md:px-5 text-sm lowercase">
+            <span>get script</span>
+            <ChevronRightIcon size={15} />
+          </Link>
         </div>
       </nav>
 
-      {/* Mobile Bottom Tab Bar — primary nav, always in thumb reach */}
+      {/* Mobile bottom tab bar */}
       <div
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black-deep/95 backdrop-blur-xl border-t border-border-dim"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
@@ -191,11 +129,9 @@ export default function Navbar() {
                   isActive ? 'text-white' : 'text-silver-muted active:text-silver-light'
                 }`}
               >
-                <Icon size={20} className={isActive ? 'text-glow' : ''} />
+                <Icon size={20} />
                 <span className="font-body text-[0.65rem]">{link.label}</span>
-                {isActive && (
-                  <span className="absolute top-0 w-8 h-0.5 bg-white rounded-full" />
-                )}
+                {isActive && <span className="absolute top-0 w-8 h-0.5 rounded-full bg-white" />}
               </Link>
             )
           })}
@@ -212,19 +148,12 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay ("More" sheet) */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[60] md:hidden">
-          <div
-            className="absolute inset-0 bg-black/90 backdrop-blur-md"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={() => setIsMobileMenuOpen(false)} />
           <div className="absolute right-0 top-0 bottom-0 w-[280px] bg-black-surface border-l border-border-dim animate-slideUp">
             <div className="flex justify-end p-4">
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 text-silver-mid hover:text-white transition-colors"
-              >
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-silver-mid hover:text-white transition-colors" aria-label="Close menu">
                 <XIcon size={24} />
               </button>
             </div>
@@ -237,14 +166,9 @@ export default function Navbar() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`
-                      flex items-center gap-4 px-4 py-4 rounded-lg
-                      text-lg font-body transition-all duration-200
-                      ${isActive
-                        ? 'bg-black-card text-white border-l-2 border-white'
-                        : 'text-silver-mid hover:bg-black-hover hover:text-white'
-                      }
-                    `}
+                    className={`flex items-center gap-4 px-4 py-4 rounded-xl text-lg font-body transition-all duration-200 ${
+                      isActive ? 'bg-black-card text-white' : 'text-silver-mid hover:bg-black-hover hover:text-white'
+                    }`}
                   >
                     <Icon size={22} />
                     <span>{link.label}</span>
@@ -252,32 +176,12 @@ export default function Navbar() {
                 )
               })}
               <div className="h-px bg-border-dim my-4" />
-              {keyPageEnabled && (
-                <Link
-                  href="/getkey"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="
-                    flex items-center gap-4 px-4 py-4 rounded-lg
-                    text-lg font-body text-success
-                    transition-all duration-200
-                    hover:bg-success/10
-                  "
-                >
-                  <KeyIcon size={22} />
-                  <span>Get Key</span>
-                </Link>
-              )}
               <a
                 href={discordLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="
-                  flex items-center gap-4 px-4 py-4 rounded-lg
-                  text-lg font-body text-silver-mid
-                  transition-all duration-200
-                  hover:bg-black-hover hover:text-white
-                "
+                className="flex items-center gap-4 px-4 py-4 rounded-xl text-lg font-body text-silver-mid transition-all duration-200 hover:bg-black-hover hover:text-white"
               >
                 <DiscordIcon size={22} />
                 <span>Join Discord</span>

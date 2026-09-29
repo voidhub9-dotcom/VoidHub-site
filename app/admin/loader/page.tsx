@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getLoadstring, setLoadstring, getCopyCount, resetCopyCount, addActivityLog } from '@/lib/storage'
 import { useToast } from '@/components/Toast'
+import { PageHead, Section, Segmented, Field, inputCls, textareaCls, btnDanger } from '@/components/AdminUI'
 import {
   ShieldIcon,
-  TerminalIcon,
   AlertIcon,
   CheckIcon,
   CopyIcon,
@@ -76,6 +76,8 @@ export default function LoaderPage() {
   const [storageStatus, setStorageStatus] = useState<'unknown' | 'ok' | 'unavailable'>('unknown')
   const [uploadedFileName, setUploadedFileName] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [tab, setTab] = useState<'raw-url' | 'database'>('raw-url')
+  const [showProtection, setShowProtection] = useState(false)
 
   const loadFromServer = useCallback(async () => {
     setIsLoading(true)
@@ -85,6 +87,7 @@ export default function LoaderPage() {
       setRawScriptUrl(data.rawScriptUrl || '')
       setEndpointUrl(data.endpointUrl || 'https://www.voidon.top/api/loader')
       setActiveSource((data.source as any) || 'none')
+      setTab(data.source === 'database' ? 'database' : 'raw-url')
       setStorageStatus('ok')
     } catch {
       setStorageStatus('unavailable')
@@ -194,290 +197,180 @@ export default function LoaderPage() {
 
   const lineCount = scriptContent ? scriptContent.split('\n').length : 0
 
-  const inputClass =
-    'w-full rounded-lg border border-border-dim bg-black-surface px-3 py-2.5 font-body text-sm text-silver-bright outline-none transition-colors focus:border-white placeholder:text-silver-faint'
+  const sourceLabel = { 'raw-url': 'Hidden URL', database: 'Pasted script', none: 'Nothing yet' }[activeSource]
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <ShieldIcon size={28} className="text-silver-base" />
-          <div>
-            <h1 className="font-heading text-2xl tracking-wider text-white">SCRIPT LOADER</h1>
-            <p className="font-body text-sm text-silver-muted">Manage what executors receive from /api/loader</p>
+    <div className="max-w-6xl mx-auto">
+      <PageHead
+        eyebrow="Content"
+        title="Script loader"
+        subtitle={<>What executors get when they run your loadstring. Everything here goes live instantly.</>}
+        actions={
+          <button onClick={loadFromServer} disabled={isLoading} className="btn-outline h-10 px-4 text-sm">
+            <RefreshIcon size={14} className={isLoading ? 'animate-spin' : ''} /> Reload
+          </button>
+        }
+      />
+
+      {storageStatus === 'unavailable' && (
+        <div className="mb-6 rounded-2xl border border-danger/30 bg-danger/[0.04] p-5 flex flex-col sm:flex-row gap-4">
+          <AlertIcon size={20} className="text-danger shrink-0" />
+          <div className="flex-1 text-sm text-[#a3a3a3]">
+            <p className="text-danger">Cloudflare R2 isn&apos;t connected, so nothing can be saved.</p>
+            <p className="mt-1">Set <code className="font-gmono text-white">CLOUDFLARE_R2_ACCOUNT_ID</code>, <code className="font-gmono text-white">_ACCESS_KEY_ID</code>, <code className="font-gmono text-white">_SECRET_ACCESS_KEY</code> and <code className="font-gmono text-white">_BUCKET_NAME</code> in Vercel.</p>
+          </div>
+          <button onClick={loadFromServer} className={btnDanger}><RefreshIcon size={14} /> Retry</button>
+        </div>
+      )}
+
+      {/* Pipeline: what is being served right now */}
+      <div className="mb-6 rounded-2xl border border-[#1c1c1c] bg-[#070707] p-5 md:p-6 overflow-hidden relative">
+        <div className="absolute inset-0 mono-dots opacity-30 pointer-events-none" />
+        <div className="relative flex flex-col md:flex-row md:items-center gap-4 md:gap-0">
+          {[
+            { k: 'Executor runs', v: 'loadstring(…)' },
+            { k: 'Hits', v: '/api/loader' },
+            { k: 'Serves', v: sourceLabel, live: true },
+          ].map((step, i) => (
+            <div key={step.k} className="flex md:flex-1 items-center gap-3">
+              <div className={`flex-1 md:flex-none rounded-xl border px-4 py-3 ${step.live ? (activeSource === 'none' ? 'border-warning/40 bg-warning/[0.05]' : 'border-white/40 bg-white/[0.04]') : 'border-[#222] bg-black'}`}>
+                <p className="font-gmono text-[0.6rem] uppercase tracking-[0.18em] text-[#6b6b6b]">{step.k}</p>
+                <p className={`mt-0.5 font-gmono text-sm ${step.live && activeSource === 'none' ? 'text-warning' : 'text-white'}`}>{isLoading && step.live ? '…' : step.v}</p>
+              </div>
+              {i < 2 && <span className="hidden md:block flex-1 h-px mx-3 bg-gradient-to-r from-[#444] to-[#1a1a1a]" />}
+            </div>
+          ))}
+          <div className="md:ml-6 flex items-center gap-2 text-xs">
+            <span className={`w-2 h-2 rounded-full ${storageStatus === 'ok' ? 'bg-success' : storageStatus === 'unavailable' ? 'bg-danger' : 'bg-[#444]'}`} />
+            <span className="text-[#8a8a8a]">{storageStatus === 'ok' ? 'R2 connected' : storageStatus === 'unavailable' ? 'R2 offline' : 'Checking R2…'}</span>
           </div>
         </div>
-        {/* Active source pill */}
-        {!isLoading && storageStatus === 'ok' && (
-          <div className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-body ${
-            activeSource === 'raw-url'
-              ? 'border-info/30 bg-info/5 text-info'
-              : activeSource === 'database'
-                ? 'border-success/30 bg-success/5 text-success'
-                : 'border-warning/30 bg-warning/5 text-warning'
-          }`}>
-            <EyeOffIcon size={15} />
-            {activeSource === 'raw-url' && 'Serving: Hidden Raw URL'}
-            {activeSource === 'database' && 'Serving: Pasted Script'}
-            {activeSource === 'none' && 'No script configured'}
-          </div>
-        )}
       </div>
 
-      {/* Storage warning */}
-      {storageStatus === 'unavailable' && (
-        <div className="rounded-lg border border-danger/40 bg-danger/5 p-5">
-          <div className="flex items-start gap-3">
-            <AlertIcon size={20} className="mt-0.5 shrink-0 text-danger" />
-            <div className="space-y-3 text-sm text-silver-muted font-body">
-              <p className="font-medium text-danger">Cloudflare R2 storage is not connected.</p>
-              <p>Set these environment variables in your deployment:</p>
-              <ul className="space-y-1 pl-4 list-disc font-code text-silver-bright">
-                <li>CLOUDFLARE_R2_ACCOUNT_ID</li>
-                <li>CLOUDFLARE_R2_ACCESS_KEY_ID</li>
-                <li>CLOUDFLARE_R2_SECRET_ACCESS_KEY</li>
-                <li>CLOUDFLARE_R2_BUCKET_NAME</li>
-              </ul>
-              <button
-                onClick={loadFromServer}
-                className="mt-2 inline-flex items-center gap-2 rounded-lg border border-danger/40 px-4 py-2 text-sm text-danger transition-colors hover:bg-danger/10"
-              >
-                <RefreshIcon size={16} />
-                Retry Connection
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {storageStatus === 'ok' && (
-        <div className="inline-flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 px-4 py-2 text-sm font-body text-success">
-          <CheckIcon size={16} />
-          R2 Storage Connected — changes go live instantly, no redeploy needed
-        </div>
-      )}
-
-      {/* PANEL 1: Protected Raw Script URL */}
-      <section className="rounded-lg border border-info/25 bg-black-card p-6">
-        <div className="flex items-center gap-3 mb-1">
-          <ExternalIcon size={22} className="text-info" />
-          <h2 className="font-heading text-lg tracking-wide text-white">PROTECTED RAW SCRIPT URL</h2>
-          <span className="rounded-full border border-info/30 bg-info/10 px-2.5 py-0.5 font-heading text-[0.55rem] tracking-widest text-info uppercase">
-            Primary Source
-          </span>
-        </div>
-        <p className="text-sm font-body text-silver-muted mb-4 leading-relaxed">
-          Paste the raw link to your script (e.g. a raw loadstring host, pastebin raw, GitHub raw).
-          The server fetches it <strong className="text-silver-bright">server-side</strong> and serves the content
-          through <span className="font-code text-silver-bright">/api/loader</span> —{' '}
-          <strong className="text-silver-bright">the link itself is never exposed to anyone</strong>.
-        </p>
-
-        <div className="flex gap-3 rounded-lg border border-info/30 bg-info/5 p-4 mb-4">
-          <EyeOffIcon size={18} className="mt-0.5 shrink-0 text-info" />
-          <p className="text-sm font-body text-silver-muted leading-relaxed">
-            Users only ever see your loadstring pointing at <span className="font-code text-silver-bright">/api/loader</span>.
-            The hidden source URL stays server-side in R2. When you update the script at the source,
-            executors get the new version instantly — nothing to redeploy.
-          </p>
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center gap-3 text-sm font-body text-silver-muted">
-            <RefreshIcon size={16} className="animate-spin" />
-            Loading…
-          </div>
-        ) : (
-          <>
-            <input
-              value={rawScriptUrl}
-              onChange={e => { setRawScriptUrl(e.target.value); setTestResult(null) }}
-              placeholder="https://raw.example.com/your-hidden-script.lua"
-              className={inputClass + ' font-code'}
-              spellCheck={false}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6 items-start">
+        {/* Source */}
+        <Section
+          title="Script source"
+          description="Where the loader gets the script from. A hidden URL wins if one is saved; otherwise the pasted script is used."
+          actions={
+            <Segmented
+              value={tab}
+              onChange={v => setTab(v)}
+              options={[
+                { value: 'raw-url', label: <>Hidden URL{activeSource === 'raw-url' && ' •'}</> },
+                { value: 'database', label: <>Pasted script{activeSource === 'database' && ' •'}</> },
+              ]}
             />
+          }
+        >
+          {isLoading ? (
+            <div className="h-40 rounded-xl bg-[#0d0d0d] animate-pulse" />
+          ) : tab === 'raw-url' ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-3 rounded-xl border border-[#1f1f1f] bg-black p-4 text-sm text-[#8a8a8a] leading-relaxed">
+                <EyeOffIcon size={16} className="mt-0.5 shrink-0 text-white" />
+                <span>The server fetches this link and passes the script through <code className="font-gmono text-white">/api/loader</code>. Nobody ever sees the link itself, and updating the script at the source updates it for everyone.</span>
+              </div>
+              <Field label="Raw script URL" hint="Leave empty and save to switch to the pasted script.">
+                <input
+                  value={rawScriptUrl}
+                  onChange={e => { setRawScriptUrl(e.target.value); setTestResult(null) }}
+                  placeholder="https://raw.example.com/your-script.lua"
+                  className={`${inputCls} font-gmono`}
+                  spellCheck={false}
+                />
+              </Field>
+              {testResult && (
+                <p className={`flex items-start gap-2 text-sm ${testResult.ok ? 'text-success' : 'text-danger'}`}>
+                  {testResult.ok ? <CheckIcon size={15} className="mt-0.5 shrink-0" /> : <AlertIcon size={15} className="mt-0.5 shrink-0" />}
+                  {testResult.message}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <button onClick={handleSaveRawUrl} disabled={isSavingRawUrl || storageStatus === 'unavailable'} className="btn-white h-11 px-5 text-sm disabled:opacity-40">
+                  {isSavingRawUrl ? <RefreshIcon size={15} className="animate-spin" /> : <CheckIcon size={15} />} Save URL
+                </button>
+                <button onClick={handleTestRawUrl} disabled={isTestingRawUrl || !rawScriptUrl.trim()} className="btn-outline h-11 px-5 text-sm disabled:opacity-40">
+                  {isTestingRawUrl ? <RefreshIcon size={15} className="animate-spin" /> : <ExternalIcon size={15} />} Test it
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <input ref={fileInputRef} type="file" accept=".lua,.txt,text/plain" onChange={handleFileSelect} className="hidden" />
+              <div className="rounded-xl border border-[#1f1f1f] bg-black overflow-hidden focus-within:border-[#555]">
+                <div className="flex items-center justify-between h-9 px-4 border-b border-[#1a1a1a] font-gmono text-[0.65rem] text-[#6b6b6b]">
+                  <span>{uploadedFileName || 'script.lua'}</span>
+                  <span>{lineCount} lines · {scriptContent.length.toLocaleString()} chars</span>
+                </div>
+                <textarea
+                  value={scriptContent}
+                  onChange={e => { setScriptContent(e.target.value); setUploadedFileName('') }}
+                  placeholder={'-- Paste your full Lua script here, or upload a .lua file'}
+                  className="block w-full min-h-[300px] resize-y bg-transparent p-4 font-gmono text-[0.8rem] text-[#e5e5e5] outline-none"
+                  spellCheck={false}
+                />
+              </div>
+              <p className="text-xs text-[#6b6b6b]">Obfuscate it first if you want the source protected once it&apos;s served.</p>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={handleSaveScript} disabled={isSavingScript || storageStatus === 'unavailable'} className="btn-white h-11 px-5 text-sm disabled:opacity-40">
+                  {isSavingScript ? <RefreshIcon size={15} className="animate-spin" /> : <CheckIcon size={15} />} Save script
+                </button>
+                <button onClick={() => fileInputRef.current?.click()} disabled={storageStatus === 'unavailable'} className="btn-outline h-11 px-5 text-sm disabled:opacity-40">
+                  <UploadIcon size={15} /> Upload .lua
+                </button>
+              </div>
+            </div>
+          )}
+        </Section>
 
-            {testResult && (
-              <div className={`mt-3 flex items-start gap-2 rounded-lg border p-3 text-sm font-body ${
-                testResult.ok ? 'border-success/30 bg-success/5 text-success' : 'border-danger/30 bg-danger/5 text-danger'
-              }`}>
-                {testResult.ok ? <CheckIcon size={16} className="mt-0.5 shrink-0" /> : <AlertIcon size={16} className="mt-0.5 shrink-0" />}
-                {testResult.message}
+        <div className="flex flex-col gap-6">
+          <Section title="Copy box text" description="What the copy box on the site shows and copies.">
+            <textarea
+              value={loadstringDisplay}
+              onChange={e => setLoadstringDisplay(e.target.value)}
+              rows={3}
+              spellCheck={false}
+              className={`${textareaCls} font-gmono text-[0.8rem]`}
+            />
+            <button onClick={handleSaveDisplay} disabled={isSavingDisplay} className="btn-outline h-10 px-4 mt-3 text-sm"><CheckIcon size={14} /> Save text</button>
+          </Section>
+
+          <Section title="Endpoint URL" description="The URL your Lua loader calls. Change it if you move domains.">
+            <div className="flex gap-2">
+              <input value={endpointUrl} onChange={e => setEndpointUrl(e.target.value)} className={`${inputCls} font-gmono flex-1 min-w-0`} spellCheck={false} />
+              <button onClick={handleCopyUrl} aria-label="Copy endpoint URL" className="btn-outline w-11 h-11 shrink-0"><CopyIcon size={15} /></button>
+            </div>
+            <button onClick={handleSaveEndpoint} disabled={isSavingEndpoint || storageStatus === 'unavailable'} className="btn-outline h-10 px-4 mt-3 text-sm disabled:opacity-40">
+              {isSavingEndpoint ? <RefreshIcon size={14} className="animate-spin" /> : <CheckIcon size={14} />} Save endpoint
+            </button>
+          </Section>
+
+          <div className="rounded-2xl border border-[#1c1c1c] bg-[#070707] p-5 md:p-6 flex items-end justify-between gap-4">
+            <div>
+              <p className="font-gmono text-[0.6rem] uppercase tracking-[0.18em] text-[#6b6b6b]">Copies from this browser</p>
+              <p className="mt-2 text-4xl font-semibold tracking-tighter text-white tabular-nums">{copyCount}</p>
+            </div>
+            <button onClick={handleResetCounter} className="h-9 px-3 rounded-full text-xs text-[#8a8a8a] hover:text-danger">Reset</button>
+          </div>
+
+          <div className="rounded-2xl border border-[#1c1c1c] bg-[#070707] overflow-hidden">
+            <button onClick={() => setShowProtection(v => !v)} className="w-full flex items-center justify-between gap-3 px-5 md:px-6 h-14 text-left" aria-expanded={showProtection}>
+              <span className="flex items-center gap-2.5 text-white"><ShieldIcon size={16} /> Protection</span>
+              <span className="text-xs text-[#6b6b6b]">{showProtection ? 'Hide' : `${PROTECTION_STATUS.length} active`}</span>
+            </button>
+            {showProtection && (
+              <div className="px-5 md:px-6 pb-5">
+                <ul className="flex flex-col gap-2">
+                  {PROTECTION_STATUS.map(item => (
+                    <li key={item} className="flex items-start gap-2 text-sm text-[#a3a3a3]"><CheckIcon size={14} className="mt-0.5 shrink-0 text-success" />{item}</li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-xs text-[#6b6b6b] leading-relaxed">{PROTECTION_CAVEAT}</p>
               </div>
             )}
-
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                onClick={handleSaveRawUrl}
-                disabled={isSavingRawUrl || storageStatus === 'unavailable'}
-                className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-2.5 font-body text-sm font-medium text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_14px_rgba(255,255,255,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSavingRawUrl ? <><RefreshIcon size={16} className="animate-spin" />Saving��</> : <><EyeOffIcon size={16} />SAVE HIDDEN URL</>}
-              </button>
-              <button
-                onClick={handleTestRawUrl}
-                disabled={isTestingRawUrl || !rawScriptUrl.trim()}
-                className="inline-flex items-center gap-2 rounded-lg border border-silver-faint px-5 py-2.5 font-body text-sm text-silver-mid transition-all hover:border-white hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {isTestingRawUrl ? <><RefreshIcon size={16} className="animate-spin" />Testing…</> : <><CheckIcon size={16} />TEST SOURCE</>}
-              </button>
-            </div>
-            <p className="mt-3 text-xs font-body text-silver-faint">
-              Leave empty and save to fall back to the pasted script below.
-            </p>
-          </>
-        )}
-      </section>
-
-      {/* PANEL 2: Pasted Script (fallback) */}
-      <section className="admin-panel p-6">
-        <div className="flex items-center gap-3 mb-1">
-          <TerminalIcon size={22} className="text-silver-base" />
-          <h2 className="font-heading text-lg tracking-wide text-white">PASTED LUA SCRIPT</h2>
-          <span className="rounded-full border border-border-mid bg-black-surface px-2.5 py-0.5 font-heading text-[0.55rem] tracking-widest text-silver-muted uppercase">
-            Fallback
-          </span>
-        </div>
-        <p className="text-sm font-body text-silver-muted mb-4">
-          Used only when no Raw Script URL is set above. Paste your full Lua script, or upload a
-          <span className="font-code text-silver-bright"> .lua</span> file directly — either way it's stored server-side in R2.
-          If you've obfuscated the script yourself, this is where it goes: obfuscation protects the source once
-          it's served, the rate limit on <span className="font-code text-silver-bright">/api/loader</span> just
-          slows down anyone trying to scrape it wholesale.
-        </p>
-
-        {isLoading ? (
-          <div className="flex items-center gap-3 text-sm font-body text-silver-muted">
-            <RefreshIcon size={16} className="animate-spin" />
-            Loading…
           </div>
-        ) : (
-          <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".lua,.txt,text/plain"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <textarea
-              value={scriptContent}
-              onChange={e => { setScriptContent(e.target.value); setUploadedFileName('') }}
-              placeholder={'-- Paste your full Lua script here, or upload a .lua file below\n-- Saved directly to R2, live instantly'}
-              className="min-h-[260px] w-full resize-y rounded-lg border border-border-dim bg-black-surface p-4 font-code text-[0.85rem] text-silver-bright outline-none transition-colors focus:border-white"
-              spellCheck={false}
-            />
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <p className="font-code text-xs text-silver-muted">
-                {lineCount} lines · {scriptContent.length.toLocaleString()} chars
-                {uploadedFileName && <span className="text-success"> · from {uploadedFileName}</span>}
-              </p>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                onClick={handleSaveScript}
-                disabled={isSavingScript || storageStatus === 'unavailable'}
-                className="inline-flex items-center gap-2 rounded-lg border border-silver-faint px-6 py-2.5 font-body text-sm text-silver-mid transition-all hover:border-white hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSavingScript ? <><RefreshIcon size={16} className="animate-spin" />Saving…</> : <><TerminalIcon size={16} />SAVE SCRIPT</>}
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={storageStatus === 'unavailable'}
-                className="inline-flex items-center gap-2 rounded-lg border border-silver-faint px-6 py-2.5 font-body text-sm text-silver-mid transition-all hover:border-white hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <UploadIcon size={16} />UPLOAD .LUA FILE
-              </button>
-            </div>
-          </>
-        )}
-      </section>
-
-      {/* PANEL 3: Loadstring Display */}
-      <section className="admin-panel p-6">
-        <h2 className="font-heading text-lg tracking-wide text-white">PUBLIC LOADSTRING TEXT</h2>
-        <p className="mt-1 text-sm font-body text-silver-muted">
-          The text shown in the copy box on the home page. Point it at your protected endpoint.
-        </p>
-        <textarea
-          value={loadstringDisplay}
-          onChange={e => setLoadstringDisplay(e.target.value)}
-          rows={3}
-          spellCheck={false}
-          className="mt-4 w-full resize-none rounded-lg border border-border-dim bg-black-surface p-4 font-code text-[0.85rem] text-silver-bright outline-none transition-colors focus:border-white"
-        />
-        <button
-          onClick={handleSaveDisplay}
-          disabled={isSavingDisplay}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-silver-faint px-5 py-2.5 font-body text-sm text-silver-mid transition-all hover:border-white hover:text-white disabled:opacity-50"
-        >
-          {isSavingDisplay ? <RefreshIcon size={16} className="animate-spin" /> : <CopyIcon size={16} />}
-          SAVE DISPLAY TEXT
-        </button>
-      </section>
-
-      {/* PANEL 4: Endpoint URL */}
-      <section className="admin-panel p-6">
-        <h2 className="font-heading text-lg tracking-wide text-white">ENDPOINT URL</h2>
-        <p className="mt-1 text-sm font-body text-silver-muted">
-          The URL your Lua loader calls. Update this if you change your hosting domain.
-        </p>
-        <div className="mt-4 flex gap-2">
-          <input
-            value={endpointUrl}
-            onChange={e => setEndpointUrl(e.target.value)}
-            className={inputClass + ' flex-1 font-code'}
-            spellCheck={false}
-          />
-          <button
-            onClick={handleCopyUrl}
-            aria-label="Copy endpoint URL"
-            className="px-4 h-[42px] rounded-lg border border-silver-faint text-silver-mid font-body text-sm transition-all hover:border-white hover:text-white shrink-0"
-          >
-            <CopyIcon size={16} />
-          </button>
         </div>
-        <button
-          onClick={handleSaveEndpoint}
-          disabled={isSavingEndpoint || storageStatus === 'unavailable'}
-          className="mt-3 inline-flex items-center gap-2 rounded-lg border border-silver-faint px-5 py-2.5 font-body text-sm text-silver-mid transition-all hover:border-white hover:text-white disabled:opacity-50"
-        >
-          {isSavingEndpoint ? <RefreshIcon size={16} className="animate-spin" /> : null}
-          SAVE ENDPOINT
-        </button>
-      </section>
-
-      {/* PANEL 5: Protection Status + Copy Counter */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <section className="admin-panel p-6">
-          <h2 className="font-heading text-sm tracking-wide text-white mb-4">PROTECTION STATUS</h2>
-          <ul className="space-y-2">
-            {PROTECTION_STATUS.map(item => (
-              <li key={item} className="flex items-start gap-2 text-sm font-body text-silver-muted">
-                <CheckIcon size={15} className="mt-0.5 shrink-0 text-success" />
-                {item}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/5 p-3 text-xs font-body text-silver-muted leading-relaxed">
-            <AlertIcon size={14} className="mt-0.5 shrink-0 text-warning" />
-            {PROTECTION_CAVEAT}
-          </p>
-        </section>
-
-        <section className="admin-panel p-6">
-          <h2 className="font-heading text-sm tracking-wide text-white mb-4">COPY COUNTER</h2>
-          <p className="font-heading text-4xl text-white">{copyCount}</p>
-          <p className="mt-1 text-sm font-body text-silver-muted">times the loadstring was copied</p>
-          <button
-            onClick={handleResetCounter}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-danger/40 px-4 py-2 font-body text-sm text-danger transition-colors hover:bg-danger/10"
-          >
-            <RefreshIcon size={15} />
-            Reset Counter
-          </button>
-        </section>
       </div>
     </div>
   )

@@ -9,7 +9,9 @@ import { useState } from 'react'
  * fails to load, so a bad URL never shows a broken image.
  */
 
-const PALETTE = [
+const MONO = { bg: 'linear-gradient(180deg, #1a1a1a, #0d0d0d)', fg: '#f5f5f5', ring: '#2e2e2e' }
+
+export const PALETTE = [
   { bg: 'rgba(125, 255, 224, 0.12)', fg: '#7dffe0', ring: 'rgba(125, 255, 224, 0.35)' },
   { bg: 'rgba(96, 165, 250, 0.12)', fg: '#60a5fa', ring: 'rgba(96, 165, 250, 0.35)' },
   { bg: 'rgba(251, 191, 36, 0.12)', fg: '#fbbf24', ring: 'rgba(251, 191, 36, 0.35)' },
@@ -53,7 +55,7 @@ const BRAND_COLORS: Record<string, { fg: string }> = {
   photon: { fg: '#fbbf24' }, // Photon light
 }
 
-function brandFor(name: string) {
+export function brandFor(name: string) {
   const key = name.trim().toLowerCase()
   const hit = BRAND_COLORS[key] || BRAND_COLORS[key.split(/\s+/)[0]]
   if (!hit) return null
@@ -63,7 +65,7 @@ function brandFor(name: string) {
   return { fg, bg: `rgba(${rgb}, 0.12)`, ring: `rgba(${rgb}, 0.4)` }
 }
 
-function hashName(name: string) {
+export function hashName(name: string) {
   let h = 0
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0
   return Math.abs(h)
@@ -78,7 +80,8 @@ interface ExecutorIconProps {
 
 export default function ExecutorIcon({ name, icon, size = 36, className = '' }: ExecutorIconProps) {
   const [broken, setBroken] = useState(false)
-  const color = brandFor(name || '') ?? PALETTE[hashName(name || '?') % PALETTE.length]
+  // Monochrome site theme: every monogram uses the same neutral chrome look.
+  const color = MONO
   const initials = (name || '?')
     .split(/\s+/)
     .map(w => w[0])

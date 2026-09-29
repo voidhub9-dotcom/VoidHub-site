@@ -27,26 +27,26 @@
 
     /* VoidHub Design System */
     --black-void: #000000;
-    --black-deep: #080808;
-    --black-surface: #0f0f0f;
-    --black-card: #141414;
-    --black-elevated: #1a1a1a;
-    --black-hover: #202020;
-    --border-dim: #1e1e1e;
-    --border-mid: #2a2a2a;
+    --black-deep: #050505;
+    --black-surface: #0a0a0a;
+    --black-card: #0e0e0e;
+    --black-elevated: #141414;
+    --black-hover: #1a1a1a;
+    --border-dim: #1c1c1c;
+    --border-mid: #282828;
     --border-bright: #3a3a3a;
     --silver-faint: #404040;
-    --silver-muted: #707070;
-    --silver-mid: #a0a0a0;
-    --silver-base: #c0c0c0;
-    --silver-light: #d8d8d8;
-    --silver-bright: #ececec;
-    --success: #00ff88;
-    --danger: #ff3333;
-    --warning: #ffaa00;
-    --info: #0099ff;
-    --accent-cyber: #00ffcc;
-    --accent-violet: #a855f7;
+    --silver-muted: #737373;
+    --silver-mid: #a3a3a3;
+    --silver-base: #c4c4c4;
+    --silver-light: #dcdcdc;
+    --silver-bright: #f0f0f0;
+    --success: #4ade80;
+    --danger: #f87171;
+    --warning: #fbbf24;
+    --info: #d4d4d4;
+    --accent-cyber: #8a8a8a;
+    --accent-violet: #ffffff;
   }
 
   * {
@@ -67,7 +67,7 @@
     background: #0a0a0a;
   }
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #00ffcc, #303030);
+    background: linear-gradient(180deg, #8a8a8a, #303030);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
@@ -80,24 +80,24 @@
     @apply bg-black/40 backdrop-blur-md border border-white/5;
   }
   .void-card {
-    background: var(--black-card);
-    border: 1px solid var(--border-dim);
-    border-radius: 8px;
+    position: relative;
+    background: linear-gradient(180deg, #0f0f0f 0%, #080808 100%);
+    border: 1px solid #1f1f1f;
+    border-radius: 14px;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .void-card:hover {
-    border-color: var(--silver-faint);
-    box-shadow: 0 0 15px rgba(0, 255, 200, 0.12);
-    transform: translateY(-4px);
+    border-color: #333333;
+    transform: translateY(-2px);
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-semibold text-white;
-    background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyber));
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-semibold text-black;
+    background: #ffffff;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .btn-primary:hover:not(:disabled) {
     transform: scale(1.02);
-    box-shadow: 0 0 24px rgba(168, 85, 247, 0.35);
+    box-shadow: 0 0 24px rgba(255, 255, 255, 0.35);
   }
   .btn-primary:disabled {
     opacity: 0.5;
@@ -110,9 +110,8 @@
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .btn-ghost:hover {
-    border-color: var(--accent-cyber);
+    border-color: #ffffff;
     color: #fff;
-    box-shadow: 0 0 12px rgba(0, 255, 200, 0.2);
   }
   .void-input {
     @apply w-full rounded-md border bg-transparent px-4 py-2.5 text-sm text-white outline-none;
@@ -121,19 +120,19 @@
     transition: all 0.25s ease;
   }
   .void-input:focus {
-    border-color: var(--accent-cyber);
-    box-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
+    border-color: #6b6b6b;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
   }
 
   /* Gradient CTA used for buy/checkout actions across the shop */
   .btn-buy {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-semibold text-white;
-    background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyber));
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-semibold text-black;
+    background: #ffffff;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .btn-buy:hover:not(:disabled) {
     transform: scale(1.02);
-    box-shadow: 0 0 24px rgba(168, 85, 247, 0.35);
+    box-shadow: 0 0 24px rgba(255, 255, 255, 0.35);
   }
   .btn-buy:disabled {
     opacity: 0.5;
@@ -156,7 +155,7 @@
     inset: 0;
     padding: 1px;
     border-radius: 14px;
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.35), rgba(0, 255, 200, 0.25));
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.25));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -166,7 +165,7 @@
   }
   .price-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(168, 85, 247, 0.12);
+    box-shadow: 0 12px 32px rgba(255, 255, 255, 0.12);
   }
   .price-card:hover::before {
     opacity: 1;
@@ -182,7 +181,7 @@
 
   /* Gradient text highlight — used on the logo wordmark and hero headlines */
   .text-glow {
-    background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyber));
+    background: linear-gradient(180deg, #ffffff 0%, #f2f2f2 40%, #8d8d8d 58%, #d9d9d9 78%, #ffffff 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -228,7 +227,7 @@
   10% {
     transform: translate(-3px, 1px);
     clip-path: inset(30% 0 50% 0);
-    color: #00ffcc;
+    color: #8a8a8a;
   }
   20% {
     transform: translate(3px, -1px);
@@ -242,7 +241,7 @@
   }
   40% {
     transform: translate(-2px, 2px);
-    color: #00ffcc;
+    color: #8a8a8a;
   }
   50% {
     transform: translate(0);
@@ -320,17 +319,10 @@
 }
 
 .hero-grid {
-  background-image: linear-gradient(rgba(160, 255, 235, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(160, 255, 235, 0.09) 1px, transparent 1px);
-  background-size: 60px 60px;
-  animation: gridDrift 30s linear infinite;
-  /* Fade the grid out towards the bottom so it glows near the hero */
-  mask-image: linear-gradient(to bottom, black 0%, rgba(0, 0, 0, 0.45) 70%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 0%, rgba(0, 0, 0, 0.45) 70%, transparent 100%);
-  /* Oversize by one tile so the transform-based drift never shows a gap
-     (height wins over the inset-0 bottom constraint) */
-  height: calc(100% + 60px);
-  will-change: transform;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(60% 70% at 50% 0%, #000 20%, transparent 80%);
+  -webkit-mask-image: radial-gradient(60% 70% at 50% 0%, #000 20%, transparent 80%);
 }
 
 .hero-orb {
@@ -362,8 +354,8 @@
 .spinner-cyan {
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(0, 255, 200, 0.2);
-  border-top-color: #00ffcc;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #8a8a8a;
   border-radius: 50%;
   animation: spinCyan 0.7s linear infinite;
 }
@@ -572,10 +564,10 @@
 
 @keyframes logoGlowPulse {
   0%, 100% {
-    filter: drop-shadow(0 0 4px rgba(0, 255, 200, 0.25)) drop-shadow(0 0 0px rgba(168, 85, 247, 0));
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.25)) drop-shadow(0 0 0px rgba(255, 255, 255, 0));
   }
   50% {
-    filter: drop-shadow(0 0 10px rgba(0, 255, 200, 0.45)) drop-shadow(0 0 14px rgba(168, 85, 247, 0.28));
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.45)) drop-shadow(0 0 14px rgba(255, 255, 255, 0.28));
   }
 }
 .logo-idle img {
@@ -684,9 +676,9 @@
    bg-black-card + border-border-dim box. */
 .admin-panel {
   position: relative;
-  background: var(--black-card);
-  border: 1px solid var(--border-dim);
-  border-radius: 12px;
+  background: linear-gradient(180deg, #0e0e0e 0%, #090909 100%);
+  border: 1px solid #1c1c1c;
+  border-radius: 14px;
   overflow: hidden;
   transition: border-color 0.25s ease;
 }
@@ -696,9 +688,116 @@
   inset-inline: 0;
   top: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyber));
-  opacity: 0.7;
+  left: 10%; right: 10%; inset-inline: auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  opacity: 1;
 }
 .admin-panel:hover {
   border-color: var(--border-mid);
 }
+
+/* ── Revamp (monochrome) ─────────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee { animation: marquee 50s linear infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.caret { animation: blink 1.1s steps(1) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee, .caret { animation: none; }
+}
+
+/* Soft white spotlight from the top, over pure black */
+.mono-spot {
+  background:
+    radial-gradient(50% 45% at 50% 0%, rgba(255, 255, 255, 0.13), transparent 70%),
+    radial-gradient(30% 25% at 50% 0%, rgba(255, 255, 255, 0.10), transparent 70%);
+}
+/* Dot grid that fades out toward the edges */
+.mono-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(55% 55% at 50% 30%, #000 20%, transparent 80%);
+}
+/* Film grain */
+.mono-grain::after {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  opacity: 0.06; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Chrome text, matches the V logo */
+.text-chrome {
+  background: linear-gradient(180deg, #ffffff 0%, #f2f2f2 40%, #8d8d8d 58%, #d9d9d9 78%, #ffffff 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.text-fade {
+  background: linear-gradient(180deg, #ffffff 30%, rgba(255, 255, 255, 0.35) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Card with a hairline top highlight */
+.mono-card {
+  position: relative;
+  background: linear-gradient(180deg, #0f0f0f 0%, #080808 100%);
+  border: 1px solid #1f1f1f;
+  border-radius: 1rem;
+  transition: border-color .25s ease;
+}
+.mono-card::before {
+  content: '';
+  position: absolute; left: 12%; right: 12%; top: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+}
+.mono-card:hover { border-color: #333; }
+
+.btn-white {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  border-radius: 999px; font-weight: 500;
+  color: #000; background: #fff;
+  box-shadow: 0 0 0 1px #fff, 0 8px 30px -8px rgba(255, 255, 255, 0.35);
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn-white:hover { background: #e9e9e9; transform: translateY(-1px); box-shadow: 0 0 0 1px #e9e9e9, 0 12px 36px -8px rgba(255, 255, 255, 0.45); }
+.btn-outline {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  border-radius: 999px; font-weight: 500;
+  color: #e5e5e5; background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2c2c2c;
+  transition: border-color .2s ease, color .2s ease, background .2s ease;
+}
+.btn-outline:hover { border-color: #5a5a5a; color: #fff; background: rgba(255, 255, 255, 0.06); }
+
+/* Newly added game: a light that runs around the card edge */
+@property --ring-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes ringSpin { to { --ring-angle: 360deg; } }
+.new-ring {
+  padding: 1px;
+  border-radius: 21px !important;
+  background: conic-gradient(from var(--ring-angle), transparent 0 65%, rgba(255, 255, 255, 0.9) 82%, transparent 100%);
+  animation: ringSpin 4.5s linear infinite;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.shimmer-pill {
+  background: linear-gradient(110deg, #ffffff 40%, #b5b5b5 50%, #ffffff 60%);
+  background-size: 200% 100%;
+  animation: shimmer 2.6s linear infinite;
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes sheetPop { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn2 { from { opacity: 0; } to { opacity: 1; } }
+.sheet-backdrop { animation: fadeIn2 .2s ease both; }
+.sheet-panel { animation: sheetUp .35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (min-width: 768px) { .sheet-panel { animation: sheetPop .3s cubic-bezier(0.16, 1, 0.3, 1) both; } }
+@media (prefers-reduced-motion: reduce) {
+  .new-ring, .shimmer-pill, .sheet-panel { animation: none; }
+}
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { ToastProvider } from '@/components/Toast'
-import { CheckIcon, AlertIcon, TerminalIcon, ActivityIcon, RefreshIcon, GamesIcon, BoltIcon, GlobeIcon, DiscordIcon } from '@/components/Icons'
 import ExecutorIcon from '@/components/ExecutorIcon'
+import { useRobloxInfo, placeIdOf } from '@/lib/roblox-info'
+import { RefreshIcon, SearchIcon, GlobeIcon, DiscordIcon, ExternalIcon, ChevronDownIcon } from '@/components/Icons'
 
 interface GameStatus {
   id: string
@@ -13,6 +15,9 @@ interface GameStatus {
   status: string
   category?: string
   updatedAt?: string
+  thumbnail?: string
+  placeId?: string
+  robloxUrl?: string
 }
 
 interface Executor {
@@ -57,84 +62,17 @@ const FALLBACK_EXECUTORS: Executor[] = [
 const REFRESH_INTERVAL = 60 // seconds between auto-refreshes
 
 function timeAgo(iso?: string) {
-  if (!iso) return 'Unknown'
+  if (!iso) return '—'
   const diff = Date.now() - new Date(iso).getTime()
-  if (Number.isNaN(diff) || diff < 0) return 'Recently'
+  if (Number.isNaN(diff) || diff < 0) return 'recently'
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Just now'
+  if (mins < 1) return 'just now'
   if (mins < 60) return `${mins}m ago`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
   if (days < 30) return `${days}d ago`
-  const months = Math.floor(days / 30)
-  return `${months}mo ago`
-}
-
-/** Animated SVG donut showing the % of scripts that are operational. */
-function HealthRing({ pct, loading }: { pct: number; loading: boolean }) {
-  const R = 52
-  const CIRC = 2 * Math.PI * R
-  const offset = CIRC - (CIRC * pct) / 100
-  return (
-    <div className="relative w-32 h-32 shrink-0" role="img" aria-label={`${pct}% of scripts operational`}>
-      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-        <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
-        <circle
-          cx="60"
-          cy="60"
-          r={R}
-          fill="none"
-          stroke={loading ? 'rgba(255,255,255,0.2)' : pct === 100 ? '#00ff88' : pct >= 50 ? '#ffffff' : '#ff3333'}
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={CIRC}
-          strokeDashoffset={loading ? CIRC : offset}
-          style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease' }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        {loading ? (
-          <span className="font-heading text-lg text-silver-muted animate-pulse">--</span>
-        ) : (
-          <>
-            <span className="font-heading text-2xl text-white tabular-nums">{pct}%</span>
-            <span className="font-body text-[10px] text-silver-muted tracking-widest uppercase">Healthy</span>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function StatTile({ icon, label, value, accent, loading }: {
-  icon: React.ReactNode
-  label: string
-  value: number
-  accent?: 'success' | 'danger'
-  loading: boolean
-}) {
-  return (
-    <div className="relative overflow-hidden bg-black-card border border-border-dim rounded-xl p-4 transition-all duration-300 hover:border-silver-faint hover:-translate-y-0.5 group">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-silver-muted group-hover:text-white transition-colors duration-300">{icon}</span>
-        <span
-          className={`h-1.5 w-1.5 rounded-full ${
-            accent === 'success' ? 'bg-success shadow-[0_0_6px_rgba(0,255,136,0.7)]'
-              : accent === 'danger' ? 'bg-danger shadow-[0_0_6px_rgba(255,51,51,0.7)]'
-              : 'bg-silver-faint'
-          }`}
-          aria-hidden="true"
-        />
-      </div>
-      {loading ? (
-        <div className="h-8 w-14 bg-black-elevated rounded animate-pulse mb-1" />
-      ) : (
-        <p className="font-heading text-3xl text-white tabular-nums leading-none mb-1">{value}</p>
-      )}
-      <p className="font-body text-[11px] text-silver-muted tracking-wider uppercase">{label}</p>
-    </div>
-  )
+  return `${Math.floor(days / 30)}mo ago`
 }
 
 type ScriptFilter = 'all' | 'working' | 'updating'
@@ -144,435 +82,323 @@ export default function StatusPage() {
   const [executors, setExecutors] = useState<Executor[]>(FALLBACK_EXECUTORS)
   const [weao, setWeao] = useState<WeaoData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL)
   const [filter, setFilter] = useState<ScriptFilter>('all')
   const [query, setQuery] = useState('')
+  const [showBroken, setShowBroken] = useState(false)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const loadAll = useCallback((showSpinner = true) => {
-    if (showSpinner) setLoading(true)
+  const loadAll = useCallback(() => {
+    setRefreshing(true)
     setCountdown(REFRESH_INTERVAL)
-    fetch('/api/public/games')
-      .then(r => r.json())
-      .then(data => {
-        setGames(Array.isArray(data) ? data : [])
-        setLastChecked(new Date())
-        setLoading(false)
-      })
-      .catch(() => {
-        setLastChecked(new Date())
-        setLoading(false)
-      })
-    fetch('/api/public/executors')
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) setExecutors(data)
-      })
-      .catch(() => { /* keep fallback list */ })
-    fetch('/api/public/weao')
-      .then(r => r.json())
-      .then(data => {
-        if (data && typeof data.executors === 'object') setWeao(data)
-      })
-      .catch(() => { /* WEAO down — cards just skip the live row */ })
+    Promise.allSettled([
+      fetch('/api/public/games').then(r => r.json()).then(d => setGames(Array.isArray(d) ? d : [])),
+      fetch('/api/public/executors').then(r => r.json()).then(d => { if (Array.isArray(d) && d.length) setExecutors(d) }),
+      fetch('/api/public/weao').then(r => r.json()).then(d => { if (d && typeof d.executors === 'object') setWeao(d) }),
+    ]).finally(() => {
+      setLastChecked(new Date())
+      setLoading(false)
+      setRefreshing(false)
+    })
   }, [])
 
-  // Initial load + auto-refresh with visible countdown
   useEffect(() => {
     loadAll()
     countdownRef.current = setInterval(() => {
       setCountdown(prev => {
-        if (prev <= 1) {
-          loadAll(false)
-          return REFRESH_INTERVAL
-        }
+        if (prev <= 1) { loadAll(); return REFRESH_INTERVAL }
         return prev - 1
       })
     }, 1000)
-    return () => {
-      if (countdownRef.current) clearInterval(countdownRef.current)
-    }
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current) }
   }, [loadAll])
 
   /** Match one of our executors to its live WEAO record by name. */
-  const weaoFor = useCallback(
-    (name: string): WeaoStatus | null => {
-      if (!weao) return null
-      const key = name.trim().toLowerCase()
-      if (weao.executors[key]) return weao.executors[key]
-      // Loose match: "Macsploit" vs "MacSploit", "Arceus X" vs "Arceus"
-      const hit = Object.keys(weao.executors).find(
-        k => k.replace(/[^a-z0-9]/g, '') === key.replace(/[^a-z0-9]/g, ''),
-      )
-      return hit ? weao.executors[hit] : null
-    },
-    [weao],
-  )
+  const weaoFor = useCallback((name: string): WeaoStatus | null => {
+    if (!weao) return null
+    const key = name.trim().toLowerCase()
+    if (weao.executors[key]) return weao.executors[key]
+    const flat = key.replace(/[^a-z0-9]/g, '')
+    const hit = Object.keys(weao.executors).find(k => k.replace(/[^a-z0-9]/g, '') === flat)
+    return hit ? weao.executors[hit] : null
+  }, [weao])
 
-  const activeCount = useMemo(() => games.filter(g => g.status === 'active').length, [games])
-  const outdatedCount = games.length - activeCount
-  const allOperational = games.length > 0 && outdatedCount === 0
-  const healthPct = games.length === 0 ? 100 : Math.round((activeCount / games.length) * 100)
-  const supportedExecs = executors.filter(e => e.status === 'supported')
-  const unsupportedExecs = executors.filter(e => e.status === 'unsupported')
+  const working = useMemo(() => games.filter(g => g.status === 'active').length, [games])
+  const updating = games.length - working
+  const supported = executors.filter(e => e.status === 'supported')
+  const unsupported = executors.filter(e => e.status === 'unsupported')
+  const execsDown = supported.filter(e => weaoFor(e.name)?.updateStatus === false).length
+
+  const state: 'loading' | 'ok' | 'partial' =
+    loading ? 'loading' : updating === 0 ? 'ok' : 'partial'
 
   const visibleGames = useMemo(() => {
-    let list = games
-    if (filter === 'working') list = list.filter(g => g.status === 'active')
-    if (filter === 'updating') list = list.filter(g => g.status !== 'active')
-    if (query.trim()) {
-      const q = query.trim().toLowerCase()
-      list = list.filter(g => g.name.toLowerCase().includes(q) || (g.category || '').toLowerCase().includes(q))
-    }
-    return list
+    const q = query.trim().toLowerCase()
+    return games
+      .filter(g => filter === 'all' || (filter === 'working' ? g.status === 'active' : g.status !== 'active'))
+      .filter(g => !q || g.name.toLowerCase().includes(q) || (g.category || '').toLowerCase().includes(q))
+      .sort((a, b) => (a.status === b.status ? a.name.localeCompare(b.name) : a.status === 'active' ? 1 : -1))
   }, [games, filter, query])
 
-  const filterTabs: { key: ScriptFilter; label: string; count: number }[] = [
-    { key: 'all', label: 'All', count: games.length },
-    { key: 'working', label: 'Working', count: activeCount },
-    { key: 'updating', label: 'Updating', count: outdatedCount },
-  ]
+  const ringPct = ((REFRESH_INTERVAL - countdown) / REFRESH_INTERVAL) * 100
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-black-void">
+      <div className="min-h-screen bg-black font-display">
         <Navbar />
-        <main className="pt-24 pb-20 px-4">
-          <div className="max-w-5xl mx-auto">
 
-            {/* Hero */}
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border-dim bg-black-card mb-4">
-                <span className="relative flex h-2 w-2">
-                  <span className={`absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping ${allOperational || loading ? 'bg-success' : 'bg-danger'}`} />
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${allOperational || loading ? 'bg-success' : 'bg-danger'}`} />
+        {/* Hero status banner */}
+        <section className="relative px-4 pt-28 md:pt-36 pb-10 mono-grain">
+          <div className="absolute inset-0 mono-spot pointer-events-none" />
+          <div className="absolute inset-0 mono-dots pointer-events-none" />
+          <div className="relative max-w-6xl mx-auto">
+            <p className="font-gmono text-[0.7rem] uppercase tracking-[0.2em] text-[#6b6b6b]">System status</p>
+            <div className="mt-4 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <span className="relative mt-3 md:mt-5 flex w-4 h-4 shrink-0">
+                  {state !== 'loading' && (
+                    <span className={`absolute inset-0 rounded-full animate-ping opacity-60 ${state === 'ok' ? 'bg-success' : 'bg-warning'}`} />
+                  )}
+                  <span className={`relative w-4 h-4 rounded-full ${state === 'loading' ? 'bg-[#444]' : state === 'ok' ? 'bg-success shadow-[0_0_18px_rgba(74,222,128,0.7)]' : 'bg-warning shadow-[0_0_18px_rgba(251,191,36,0.6)]'}`} />
                 </span>
-                <span className="font-body text-xs text-silver-mid tracking-widest uppercase">Live System Status</span>
+                <h1 className="font-semibold tracking-[-0.045em] leading-[0.98] text-[clamp(2.3rem,6vw,4.4rem)] text-chrome">
+                  {state === 'loading' ? 'Checking systems…' : state === 'ok' ? 'All systems operational' : `${updating} ${updating === 1 ? 'script is' : 'scripts are'} updating`}
+                </h1>
               </div>
-              <h1 className="font-heading text-[clamp(2rem,4vw,3.5rem)] text-white mb-3 text-balance">SCRIPT STATUS</h1>
-              <p className="font-body text-silver-mid text-sm md:text-base text-pretty max-w-xl mx-auto">
-                Real-time health of every supported script and executor. Auto-refreshes every {REFRESH_INTERVAL}s.
-              </p>
+
+              <button
+                onClick={loadAll}
+                disabled={refreshing}
+                className="group self-start md:self-auto flex items-center gap-3 h-12 pl-2 pr-5 rounded-full border border-[#262626] bg-[#0a0a0a] hover:border-[#444] transition-colors disabled:opacity-60"
+                aria-label="Refresh now"
+              >
+                <span className="relative w-8 h-8">
+                  <svg viewBox="0 0 36 36" className="absolute inset-0 -rotate-90">
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#222" strokeWidth="3" />
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"
+                      strokeDasharray={94.2} strokeDashoffset={94.2 - (94.2 * ringPct) / 100}
+                      style={{ transition: 'stroke-dashoffset 1s linear' }} />
+                  </svg>
+                  <RefreshIcon size={13} className={`absolute inset-0 m-auto text-white ${refreshing ? 'animate-spin' : ''}`} />
+                </span>
+                <span className="text-left leading-tight">
+                  <span className="block text-sm text-white">Refresh</span>
+                  <span className="block font-gmono text-[0.65rem] text-[#6b6b6b]">
+                    {lastChecked ? `checked ${lastChecked.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${countdown}s` : 'loading…'}
+                  </span>
+                </span>
+              </button>
             </div>
 
-            {/* Command-center overview */}
-            <div className="bg-black-card border border-border-mid rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden">
-              {/* signature gradient accent bar */}
-              <div
-                className="absolute inset-x-0 top-0 h-[2px]"
-                style={{ background: 'linear-gradient(90deg, var(--accent-violet), var(--accent-cyber))' }}
-                aria-hidden="true"
-              />
-              {/* subtle scanline texture */}
-              <div
-                className="absolute inset-0 opacity-[0.03] pointer-events-none"
-                style={{ backgroundImage: 'repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 3px)' }}
-                aria-hidden="true"
-              />
-              <div className="relative flex flex-col md:flex-row items-center gap-6 md:gap-10">
-                <HealthRing pct={healthPct} loading={loading} />
-                <div className="flex-1 text-center md:text-left">
-                  <p className="font-heading text-xl md:text-2xl text-white mb-1">
-                    {loading
-                      ? 'RUNNING DIAGNOSTICS...'
-                      : allOperational
-                        ? 'ALL SYSTEMS OPERATIONAL'
-                        : `${outdatedCount} SCRIPT${outdatedCount === 1 ? '' : 'S'} UNDER MAINTENANCE`}
+            {/* Summary strip */}
+            <div className="mt-10 grid grid-cols-2 md:grid-cols-4 rounded-2xl border border-[#1c1c1c] bg-[#070707]/80 backdrop-blur divide-[#1c1c1c] divide-y md:divide-y-0 md:divide-x [&>*:nth-child(2)]:border-l [&>*:nth-child(2)]:border-[#1c1c1c] md:[&>*:nth-child(2)]:border-l-0">
+              {[
+                { label: 'Scripts', value: games.length, sub: 'in the library' },
+                { label: 'Working', value: working, sub: 'running fine', dot: 'bg-success' },
+                { label: 'Updating', value: updating, sub: 'being patched', dot: updating ? 'bg-warning' : 'bg-[#333]' },
+                { label: 'Executors', value: supported.length - execsDown, sub: `of ${supported.length} ready now`, dot: 'bg-white' },
+              ].map(s => (
+                <div key={s.label} className="px-5 py-5">
+                  <p className="flex items-center gap-2 font-gmono text-[0.62rem] uppercase tracking-[0.18em] text-[#6b6b6b]">
+                    {s.dot && <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />}{s.label}
                   </p>
-                  <p className="font-body text-sm text-silver-muted mb-4">
-                    {lastChecked
-                      ? `Last checked ${lastChecked.toLocaleTimeString()} — next refresh in ${countdown}s`
-                      : 'Fetching latest data...'}
-                  </p>
-                  <div className="flex items-center justify-center md:justify-start gap-3">
-                    <button
-                      onClick={() => loadAll()}
-                      disabled={loading}
-                      className="btn-primary !rounded-md !px-4 !py-2 text-sm font-medium disabled:pointer-events-none"
-                    >
-                      <RefreshIcon size={16} className={loading ? 'animate-spin' : ''} />
-                      <span>Refresh Now</span>
-                    </button>
-                    {/* countdown progress */}
-                    <div className="hidden sm:flex items-center gap-2" aria-hidden="true">
-                      <div className="w-24 h-1 bg-black-elevated rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${((REFRESH_INTERVAL - countdown) / REFRESH_INTERVAL) * 100}%`,
-                            background: 'linear-gradient(90deg, var(--accent-violet), var(--accent-cyber))',
-                            transition: 'width 1s linear',
-                          }}
-                        />
-                      </div>
-                      <span className="font-body text-xs text-silver-faint tabular-nums">{countdown}s</span>
-                    </div>
-                  </div>
+                  <p className="mt-2 text-4xl font-semibold tracking-tighter text-white tabular-nums">{loading ? '–' : s.value}</p>
+                  <p className="text-xs text-[#6b6b6b]">{s.sub}</p>
                 </div>
-                {/* Stat tiles */}
-                <div className="grid grid-cols-2 gap-3 w-full md:w-auto md:min-w-[280px]">
-                  <StatTile icon={<GamesIcon size={16} />} label="Total Scripts" value={games.length} loading={loading} />
-                  <StatTile icon={<CheckIcon size={16} />} label="Working" value={activeCount} accent="success" loading={loading} />
-                  <StatTile icon={<AlertIcon size={16} />} label="Updating" value={outdatedCount} accent={outdatedCount > 0 ? 'danger' : undefined} loading={loading} />
-                  <StatTile icon={<BoltIcon size={16} />} label="Executors" value={supportedExecs.length} accent="success" loading={loading} />
-                </div>
-              </div>
+              ))}
             </div>
+          </div>
+        </section>
 
-            {/* Scripts section */}
-            <section aria-label="Script status list" className="mb-14">
-              <div className="flex items-center gap-2 mb-4">
-                <ActivityIcon size={16} className="text-white" />
-                <h2 className="font-heading text-sm tracking-widest text-white">SCRIPTS</h2>
-                <div className="flex-1 h-px bg-border-dim" />
-              </div>
-
-              {/* Search + filter toolbar */}
-              <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                <div className="relative flex-1">
-                  <input
-                    type="search"
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    placeholder="Search scripts..."
-                    aria-label="Search scripts"
-                    className="w-full bg-black-card border border-border-dim rounded-lg pl-4 pr-4 py-2.5 font-body text-sm text-white placeholder:text-silver-faint focus:outline-none focus:border-silver-muted transition-colors duration-200"
-                  />
-                </div>
-                <div className="flex items-center gap-1 bg-black-card border border-border-dim rounded-lg p-1" role="tablist" aria-label="Filter scripts">
-                  {filterTabs.map(tab => (
+        <main className="px-4 pb-24">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-8 lg:gap-10 items-start">
+            {/* Scripts */}
+            <section aria-label="Scripts">
+              <div className="flex items-end justify-between gap-3 mb-4">
+                <h2 className="text-2xl font-semibold tracking-tight text-white">Scripts</h2>
+                <div className="flex items-center gap-1 p-1 rounded-full border border-[#1f1f1f] bg-[#0a0a0a]" role="tablist">
+                  {([['all', 'All', games.length], ['working', 'Working', working], ['updating', 'Updating', updating]] as const).map(([key, label, n]) => (
                     <button
-                      key={tab.key}
+                      key={key}
                       role="tab"
-                      aria-selected={filter === tab.key}
-                      onClick={() => setFilter(tab.key)}
-                      className={`px-3.5 py-1.5 rounded-md font-body text-xs transition-all duration-200 ${
-                        filter === tab.key ? 'bg-white text-black font-medium' : 'text-silver-muted hover:text-white'
-                      }`}
+                      aria-selected={filter === key}
+                      onClick={() => setFilter(key)}
+                      className={`h-8 px-3 rounded-full text-xs transition-colors ${filter === key ? 'bg-white text-black' : 'text-[#8a8a8a] hover:text-white'}`}
                     >
-                      {tab.label}
-                      <span className={`ml-1.5 tabular-nums ${filter === tab.key ? 'text-black/60' : 'text-silver-faint'}`}>{tab.count}</span>
+                      {label} <span className={filter === key ? 'text-black/50' : 'text-[#444]'}>{n}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
+              {games.length > 6 && (
+                <div className="relative mb-3">
+                  <SearchIcon size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555]" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder="Find a script…"
+                    aria-label="Search scripts"
+                    className="w-full h-11 pl-10 pr-4 rounded-xl bg-[#0a0a0a] border border-[#1f1f1f] text-white text-[16px] md:text-sm placeholder:text-[#555] focus:outline-none focus:border-[#444]"
+                  />
+                </div>
+              )}
+
+              <div className="rounded-2xl border border-[#1c1c1c] bg-[#070707] overflow-hidden divide-y divide-[#161616]">
                 {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-16 bg-black-card border border-border-dim rounded-xl animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                  Array.from({ length: 5 }, (_, i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-4">
+                      <div className="w-11 h-11 rounded-xl bg-[#141414] animate-pulse" />
+                      <div className="flex-1"><div className="h-3.5 w-1/3 rounded bg-[#141414] animate-pulse" /><div className="mt-2 h-3 w-1/5 rounded bg-[#111] animate-pulse" /></div>
+                    </div>
                   ))
-                ) : visibleGames.length > 0 ? (
-                  visibleGames.map((game, i) => {
-                    const isActive = game.status === 'active'
-                    return (
-                      <div
-                        key={game.id}
-                        className="admin-stagger flex items-center justify-between gap-4 bg-black-card border border-border-dim rounded-xl px-5 py-4 transition-all duration-200 hover:border-silver-faint hover:bg-black-elevated hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
-                        style={{ animationDelay: `${Math.min(i * 60, 480)}ms` }}
-                      >
-                        <div className="flex items-center gap-4 min-w-0">
-                          <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden="true">
-                            {isActive && <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-50 animate-ping" style={{ animationDuration: '2.5s' }} />}
-                            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isActive ? 'bg-success shadow-[0_0_8px_rgba(0,255,136,0.6)]' : 'bg-danger shadow-[0_0_8px_rgba(255,51,51,0.5)]'}`} />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="font-body text-sm text-white truncate">{game.name}</p>
-                            <div className="flex items-center gap-2">
-                              {game.category && (
-                                <p className="font-body text-xs text-silver-muted capitalize">{game.category}</p>
-                              )}
-                              <span className="sm:hidden font-body text-xs text-silver-faint">· {timeAgo(game.updatedAt)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4 shrink-0">
-                          <span className="hidden sm:block font-body text-xs text-silver-muted tabular-nums">
-                            Updated {timeAgo(game.updatedAt)}
-                          </span>
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-body text-xs ${
-                              isActive
-                                ? 'bg-success/10 text-success border border-success/30'
-                                : 'bg-danger/10 text-danger border border-danger/30'
-                            }`}
-                          >
-                            {isActive ? <CheckIcon size={12} /> : <RefreshIcon size={12} className="animate-spin" style={{ animationDuration: '3s' }} />}
-                            {isActive ? 'Operational' : 'Updating'}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })
+                ) : visibleGames.length ? (
+                  visibleGames.map(g => <ScriptRow key={g.id} game={g} />)
                 ) : (
-                  <div className="text-center py-12 bg-black-card border border-border-dim rounded-xl">
-                    <p className="font-body text-silver-muted text-sm">
-                      {query.trim() || filter !== 'all' ? 'No scripts match your search.' : 'No scripts found. Check back soon.'}
+                  <div className="px-6 py-14 text-center">
+                    <p className="text-white">{games.length ? 'Nothing matches that.' : 'No scripts yet.'}</p>
+                    <p className="mt-1 text-sm text-[#6b6b6b]">
+                      {games.length ? 'Try another filter.' : 'The library was reset. Games are being added back.'}
                     </p>
+                    {!games.length && <Link href="/games" className="btn-outline h-10 px-5 mt-5 text-sm">Games page</Link>}
                   </div>
                 )}
               </div>
             </section>
 
-            {/* Executor compatibility */}
-            <section aria-label="Executor compatibility">
-              <div className="flex items-center gap-2 mb-1">
-                <TerminalIcon size={16} className="text-white" />
-                <h2 className="font-heading text-sm tracking-widest text-white">EXECUTOR COMPATIBILITY</h2>
-                <div className="flex-1 h-px bg-border-dim" />
-              </div>
-              <p className="font-body text-xs text-silver-muted mb-2">
-                Confirmed working and not working executors for VoidHub scripts.
-                Live update status auto-syncs from WEAO.
-              </p>
-              {weao?.robloxVersion && (
-                <p className="font-body text-xs text-silver-faint mb-5">
-                  Current Roblox version:{' '}
-                  <span className="text-silver-mid font-mono">{weao.robloxVersion}</span>
-                </p>
-              )}
-
-              {/* Working */}
-              <div className="mb-6 mt-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="h-2 w-2 rounded-full bg-success shadow-[0_0_8px_rgba(0,255,136,0.6)]" aria-hidden="true" />
-                  <h3 className="font-body text-xs tracking-widest text-success uppercase">Working ({supportedExecs.length})</h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {supportedExecs.map((exec, i) => {
-                    const live = weaoFor(exec.name)
-                    const hasLinks = exec.websiteUrl || exec.discordUrl
-                    return (
-                      <div
-                        key={exec.name}
-                        className="admin-stagger group bg-black-card border border-border-dim rounded-xl px-4 py-3 transition-all duration-200 hover:border-success/40 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,255,136,0.08)]"
-                        style={{ animationDelay: `${Math.min(i * 50, 400)}ms` }}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <ExecutorIcon name={exec.name} icon={exec.icon} size={36} />
-                            <div className="min-w-0">
-                              <p className="font-body text-sm text-white truncate">{exec.name}</p>
-                              {live ? (
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span
-                                    className={`inline-flex items-center gap-1 font-body text-[11px] ${
-                                      live.updateStatus ? 'text-success' : 'text-danger'
-                                    }`}
-                                  >
-                                    <span
-                                      className={`h-1.5 w-1.5 rounded-full ${live.updateStatus ? 'bg-success' : 'bg-danger'}`}
-                                      aria-hidden="true"
-                                    />
-                                    {live.updateStatus ? 'Updated' : 'Down'}
-                                  </span>
-                                  {live.version && (
-                                    <span className="font-body text-[11px] text-silver-faint font-mono">v{live.version}</span>
-                                  )}
-                                </div>
-                              ) : (
-                                <p className="font-body text-xs text-silver-faint">Verified compatible</p>
-                              )}
-                            </div>
-                          </div>
-                          {live && !live.updateStatus ? (
-                            <AlertIcon size={16} className="text-danger shrink-0 opacity-80" />
-                          ) : (
-                            <CheckIcon size={16} className="text-success shrink-0 opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
-                          )}
-                        </div>
-                        {hasLinks && (
-                          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border-dim">
-                            {exec.websiteUrl && (
-                              <a
-                                href={exec.websiteUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 font-body text-xs text-silver-muted hover:text-info transition-colors duration-200"
-                                onClick={e => e.stopPropagation()}
-                              >
-                                <GlobeIcon size={12} /> Website
-                              </a>
-                            )}
-                            {exec.discordUrl && (
-                              <a
-                                href={exec.discordUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 font-body text-xs text-silver-muted hover:text-info transition-colors duration-200"
-                                onClick={e => e.stopPropagation()}
-                              >
-                                <DiscordIcon size={12} /> Discord
-                              </a>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
+            {/* Executors */}
+            <section aria-label="Executors" className="lg:sticky lg:top-24">
+              <div className="flex items-end justify-between gap-3 mb-4">
+                <h2 className="text-2xl font-semibold tracking-tight text-white">Executors</h2>
+                {weao?.robloxVersion && (
+                  <span className="font-gmono text-[0.62rem] text-[#6b6b6b] truncate max-w-[55%]" title={weao.robloxVersion}>
+                    roblox {weao.robloxVersion.replace(/^version-/, '').slice(0, 10)}
+                  </span>
+                )}
               </div>
 
-              {/* Not working */}
-              {unsupportedExecs.length > 0 && (
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="h-2 w-2 rounded-full bg-danger shadow-[0_0_8px_rgba(255,51,51,0.6)]" aria-hidden="true" />
-                    <h3 className="font-body text-xs tracking-widest text-danger uppercase">Not Working ({unsupportedExecs.length})</h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {unsupportedExecs.map((exec, i) => (
-                      <div
-                        key={exec.name}
-                        className="admin-stagger flex items-center justify-between bg-black-card border border-border-dim rounded-xl px-4 py-3 opacity-60 transition-all duration-200 hover:opacity-90 hover:border-danger/30"
-                        style={{ animationDelay: `${Math.min(i * 50, 400)}ms` }}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <ExecutorIcon name={exec.name} icon={exec.icon} size={36} />
-                          <div className="min-w-0">
-                            <p className="font-body text-sm text-white truncate">{exec.name}</p>
-                            <p className="font-body text-xs text-silver-faint">Incompatible</p>
-                          </div>
-                        </div>
-                        <AlertIcon size={16} className="text-danger shrink-0 opacity-70" />
-                      </div>
-                    ))}
-                  </div>
+              <div className="rounded-2xl border border-[#1c1c1c] bg-[#070707] overflow-hidden divide-y divide-[#161616]">
+                {supported.map(exec => <ExecutorRow key={exec.name} exec={exec} live={weaoFor(exec.name)} />)}
+              </div>
+
+              {unsupported.length > 0 && (
+                <div className="mt-3 rounded-2xl border border-[#1c1c1c] bg-[#070707] overflow-hidden">
+                  <button
+                    onClick={() => setShowBroken(v => !v)}
+                    className="w-full flex items-center justify-between px-4 h-12 text-sm text-[#a3a3a3] hover:text-white"
+                    aria-expanded={showBroken}
+                  >
+                    <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-danger" /> Don&apos;t work with VoidHub ({unsupported.length})</span>
+                    <ChevronDownIcon size={16} className={`transition-transform ${showBroken ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showBroken && (
+                    <div className="px-4 pb-4 flex flex-wrap gap-2">
+                      {unsupported.map(e => (
+                        <span key={e.name} className="inline-flex items-center gap-2 h-9 pl-1 pr-3 rounded-full border border-[#222] text-sm text-[#8a8a8a]">
+                          <ExecutorIcon name={e.name} icon={e.icon} size={26} className="!rounded-full" />
+                          <span className="line-through decoration-[#555]">{e.name}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
-              <div className="relative overflow-hidden flex flex-col sm:flex-row items-center sm:items-start gap-3 bg-black-card border border-border-dim rounded-xl p-5 text-center sm:text-left">
-                <div
-                  className="absolute inset-x-0 top-0 h-[2px] opacity-70"
-                  style={{ background: 'linear-gradient(90deg, var(--accent-violet), var(--accent-cyber))' }}
-                  aria-hidden="true"
-                />
-                <span className="shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-black-elevated border border-border-mid text-accent-cyber">
-                  <TerminalIcon size={16} />
+              <a
+                href="https://whatexpsare.online/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 flex items-center gap-3 rounded-2xl border border-[#1c1c1c] bg-[#070707] px-4 py-4 hover:border-[#333] transition-colors"
+              >
+                <GlobeIcon size={16} className="text-[#8a8a8a] shrink-0" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm text-white">Get executors safely</span>
+                  <span className="block text-xs text-[#6b6b6b]">Live data from whatexpsare.online. Using something unlisted? Ask in the Discord.</span>
                 </span>
-                <div>
-                  <p className="font-body text-sm text-silver-light mb-1">
-                    The safest site to get your executors from is{' '}
-                    <a
-                      href="https://whatexpsare.online/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-white underline underline-offset-2 hover:text-accent-cyber transition-colors duration-200"
-                    >
-                      whatexpsare.online
-                    </a>
-                  </p>
-                  <p className="font-body text-xs text-silver-faint">
-                    Using an executor that isn&apos;t listed? Confirm whether it works with the script in our Discord and we&apos;ll add it.
-                  </p>
-                </div>
-              </div>
+                <ExternalIcon size={14} className="text-[#555] shrink-0" />
+              </a>
             </section>
           </div>
         </main>
+
         <Footer />
       </div>
     </ToastProvider>
+  )
+}
+
+function ScriptRow({ game }: { game: GameStatus }) {
+  const info = useRobloxInfo(placeIdOf(game))
+  const icon = game.thumbnail || info?.thumbnail
+  const ok = game.status === 'active'
+  return (
+    <Link href={`/games?game=${game.id}`} className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
+      <span className="w-11 h-11 rounded-xl overflow-hidden border border-[#222] bg-[#141414] shrink-0">
+        {icon
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={icon} alt="" className="w-full h-full object-cover" />
+          : <span className="w-full h-full flex items-center justify-center text-sm font-semibold text-white">{game.name.slice(0, 1)}</span>}
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[0.95rem] text-white truncate">{game.name}</span>
+        <span className="block text-xs text-[#6b6b6b] truncate">
+          {game.category ? `${game.category} · ` : ''}updated {timeAgo(game.updatedAt)}
+        </span>
+      </span>
+      <span className={`inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs shrink-0 border ${
+        ok ? 'border-success/25 text-success bg-success/[0.06]' : 'border-warning/30 text-warning bg-warning/[0.06]'
+      }`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${ok ? 'bg-success' : 'bg-warning animate-pulse'}`} />
+        {ok ? 'Working' : 'Updating'}
+      </span>
+    </Link>
+  )
+}
+
+function ExecutorRow({ exec, live }: { exec: Executor; live: WeaoStatus | null }) {
+  const down = live?.updateStatus === false
+  const tags = [
+    live?.platform,
+    live ? (live.free ? 'Free' : 'Paid') : null,
+    live?.uncPercentage != null ? `${live.uncPercentage}% UNC` : null,
+  ].filter(Boolean) as string[]
+  return (
+    <div className="px-4 py-3.5">
+      <div className="flex items-center gap-3">
+        <ExecutorIcon name={exec.name} icon={exec.icon} size={40} className="!rounded-xl" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[0.95rem] text-white truncate">{exec.name}</span>
+            {live?.version && <span className="font-gmono text-[0.62rem] text-[#555] truncate">v{live.version}</span>}
+          </div>
+          {tags.length > 0 ? (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {tags.map(t => <span key={t} className="h-5 px-1.5 rounded-md border border-[#222] font-gmono text-[0.6rem] text-[#8a8a8a] flex items-center">{t}</span>)}
+            </div>
+          ) : (
+            <span className="block text-xs text-[#6b6b6b]">Tested with VoidHub</span>
+          )}
+        </div>
+        <span className={`inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs shrink-0 border ${
+          down ? 'border-danger/30 text-danger bg-danger/[0.06]' : 'border-success/25 text-success bg-success/[0.06]'
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${down ? 'bg-danger' : 'bg-success'}`} />
+          {down ? 'Down' : 'Ready'}
+        </span>
+      </div>
+      {(exec.websiteUrl || exec.discordUrl) && (
+        <div className="mt-2.5 ml-[52px] flex gap-4">
+          {exec.websiteUrl && (
+            <a href={exec.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-[#6b6b6b] hover:text-white"><GlobeIcon size={12} /> Website</a>
+          )}
+          {exec.discordUrl && (
+            <a href={exec.discordUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-[#6b6b6b] hover:text-white"><DiscordIcon size={12} /> Discord</a>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

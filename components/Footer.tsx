@@ -2,9 +2,8 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { HomeIcon, GamesIcon, AboutIcon, DiscordIcon, ActivityIcon, HelpIcon, YouTubeIcon, TikTokIcon, TelegramIcon, ShopIcon } from '@/components/Icons'
-import AnimatedLogo from '@/components/AnimatedLogo'
-import { getDiscordLink, getTagline } from '@/lib/storage'
+import { DiscordIcon, YouTubeIcon, TikTokIcon, TelegramIcon } from '@/components/Icons'
+import { getDiscordLink } from '@/lib/storage'
 
 interface FooterLinks {
   youtube: string
@@ -22,150 +21,125 @@ const DEFAULT_FOOTER_LINKS: FooterLinks = {
   logoUrl: '',
 }
 
-const footerLinks = [
-  { href: '/', label: 'Home', icon: HomeIcon },
-  { href: '/games', label: 'Games', icon: GamesIcon },
-  { href: '/shop', label: 'Shop', icon: ShopIcon },
-  { href: '/status', label: 'Status', icon: ActivityIcon },
-  { href: '/faq', label: 'FAQ', icon: HelpIcon },
-  { href: '/about', label: 'About', icon: AboutIcon },
-]
-
 export default function Footer() {
-  const [discordLink, setDiscordLink] = useState('https://discord.gg/kPPsdZtndn')
-  const [tagline, setTagline] = useState('Free. Powerful. No Limits.')
+  const [discordLink, setDiscordLink] = useState('https://discord.gg/UrTqzfq9DF')
   const [links, setLinks] = useState<FooterLinks>(DEFAULT_FOOTER_LINKS)
 
   useEffect(() => {
-    const loadPublicSettings = async () => {
-      try {
-        const res = await fetch('/api/public/settings')
-        const data = await res.json()
-        setDiscordLink(data.discord)
-        setTagline(data.tagline)
+    fetch('/api/public/settings')
+      .then(r => r.json())
+      .then(data => {
+        if (data.discord) setDiscordLink(data.discord)
         if (data.links) setLinks(prev => ({ ...prev, ...data.links }))
-      } catch (e) {
-        console.error('Footer: Failed to load settings:', e)
-        setDiscordLink(getDiscordLink())
-        setTagline(getTagline())
-      }
-    }
-    loadPublicSettings()
+      })
+      .catch(() => setDiscordLink(getDiscordLink()))
   }, [])
 
+  const columns: { title: string; items: { label: string; href: string; external?: boolean }[] }[] = [
+    {
+      title: 'Site',
+      items: [
+        { label: 'Home', href: '/' },
+        { label: 'Games', href: '/games' },
+        { label: 'Status', href: '/status' },
+        { label: 'About', href: '/about' },
+      ],
+    },
+    {
+      title: 'Get started',
+      items: [
+        { label: 'Copy the script', href: '/#get' },
+        { label: 'Supported games', href: '/games' },
+        { label: 'FAQ', href: '/faq' },
+        { label: 'Public API', href: '/developers' },
+      ],
+    },
+    {
+      title: 'Community',
+      items: [
+        { label: 'Discord', href: discordLink, external: true },
+        { label: 'Request a game', href: discordLink, external: true },
+        { label: 'Get support', href: discordLink, external: true },
+      ],
+    },
+  ]
+
+  const socials = [
+    { url: links.youtube, label: 'YouTube', Icon: YouTubeIcon },
+    { url: links.tiktok, label: 'TikTok', Icon: TikTokIcon },
+    { url: links.telegram, label: 'Telegram', Icon: TelegramIcon },
+  ].filter(s => s.url.trim())
+
   return (
-    <footer className="border-t border-border-dim bg-black-surface">
-      {/* Upper Footer */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-          {/* Logo & Tagline */}
-          <div className="flex flex-col items-center md:items-start gap-3">
-            <Link href="/" className="flex items-center gap-3">
-              <AnimatedLogo
-                src={links.logoUrl.trim() || '/logo.png'}
-                alt={`${links.siteName} Logo`}
-                size={40}
-                playIntro={false}
-              />
-              <span className="font-heading text-xl tracking-wider">
-                {links.siteName === 'VoidHub' ? (
-                  <>Void<span className="text-glow">Hub</span></>
-                ) : (
-                  <span className="text-glow">{links.siteName}</span>
-                )}
-              </span>
-            </Link>
-            <p className="text-silver-mid text-sm font-body">{tagline}</p>
-          </div>
-
-          {/* Quick Links */}
-          <div className="flex flex-wrap justify-center gap-x-5 gap-y-3 sm:gap-x-6 md:gap-x-8">
-            {footerLinks.map(link => {
-              const Icon = link.icon
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="
-                    flex items-center gap-2 text-sm font-body
-                    text-silver-mid hover:text-white transition-colors
-                  "
-                >
-                  <Icon size={16} />
-                  <span>{link.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-
-          {/* Socials */}
-          <div className="flex justify-center md:justify-end items-center gap-2 flex-wrap">
-            {links.youtube.trim() && (
-              <a
-                href={links.youtube}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="YouTube"
-                className="p-2.5 border border-silver-faint text-silver-mid rounded-md transition-all duration-200 hover:bg-white hover:text-black hover:border-white"
-              >
-                <YouTubeIcon size={18} />
-              </a>
-            )}
-            {links.tiktok.trim() && (
-              <a
-                href={links.tiktok}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="TikTok"
-                className="p-2.5 border border-silver-faint text-silver-mid rounded-md transition-all duration-200 hover:bg-white hover:text-black hover:border-white"
-              >
-                <TikTokIcon size={18} />
-              </a>
-            )}
-            {links.telegram.trim() && (
-              <a
-                href={links.telegram}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Telegram"
-                className="p-2.5 border border-silver-faint text-silver-mid rounded-md transition-all duration-200 hover:bg-white hover:text-black hover:border-white"
-              >
-                <TelegramIcon size={18} />
-              </a>
-            )}
+    <footer className="relative border-t border-border-dim bg-black-deep">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+      <div className="max-w-7xl mx-auto px-4 pt-14 pb-10 grid grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-10">
+        <div className="col-span-2 md:col-span-1 flex flex-col gap-4">
+          <Link href="/" className="flex items-center gap-2.5 w-fit">
+            <img src={links.logoUrl.trim() || '/logo.png'} alt="" className="w-9 h-9 object-contain" />
+            <span className="font-display font-semibold text-lg tracking-tight">
+              {links.siteName === 'VoidHub' ? <>Void<span className="text-glow">Hub</span></> : <span className="text-glow">{links.siteName}</span>}
+            </span>
+          </Link>
+          <p className="font-body text-sm text-silver-muted max-w-xs leading-relaxed">
+            Free, keyless, always-updated scripts for the Roblox games you actually play.
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
             <a
               href={discordLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="
-                flex items-center gap-2 px-4 py-2
-                border border-silver-faint text-silver-mid
-                rounded-md text-sm font-body
-                transition-all duration-200
-                hover:bg-white hover:text-black hover:border-white
-              "
+              className="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg border border-border-mid text-silver-mid text-xs font-body hover:text-white hover:border-white/40 transition-colors"
             >
-              <DiscordIcon size={18} />
-              <span>Discord</span>
+              <DiscordIcon size={15} />
+              <span>join discord</span>
             </a>
+            {socials.map(({ url, label, Icon }) => (
+              <a
+                key={label}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-border-mid text-silver-mid hover:text-white hover:border-white/40 transition-colors"
+              >
+                <Icon size={15} />
+              </a>
+            ))}
           </div>
         </div>
+
+        {columns.map(col => (
+          <div key={col.title}>
+            <h4 className="font-code text-[0.68rem] tracking-[0.25em] uppercase text-silver-muted mb-4 w-fit">{col.title}</h4>
+            <ul className="flex flex-col gap-2.5">
+              {col.items.map(item => (
+                <li key={item.label}>
+                  {item.external ? (
+                    <a href={item.href} target="_blank" rel="noopener noreferrer" className="font-body text-sm text-silver-mid hover:text-white transition-colors">
+                      {item.label}
+                    </a>
+                  ) : (
+                    <Link href={item.href} className="font-body text-sm text-silver-mid hover:text-white transition-colors">
+                      {item.label}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
 
-      {/* Lower Footer — extra bottom clearance on mobile so the fixed tab bar never covers it */}
+      {/* Extra bottom clearance on mobile so the fixed tab bar never covers it */}
       <div className="border-t border-border-dim">
-        <div className="max-w-7xl mx-auto px-4 pt-6 pb-24 md:py-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-silver-muted text-xs font-body">
-            &copy; {new Date().getFullYear()} {links.siteName}. All rights reserved.
+        <div className="max-w-7xl mx-auto px-4 pt-6 pb-24 md:py-6 flex flex-col md:flex-row justify-between items-center gap-2 text-center">
+          <p className="font-body text-xs text-silver-muted">
+            &copy; {new Date().getFullYear()} {links.siteName}. Free forever, no keys.
           </p>
-          <div className="flex items-center gap-4">
-            <Link href="/developers" className="text-silver-muted text-xs font-body hover:text-white transition-colors">
-              Public API
-            </Link>
-            <p className="text-silver-muted text-xs font-body">
-              Free scripts. Premium keys. No BS.
-            </p>
-          </div>
+          <p className="font-body text-xs text-silver-muted">
+            Not affiliated with Roblox Corporation. Use scripts responsibly.
+          </p>
         </div>
       </div>
     </footer>

@@ -5,9 +5,11 @@ import { useSearchParams } from 'next/navigation'
 import {
   PlusIcon, SearchIcon, EditIcon, TrashIcon,
   AlertIcon, ImageIcon, ChevronLeftIcon, ChevronRightIcon, RefreshIcon,
-  CheckIcon, GamesIcon, BoltIcon, StarIcon,
+  CheckIcon, GamesIcon,
 } from '@/components/Icons'
 import Modal from '@/components/Modal'
+import { isNewGame, useRobloxInfo, placeIdOf, compact } from '@/lib/roblox-info'
+import { PageHead, StatStrip, Segmented, Empty, inputCls, btnDanger } from '@/components/AdminUI'
 import GameModal, { GameFormData } from '@/components/GameModal'
 import { useToast } from '@/components/Toast'
 
@@ -135,6 +137,21 @@ export default function AdminGamesPage() {
     }
   }
 
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetText, setResetText] = useState('')
+  const handleResetAll = async () => {
+    if (!games.length || resetText !== 'RESET') return
+    setResetOpen(false)
+    setResetText('')
+    try {
+      await apiGames('DELETE', { all: true })
+      showToast('All games removed', 'success')
+      await loadGames()
+    } catch (e: any) {
+      showToast(e.message, 'error')
+    }
+  }
+
   const handleToggleStatus = async (game: Game) => {
     const status = game.status === 'active' ? 'outdated' : 'active'
     try {
@@ -207,253 +224,159 @@ export default function AdminGamesPage() {
     total: games.length,
     active: games.filter(g => g.status === 'active').length,
     outdated: games.filter(g => g.status === 'outdated').length,
-    featured: games.filter(g => g.featured).length,
+    fresh: games.filter(g => isNewGame(g.createdAt)).length,
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 admin-stagger">
-        <div>
-          <p className="font-body text-xs text-silver-muted tracking-[0.3em] uppercase mb-1">Library</p>
-          <h1 className="font-heading text-2xl text-white tracking-wide">MANAGE GAMES</h1>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={loadGames} aria-label="Refresh games"
-            className="flex items-center gap-2 px-3 h-10 border border-border-mid text-silver-mid rounded-lg font-body text-sm hover:text-white hover:border-white transition-all">
-            <RefreshIcon size={16} className={loading ? 'animate-spin' : ''} /><span className="hidden sm:inline">Refresh</span>
-          </button>
-          <button onClick={() => { setEditingGame(null); setIsModalOpen(true) }}
-            className="btn-primary !h-10 !py-0 text-sm">
-            <PlusIcon size={16} /><span>ADD GAME</span>
-          </button>
-        </div>
-      </div>
+    <div className="max-w-6xl mx-auto pb-24">
+      <PageHead
+        eyebrow="Content"
+        title="Games"
+        subtitle="Everything on the public games page. Paste a Roblox link to add one."
+        actions={
+          <>
+            <button onClick={loadGames} aria-label="Refresh" className="btn-outline w-10 h-10"><RefreshIcon size={14} className={loading ? 'animate-spin' : ''} /></button>
+            <button onClick={() => { setEditingGame(null); setIsModalOpen(true) }} className="btn-white h-10 px-5 text-sm"><PlusIcon size={14} /> Add game</button>
+          </>
+        }
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard icon={GamesIcon} label="Total Games" value={stats.total} delay={0} />
-        <StatCard icon={BoltIcon} label="Active" value={stats.active} tone="success" delay={60} />
-        <StatCard icon={AlertIcon} label="Outdated" value={stats.outdated} tone="danger" delay={120} />
-        <StatCard icon={StarIcon} label="Featured" value={stats.featured} delay={180} />
-      </div>
+      <StatStrip items={[
+        { label: 'Total', value: loading ? '–' : stats.total, sub: 'games' },
+        { label: 'Working', value: loading ? '–' : stats.active, dot: 'bg-success', sub: 'live' },
+        { label: 'Updating', value: loading ? '–' : stats.outdated, dot: stats.outdated ? 'bg-warning' : 'bg-[#333]', sub: 'need a fix' },
+        { label: 'New this week', value: loading ? '–' : stats.fresh, dot: 'bg-white', sub: 'glowing on the site' },
+      ]} />
 
       {kvError && (
-        <div className="mb-6 p-4 rounded-lg border border-danger/40 bg-danger/5 text-sm text-danger font-body">
-          <strong>Storage error.</strong> Could not reach Cloudflare R2. Check that CLOUDFLARE_R2_ACCOUNT_ID, CLOUDFLARE_R2_ACCESS_KEY_ID, CLOUDFLARE_R2_SECRET_ACCESS_KEY and CLOUDFLARE_R2_BUCKET_NAME are set correctly in your environment variables, then redeploy.
+        <div className="mb-6 rounded-2xl border border-danger/30 bg-danger/[0.04] px-5 py-4 flex items-center gap-3 text-sm">
+          <AlertIcon size={16} className="text-danger shrink-0" />
+          <span className="flex-1 text-[#a3a3a3]">Couldn&apos;t reach storage. Check the R2 environment variables.</span>
+          <button onClick={loadGames} className={btnDanger}>Retry</button>
         </div>
       )}
 
       {/* Toolbar */}
-      <div className="flex flex-col lg:flex-row gap-3 mb-6 admin-stagger" style={{ animationDelay: '120ms' }}>
+      <div className="flex flex-col md:flex-row gap-3 mb-5">
         <div className="relative flex-1">
-          <SearchIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-silver-muted" />
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search games..."
-            className="w-full h-10 pl-10 pr-4 bg-black-card border border-border-mid rounded-lg text-silver-bright font-body text-sm placeholder:text-silver-muted focus:outline-none focus:border-white transition-colors" />
+          <SearchIcon size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555]" />
+          <input type="search" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search games…" className={`${inputCls} !pl-10`} />
         </div>
-
-        {/* Segmented status filter */}
-        <div className="flex items-center h-10 p-1 bg-black-card border border-border-mid rounded-lg">
-          {([
-            ['all', `All · ${stats.total}`],
-            ['active', `Active · ${stats.active}`],
-            ['outdated', `Outdated · ${stats.outdated}`],
-          ] as const).map(([key, label]) => (
-            <button key={key} onClick={() => setStatusFilter(key)}
-              className={`h-full px-3 rounded-md font-body text-xs transition-all whitespace-nowrap ${
-                statusFilter === key
-                  ? 'bg-white text-black font-semibold'
-                  : 'text-silver-muted hover:text-white'
-              }`}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex gap-2">
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} aria-label="Sort games"
-            className="h-10 px-3 bg-black-card border border-border-mid rounded-lg text-silver-bright font-body text-sm focus:outline-none focus:border-white">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <Segmented
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: 'all', label: `All ${stats.total}` },
+              { value: 'active', label: `Working ${stats.active}` },
+              { value: 'outdated', label: `Updating ${stats.outdated}` },
+            ]}
+          />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} aria-label="Sort"
+            className="shrink-0 h-10 pl-3 pr-8 rounded-full bg-[#0a0a0a] border border-[#1f1f1f] text-xs text-[#d4d4d4] focus:outline-none">
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
-            <option value="name">Name A–Z</option>
+            <option value="name">A–Z</option>
           </select>
-
-          {/* View toggle */}
-          <div className="flex items-center h-10 p-1 bg-black-card border border-border-mid rounded-lg">
-            <button onClick={() => setViewPersist('grid')} aria-label="Grid view"
-              className={`h-full px-2.5 rounded-md transition-all ${view === 'grid' ? 'bg-white text-black' : 'text-silver-muted hover:text-white'}`}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-            </button>
-            <button onClick={() => setViewPersist('list')} aria-label="List view"
-              className={`h-full px-2.5 rounded-md transition-all ${view === 'list' ? 'bg-white text-black' : 'text-silver-muted hover:text-white'}`}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
-            </button>
-          </div>
+          <Segmented value={view} onChange={setViewPersist} options={[{ value: 'grid', label: 'Grid' }, { value: 'list', label: 'List' }]} />
         </div>
       </div>
 
-      {/* Bulk action bar */}
-      {selected.size > 0 && (
-        <div className="sticky top-4 z-20 mb-4 flex flex-wrap items-center gap-2 px-4 py-3 bg-black-elevated/95 backdrop-blur border border-border-bright rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.6)] animate-fade-up">
-          <button onClick={toggleSelectAll}
-            className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${allPageSelected ? 'bg-white border-white' : 'border-border-mid hover:border-white'}`}
-            aria-label="Select all on page">
-            {allPageSelected && <CheckIcon size={10} className="text-black" />}
+      {!loading && pagedGames.length > 0 && (
+        <div className="flex items-center justify-between mb-3 text-xs text-[#6b6b6b]">
+          <button onClick={toggleSelectAll} className="flex items-center gap-2 hover:text-white">
+            <SelectCheck isSelected={allPageSelected} onSelect={toggleSelectAll} /> Select page
           </button>
-          <span className="font-body text-sm text-white font-semibold">{selected.size} selected</span>
-          <div className="h-4 w-px bg-border-mid mx-1" />
-          <button onClick={() => handleBulkStatus('active')} disabled={bulkLoading}
-            className="px-3 py-1.5 text-xs font-body text-success border border-success/40 rounded-lg hover:bg-success/10 transition-all disabled:opacity-50">
-            Mark Active
-          </button>
-          <button onClick={() => handleBulkStatus('outdated')} disabled={bulkLoading}
-            className="px-3 py-1.5 text-xs font-body text-danger border border-danger/40 rounded-lg hover:bg-danger/10 transition-all disabled:opacity-50">
-            Mark Outdated
-          </button>
-          <button onClick={() => setBulkDeleteConfirm(true)} disabled={bulkLoading}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-body text-white bg-danger/80 rounded-lg hover:bg-danger transition-all disabled:opacity-50">
-            <TrashIcon size={13} />Delete {selected.size}
-          </button>
-          <button onClick={() => setSelected(new Set())}
-            className="px-3 py-1.5 text-xs font-body text-silver-muted border border-border-dim rounded-lg hover:text-white transition-all">
-            Clear
-          </button>
+          <span>{filteredGames.length} {filteredGames.length === 1 ? 'game' : 'games'}</span>
         </div>
       )}
 
-      {/* Content */}
       {loading ? (
-        <div className={view === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2'}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className={`bg-black-card border border-border-dim rounded-xl animate-pulse ${view === 'grid' ? 'h-52' : 'h-20'}`} />
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }, (_, i) => <div key={i} className="aspect-[4/3] rounded-2xl bg-[#0b0b0b] border border-[#161616] animate-pulse" />)}
         </div>
       ) : pagedGames.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-black-card border border-border-dim rounded-xl text-center">
-          <GamesIcon size={36} className="text-silver-faint mb-4" />
-          <p className="font-heading text-sm text-silver-light tracking-wider mb-1">NO GAMES FOUND</p>
-          <p className="font-body text-sm text-silver-muted mb-6">
-            {searchQuery || statusFilter !== 'all' ? 'Try adjusting your search or filters.' : 'Add your first game to get started.'}
-          </p>
-          {!searchQuery && statusFilter === 'all' && (
-            <button onClick={() => { setEditingGame(null); setIsModalOpen(true) }}
-              className="btn-primary !h-10 !py-0 text-sm">
-              <PlusIcon size={16} /><span>ADD GAME</span>
-            </button>
-          )}
-        </div>
+        <Empty
+          icon={<GamesIcon size={20} />}
+          title={games.length === 0 ? 'No games yet' : 'Nothing matches that'}
+          body={games.length === 0 ? 'Paste a Roblox link and the name, icon and banner fill themselves in.' : 'Try another search or filter.'}
+          action={games.length === 0 ? <button onClick={() => { setEditingGame(null); setIsModalOpen(true) }} className="btn-white h-10 px-5 text-sm"><PlusIcon size={14} /> Add your first game</button> : undefined}
+        />
       ) : view === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {pagedGames.map((game, i) => (
-            <GameGridCard
-              key={game.id}
-              game={game}
-              index={i}
-              isSelected={selected.has(game.id)}
-              onSelect={() => toggleSelect(game.id)}
-              onEdit={() => { setEditingGame(game); setIsModalOpen(true) }}
-              onDelete={() => setDeleteConfirm(game)}
-              onToggleStatus={() => handleToggleStatus(game)}
-            />
+            <GameGridCard key={game.id} game={game} index={i} isSelected={selected.has(game.id)} onSelect={() => toggleSelect(game.id)}
+              onEdit={() => { setEditingGame(game); setIsModalOpen(true) }} onDelete={() => setDeleteConfirm(game)} onToggleStatus={() => handleToggleStatus(game)} />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="rounded-2xl border border-[#1c1c1c] bg-[#070707] divide-y divide-[#141414] overflow-hidden">
           {pagedGames.map((game, i) => (
-            <GameListRow
-              key={game.id}
-              game={game}
-              index={i}
-              isSelected={selected.has(game.id)}
-              onSelect={() => toggleSelect(game.id)}
-              onEdit={() => { setEditingGame(game); setIsModalOpen(true) }}
-              onDelete={() => setDeleteConfirm(game)}
-              onToggleStatus={() => handleToggleStatus(game)}
-            />
+            <GameListRow key={game.id} game={game} index={i} isSelected={selected.has(game.id)} onSelect={() => toggleSelect(game.id)}
+              onEdit={() => { setEditingGame(game); setIsModalOpen(true) }} onDelete={() => setDeleteConfirm(game)} onToggleStatus={() => handleToggleStatus(game)} />
           ))}
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6">
-          <button onClick={() => setCurrentPage(p => Math.max(1,p-1))} disabled={currentPage===1}
-            className="flex items-center gap-1 px-3 py-2 border border-border-mid rounded-lg text-silver-mid font-body text-sm disabled:opacity-40 hover:text-white hover:border-white transition-all">
-            <ChevronLeftIcon size={16} /><span>Prev</span>
-          </button>
-          <div className="flex items-center gap-1.5">
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <button key={i} onClick={() => setCurrentPage(i + 1)} aria-label={`Page ${i + 1}`}
-                className={`w-8 h-8 rounded-lg font-body text-xs transition-all ${
-                  currentPage === i + 1 ? 'bg-white text-black font-semibold' : 'text-silver-muted hover:text-white border border-border-dim'
-                }`}>
-                {i + 1}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => setCurrentPage(p => Math.min(totalPages,p+1))} disabled={currentPage===totalPages}
-            className="flex items-center gap-1 px-3 py-2 border border-border-mid rounded-lg text-silver-mid font-body text-sm disabled:opacity-40 hover:text-white hover:border-white transition-all">
-            <span>Next</span><ChevronRightIcon size={16} />
-          </button>
+        <div className="flex items-center justify-center gap-2 mt-8">
+          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="btn-outline w-10 h-10 disabled:opacity-30" aria-label="Previous page"><ChevronLeftIcon size={15} /></button>
+          <span className="font-gmono text-xs text-[#8a8a8a] px-3">{currentPage} / {totalPages}</span>
+          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="btn-outline w-10 h-10 disabled:opacity-30" aria-label="Next page"><ChevronRightIcon size={15} /></button>
         </div>
       )}
 
-      {/* Add/Edit Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingGame(null) }} title={editingGame?'EDIT GAME':'ADD NEW GAME'} maxWidth="max-w-[720px]">
+      {games.length > 0 && !loading && (
+        <div className="mt-12 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-danger/20 px-5 py-4">
+          <div>
+            <p className="text-sm text-white">Start the list over</p>
+            <p className="text-xs text-[#6b6b6b]">Deletes every game. Export a backup in Settings first.</p>
+          </div>
+          <button onClick={() => setResetOpen(true)} className={btnDanger}><TrashIcon size={14} /> Reset all games</button>
+        </div>
+      )}
+
+      {/* Bulk action bar */}
+      <div className={`fixed bottom-4 left-4 right-4 lg:left-[calc(240px+2.5rem)] z-40 transition-all duration-300 ${selected.size ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'}`}>
+        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#2a2a2a] bg-[#0b0b0b]/95 backdrop-blur-xl px-4 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+          <span className="text-sm text-white">{selected.size} selected</span>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setSelected(new Set())} className="h-9 px-3 rounded-full text-xs text-[#8a8a8a] hover:text-white">Clear</button>
+            <button onClick={() => handleBulkStatus('active')} disabled={bulkLoading} className="btn-outline h-9 px-3.5 text-xs"><span className="w-1.5 h-1.5 rounded-full bg-success" /> Working</button>
+            <button onClick={() => handleBulkStatus('outdated')} disabled={bulkLoading} className="btn-outline h-9 px-3.5 text-xs"><span className="w-1.5 h-1.5 rounded-full bg-warning" /> Updating</button>
+            <button onClick={() => setBulkDeleteConfirm(true)} disabled={bulkLoading} className={btnDanger + ' !h-9 !text-xs'}><TrashIcon size={13} /> Delete</button>
+          </div>
+        </div>
+      </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingGame(null) }} title={editingGame ? 'Edit game' : 'Add a game'} maxWidth="max-w-[960px]">
         <GameModal game={editingGame} onSave={handleSaveGame} onCancel={() => { setIsModalOpen(false); setEditingGame(null) }} />
       </Modal>
 
-      {/* Single Delete Confirm */}
-      <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="DELETE GAME?" maxWidth="max-w-[360px]">
-        <div className="text-center">
-          <AlertIcon size={32} className="mx-auto text-danger mb-4" />
-          <p className="text-silver-light font-body text-sm mb-6">Are you sure you want to delete &quot;{deleteConfirm?.name}&quot;? This cannot be undone.</p>
-          <div className="flex items-center justify-center gap-3">
-            <button onClick={() => setDeleteConfirm(null)} className="px-5 h-10 border border-silver-faint text-silver-mid rounded-lg font-body text-sm hover:border-white hover:text-white transition-all">CANCEL</button>
-            <button onClick={handleDeleteGame} className="flex items-center gap-2 px-5 h-10 bg-danger text-white rounded-lg font-body text-sm hover:bg-danger/80 transition-all">
-              <TrashIcon size={16} /><span>DELETE</span>
-            </button>
-          </div>
+      <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete game?" maxWidth="max-w-[420px]">
+        <p className="text-sm text-[#a3a3a3]"><span className="text-white">{deleteConfirm?.name}</span> will disappear from the site right away.</p>
+        <div className="flex justify-end gap-2 mt-6">
+          <button onClick={() => setDeleteConfirm(null)} className="h-10 px-4 rounded-full text-sm text-[#8a8a8a] hover:text-white">Cancel</button>
+          <button onClick={handleDeleteGame} className={btnDanger}><TrashIcon size={14} /> Delete</button>
         </div>
       </Modal>
 
-      {/* Bulk Delete Confirm */}
-      <Modal isOpen={bulkDeleteConfirm} onClose={() => setBulkDeleteConfirm(false)} title="DELETE SELECTED?" maxWidth="max-w-[380px]">
-        <div className="text-center">
-          <AlertIcon size={32} className="mx-auto text-danger mb-4" />
-          <p className="text-silver-light font-body text-sm mb-2">
-            You are about to delete <strong className="text-white">{selected.size} game{selected.size !== 1 ? 's' : ''}</strong>.
-          </p>
-          <p className="text-silver-muted font-body text-xs mb-6">This cannot be undone.</p>
-          <div className="flex items-center justify-center gap-3">
-            <button onClick={() => setBulkDeleteConfirm(false)} className="px-5 h-10 border border-silver-faint text-silver-mid rounded-lg font-body text-sm hover:border-white hover:text-white transition-all">CANCEL</button>
-            <button onClick={handleBulkDelete} disabled={bulkLoading} className="flex items-center gap-2 px-5 h-10 bg-danger text-white rounded-lg font-body text-sm hover:bg-danger/80 disabled:opacity-60 transition-all">
-              <TrashIcon size={16} />
-              <span>{bulkLoading ? 'Deleting…' : `DELETE ${selected.size}`}</span>
-            </button>
-          </div>
+      <Modal isOpen={bulkDeleteConfirm} onClose={() => setBulkDeleteConfirm(false)} title={`Delete ${selected.size} games?`} maxWidth="max-w-[420px]">
+        <p className="text-sm text-[#a3a3a3]">They&apos;ll disappear from the site right away. This can&apos;t be undone.</p>
+        <div className="flex justify-end gap-2 mt-6">
+          <button onClick={() => setBulkDeleteConfirm(false)} className="h-10 px-4 rounded-full text-sm text-[#8a8a8a] hover:text-white">Cancel</button>
+          <button onClick={handleBulkDelete} disabled={bulkLoading} className={btnDanger}>{bulkLoading ? <RefreshIcon size={14} className="animate-spin" /> : <TrashIcon size={14} />} Delete</button>
         </div>
       </Modal>
-    </div>
-  )
-}
 
-/* ── Sub-components ─────────────────────────────────────────── */
-
-function StatCard({ icon: Icon, label, value, tone, delay }: {
-  icon: typeof GamesIcon; label: string; value: number; tone?: 'success' | 'danger'; delay: number
-}) {
-  const toneClass = tone === 'success' ? 'text-success' : tone === 'danger' ? 'text-danger' : 'text-silver-base'
-  return (
-    <div className="admin-stat-card admin-stagger bg-black-card border border-border-dim rounded-xl p-4 flex items-center gap-4 hover:border-border-bright transition-colors"
-      style={{ animationDelay: `${delay}ms` }}>
-      <div className={`w-10 h-10 rounded-lg bg-black-elevated border border-border-dim flex items-center justify-center ${toneClass}`}>
-        <Icon size={18} />
-      </div>
-      <div>
-        <p className="font-heading text-xl text-white leading-none">{value}</p>
-        <p className="font-body text-xs text-silver-muted mt-1 uppercase tracking-wider">{label}</p>
-      </div>
+      <Modal isOpen={resetOpen} onClose={() => { setResetOpen(false); setResetText('') }} title="Reset all games?" maxWidth="max-w-[440px]">
+        <p className="text-sm text-[#a3a3a3]">This deletes all <span className="text-white">{games.length}</span> games. Type <code className="font-gmono text-danger">RESET</code> to confirm.</p>
+        <input value={resetText} onChange={e => setResetText(e.target.value)} placeholder="RESET" className={`${inputCls} mt-4 font-gmono`} autoFocus />
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={() => { setResetOpen(false); setResetText('') }} className="h-10 px-4 rounded-full text-sm text-[#8a8a8a] hover:text-white">Cancel</button>
+          <button onClick={handleResetAll} disabled={resetText !== 'RESET'} className={btnDanger}><TrashIcon size={14} /> Delete everything</button>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -468,131 +391,85 @@ interface GameItemProps {
   onToggleStatus: () => void
 }
 
-function StatusBadge({ status, onClick }: { status: Game['status']; onClick: () => void }) {
-  const active = status === 'active'
-  return (
-    <button onClick={onClick} title={`Click to mark ${active ? 'outdated' : 'active'}`}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.7rem] font-body border transition-all hover:scale-105 ${
-        active
-          ? 'bg-success/10 text-success border-success/30'
-          : 'bg-danger/10 text-danger border-danger/30'
-      }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-success animate-pulse' : 'bg-danger'}`} />
-      {active ? 'Active' : 'Outdated'}
-    </button>
-  )
-}
-
 function SelectCheck({ isSelected, onSelect }: { isSelected: boolean; onSelect: () => void }) {
   return (
-    <button
+    <span
+      role="checkbox"
+      aria-checked={isSelected}
+      tabIndex={0}
       onClick={e => { e.stopPropagation(); onSelect() }}
-      aria-label={isSelected ? 'Deselect game' : 'Select game'}
-      className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
-        isSelected ? 'bg-white border-white' : 'bg-black/60 backdrop-blur border-border-bright hover:border-white'
-      }`}>
-      {isSelected && <CheckIcon size={11} className="text-black" />}
+      onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onSelect() } }}
+      className={`w-5 h-5 rounded-md border flex items-center justify-center cursor-pointer transition-colors ${isSelected ? 'bg-white border-white text-black' : 'border-[#444] bg-black/60 backdrop-blur hover:border-white'}`}
+    >
+      {isSelected && <CheckIcon size={12} />}
+    </span>
+  )
+}
+
+function StatusToggle({ status, onClick }: { status: Game['status']; onClick: () => void }) {
+  const ok = status === 'active'
+  return (
+    <button onClick={onClick} title="Tap to switch" className={`inline-flex items-center gap-1.5 h-7 px-3 rounded-full border text-xs transition-colors ${ok ? 'border-success/25 text-success hover:bg-success/10' : 'border-warning/30 text-warning hover:bg-warning/10'}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${ok ? 'bg-success' : 'bg-warning'}`} />{ok ? 'Working' : 'Updating'}
     </button>
   )
 }
 
-function GameGridCard({ game, index, isSelected, onSelect, onEdit, onDelete, onToggleStatus }: GameItemProps) {
+function GameGridCard({ game, isSelected, onSelect, onEdit, onDelete, onToggleStatus }: GameItemProps) {
+  const info = useRobloxInfo(placeIdOf(game))
+  const banner = info?.banner || game.thumbnail || info?.thumbnail
+  const icon = game.thumbnail || info?.thumbnail
   return (
-    <div
-      className={`group admin-stagger relative bg-black-card border rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] ${
-        isSelected ? 'border-white shadow-[0_0_0_1px_#fff]' : 'border-border-dim hover:border-border-bright'
-      }`}
-      style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
-    >
-      {/* Thumbnail */}
-      <div className="relative h-32 bg-black-surface overflow-hidden">
-        {game.thumbnail ? (
-          <img src={game.thumbnail} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ImageIcon size={24} className="text-silver-faint" />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black-card via-transparent to-transparent" />
-
-        {/* Selection checkbox */}
-        <div className={`absolute top-3 left-3 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+    <div className={`group rounded-2xl border bg-[#070707] overflow-hidden transition-colors ${isSelected ? 'border-white' : 'border-[#1c1c1c] hover:border-[#333]'}`}>
+      <div className="relative aspect-[16/9] bg-[#111] overflow-hidden cursor-pointer" onClick={onEdit}>
+        {banner ? <img src={banner} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="w-full h-full mono-dots flex items-center justify-center"><ImageIcon size={22} className="text-[#333]" /></div>}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#070707] via-transparent to-black/30" />
+        <div className={`absolute top-3 left-3 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
           <SelectCheck isSelected={isSelected} onSelect={onSelect} />
         </div>
-
-        {/* Featured ribbon */}
-        {game.featured && (
-          <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[0.6rem] font-heading tracking-wider bg-white text-black">
-            FEATURED
-          </span>
-        )}
+        {isNewGame(game.createdAt) && <span className="absolute top-3 right-3 shimmer-pill h-6 px-2.5 rounded-full font-gmono text-[0.6rem] text-black flex items-center">just added</span>}
       </div>
-
-      {/* Body */}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <h3 className="font-body font-semibold text-white text-sm leading-snug text-pretty">{game.name}</h3>
-          <StatusBadge status={game.status} onClick={onToggleStatus} />
+      <div className="px-4 pb-4 -mt-6 relative">
+        <div className="flex items-end justify-between gap-2">
+          <span className="w-12 h-12 rounded-xl overflow-hidden border-2 border-[#070707] bg-[#161616] shrink-0 flex items-center justify-center">
+            {icon ? <img src={icon} alt="" className="w-full h-full object-cover" /> : <span className="text-white font-semibold">{game.name.slice(0, 1)}</span>}
+          </span>
+          <StatusToggle status={game.status} onClick={onToggleStatus} />
         </div>
-        <div className="flex items-center gap-2 text-silver-muted font-body text-xs mb-4">
-          <span className="px-1.5 py-0.5 rounded bg-black-elevated border border-border-dim">{game.category || 'Uncategorized'}</span>
-          <span>·</span>
-          <span>{timeAgo(new Date(game.createdAt))}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={onEdit}
-            className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg border border-border-mid text-silver-mid font-body text-xs hover:text-white hover:border-white transition-all">
-            <EditIcon size={13} /><span>Edit</span>
-          </button>
-          <button onClick={onDelete} aria-label={`Delete ${game.name}`}
-            className="flex items-center justify-center w-8 h-8 rounded-lg border border-border-mid text-silver-muted hover:text-danger hover:border-danger/60 transition-all">
-            <TrashIcon size={13} />
-          </button>
+        <p className="mt-2.5 text-[0.95rem] font-medium text-white truncate">{game.name}</p>
+        <p className="text-xs text-[#6b6b6b] truncate">
+          {game.category || 'Uncategorized'} · {timeAgo(new Date(game.createdAt))}{info?.playing != null ? ` · ${compact(info.playing)} playing` : ''}
+        </p>
+        {game.notes?.trim() && <p className="mt-2 text-xs text-[#8a8a8a] line-clamp-1" title={game.notes}>📝 {game.notes}</p>}
+        <div className="mt-3 flex gap-2">
+          <button onClick={onEdit} className="btn-outline flex-1 h-9 text-xs"><EditIcon size={13} /> Edit</button>
+          <button onClick={onDelete} aria-label={`Delete ${game.name}`} className="w-9 h-9 rounded-full border border-[#262626] flex items-center justify-center text-[#6b6b6b] hover:text-danger hover:border-danger/40"><TrashIcon size={13} /></button>
         </div>
       </div>
     </div>
   )
 }
 
-function GameListRow({ game, index, isSelected, onSelect, onEdit, onDelete, onToggleStatus }: GameItemProps) {
+function GameListRow({ game, isSelected, onSelect, onEdit, onDelete, onToggleStatus }: GameItemProps) {
+  const info = useRobloxInfo(placeIdOf(game))
+  const icon = game.thumbnail || info?.thumbnail
   return (
-    <div
-      className={`group admin-stagger flex items-center gap-4 px-4 py-3 bg-black-card border rounded-xl transition-all ${
-        isSelected ? 'border-white' : 'border-border-dim hover:border-border-bright'
-      }`}
-      style={{ animationDelay: `${Math.min(index * 35, 300)}ms` }}
-    >
+    <div className={`flex flex-wrap sm:flex-nowrap items-center gap-3 px-4 py-3 ${isSelected ? 'bg-white/[0.04]' : ''}`}>
       <SelectCheck isSelected={isSelected} onSelect={onSelect} />
-      <div className="w-12 h-12 rounded-lg bg-black-surface border border-border-dim flex items-center justify-center overflow-hidden shrink-0">
-        {game.thumbnail
-          ? <img src={game.thumbnail} alt="" className="w-full h-full object-cover" />
-          : <ImageIcon size={16} className="text-silver-faint" />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="font-body font-semibold text-white text-sm truncate">{game.name}</span>
-          {game.featured && (
-            <span className="px-1.5 py-0.5 rounded-full text-[0.6rem] font-heading tracking-wider bg-white text-black shrink-0">FEAT</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 text-silver-muted font-body text-xs mt-0.5">
-          <span>{game.category || 'Uncategorized'}</span>
-          <span>·</span>
-          <span>{timeAgo(new Date(game.createdAt))}</span>
-        </div>
-      </div>
-      <div className="hidden sm:block">
-        <StatusBadge status={game.status} onClick={onToggleStatus} />
-      </div>
-      <div className="flex items-center gap-1">
-        <button onClick={onEdit} aria-label={`Edit ${game.name}`}
-          className="p-2 rounded-lg text-silver-muted hover:text-white hover:bg-black-elevated transition-all">
-          <EditIcon size={15} />
-        </button>
-        <button onClick={onDelete} aria-label={`Delete ${game.name}`}
-          className="p-2 rounded-lg text-silver-muted hover:text-danger hover:bg-danger/10 transition-all">
-          <TrashIcon size={15} />
-        </button>
+      <span className="w-11 h-11 rounded-xl overflow-hidden border border-[#222] bg-[#141414] shrink-0 flex items-center justify-center">
+        {icon ? <img src={icon} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={15} className="text-[#444]" />}
+      </span>
+      <button onClick={onEdit} className="flex-1 min-w-0 text-left">
+        <span className="flex items-center gap-2">
+          <span className="text-sm text-white truncate">{game.name}</span>
+          {isNewGame(game.createdAt) && <span className="shimmer-pill h-5 px-2 rounded-full font-gmono text-[0.55rem] text-black flex items-center shrink-0">new</span>}
+        </span>
+        <span className="block text-xs text-[#6b6b6b] truncate">{game.category || 'Uncategorized'} · {timeAgo(new Date(game.createdAt))}{info?.playing != null ? ` · ${compact(info.playing)} playing` : ''}</span>
+      </button>
+      <div className="flex items-center gap-1 ml-auto">
+        <StatusToggle status={game.status} onClick={onToggleStatus} />
+        <button onClick={onEdit} aria-label={`Edit ${game.name}`} className="w-9 h-9 rounded-full flex items-center justify-center text-[#6b6b6b] hover:text-white hover:bg-white/[0.06]"><EditIcon size={14} /></button>
+        <button onClick={onDelete} aria-label={`Delete ${game.name}`} className="w-9 h-9 rounded-full flex items-center justify-center text-[#6b6b6b] hover:text-danger hover:bg-danger/10"><TrashIcon size={14} /></button>
       </div>
     </div>
   )

@@ -37,99 +37,8 @@ export interface ActivityLogEntry {
   timestamp: string
 }
 
-// Default games data
-export const DEFAULT_GAMES: Game[] = [
-  {
-    id: '1',
-    name: 'Blox Fruits',
-    description: 'Auto farm, auto raid, devil fruit sniper, boss farm, sea beast killer and much more.',
-    category: 'Roblox',
-    status: 'active',
-    thumbnail: '',
-    scriptLink: 'https://discord.gg/kPPsdZtndn',
-    robloxUrl: 'https://www.roblox.com/games/2753915549/Blox-Fruits',
-    placeId: '2753915549',
-    features: ['Auto Farm', 'Devil Fruit Sniper', 'Auto Raid', 'Boss Farm', 'Sea Beast Killer', 'Mastery Farm'],
-    featured: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Murder Mystery 2',
-    description: 'ESP for all players, gun aimbotter, coin collector, knife thrower and role finder.',
-    category: 'Roblox',
-    status: 'active',
-    thumbnail: '',
-    scriptLink: 'https://discord.gg/kPPsdZtndn',
-    robloxUrl: 'https://www.roblox.com/games/142823291/Murder-Mystery-2',
-    placeId: '142823291',
-    features: ['Player ESP', 'Gun Aimbot', 'Coin Auto Collect', 'Knife Throw', 'Role Finder', 'Anti-AFK'],
-    featured: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Arsenal',
-    description: 'Silent aim, full ESP, no recoil, rapid fire, and wallbang for competitive play.',
-    category: 'Roblox',
-    status: 'active',
-    thumbnail: '',
-    scriptLink: 'https://discord.gg/kPPsdZtndn',
-    robloxUrl: 'https://www.roblox.com/games/286090429/Arsenal',
-    placeId: '286090429',
-    features: ['Silent Aim', 'Full ESP', 'No Recoil', 'Rapid Fire', 'WallBang', 'Kill Sound Spam'],
-    featured: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '4',
-    name: 'Pet Simulator 99',
-    description: 'Auto hatch, auto collect coins, auto open chests, teleport farm, and pet dupe detection.',
-    category: 'Roblox',
-    status: 'active',
-    thumbnail: '',
-    scriptLink: 'https://discord.gg/kPPsdZtndn',
-    robloxUrl: 'https://www.roblox.com/games/15532962292/Pet-Simulator-99',
-    placeId: '15532962292',
-    features: ['Auto Hatch', 'Auto Collect Coins', 'Auto Open Chests', 'Teleport Farm', 'Anti-AFK', 'Dupe Detector'],
-    featured: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '5',
-    name: 'Anime Defenders',
-    description: 'Auto wave complete, unit placement helper, gem farmer, afk bypasser and trait roller.',
-    category: 'Roblox',
-    status: 'active',
-    thumbnail: '',
-    scriptLink: 'https://discord.gg/kPPsdZtndn',
-    robloxUrl: 'https://www.roblox.com/games/17017769292/Anime-Defenders',
-    placeId: '17017769292',
-    features: ['Auto Wave Complete', 'Unit Placer', 'Gem Farmer', 'AFK Bypass', 'Trait Roller', 'Auto Upgrade'],
-    featured: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '6',
-    name: 'Fisch',
-    description: 'Auto fish, teleport to rare spots, fish ESP, rod auto cast, and inventory manager.',
-    category: 'Roblox',
-    status: 'active',
-    thumbnail: '',
-    scriptLink: 'https://discord.gg/kPPsdZtndn',
-    robloxUrl: 'https://www.roblox.com/games/16732694052/Fisch',
-    placeId: '16732694052',
-    features: ['Auto Fish', 'Rare Spot TP', 'Fish ESP', 'Auto Cast', 'Inventory Manager', 'Anti-AFK'],
-    featured: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-]
+// No seed games — the list starts empty and is filled from the admin panel.
+export const DEFAULT_GAMES: Game[] = []
 
 // IMPORTANT: must be the www domain — the apex "voidon.top" 308-redirects to
 // "www.voidon.top" and many Roblox executors do NOT follow redirects, so they
@@ -156,7 +65,7 @@ export function initializeStorage() {
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.DISCORD)) {
-    localStorage.setItem(STORAGE_KEYS.DISCORD, 'https://discord.gg/kPPsdZtndn')
+    localStorage.setItem(STORAGE_KEYS.DISCORD, 'https://discord.gg/UrTqzfq9DF')
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.TAGLINE)) {
@@ -260,9 +169,9 @@ export function resetCopyCount() {
 
 // Discord link
 export function getDiscordLink(): string {
-  if (!isBrowser) return 'https://discord.gg/kPPsdZtndn'
+  if (!isBrowser) return 'https://discord.gg/UrTqzfq9DF'
   initializeStorage()
-  return localStorage.getItem(STORAGE_KEYS.DISCORD) || 'https://discord.gg/kPPsdZtndn'
+  return localStorage.getItem(STORAGE_KEYS.DISCORD) || 'https://discord.gg/UrTqzfq9DF'
 }
 
 export function setDiscordLink(value: string) {

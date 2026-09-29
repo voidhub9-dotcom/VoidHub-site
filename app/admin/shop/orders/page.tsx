@@ -152,7 +152,7 @@ export default function AdminShopOrdersPage() {
             <ChevronLeftIcon size={14} />Back to products
           </Link>
           <p className="font-body text-xs text-silver-muted tracking-[0.3em] uppercase mb-1">Shop</p>
-          <h1 className="font-heading text-2xl text-white tracking-wide">ORDERS</h1>
+          <h1 className="font-semibold tracking-[-0.03em] text-3xl text-chrome">Orders</h1>
         </div>
         <div className="flex items-center gap-2">
           {testCount > 0 && selected.size === 0 && (

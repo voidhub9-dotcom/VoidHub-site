@@ -162,7 +162,7 @@ export default function AdminShopPage() {
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 admin-stagger">
         <div>
           <p className="font-body text-xs text-silver-muted tracking-[0.3em] uppercase mb-1">Shop</p>
-          <h1 className="font-heading text-2xl text-white tracking-wide">MANAGE PRODUCTS</h1>
+          <h1 className="font-semibold tracking-[-0.03em] text-3xl text-chrome">Manage products</h1>
         </div>
         <div className="flex gap-2">
           <Link href="/admin/shop/orders"
@@ -179,7 +179,7 @@ export default function AdminShopPage() {
           </button>
           <button onClick={() => { setEditingProduct(null); setIsModalOpen(true) }}
             className="btn-buy !h-10 !py-0 !px-4 text-sm">
-            <PlusIcon size={16} /><span>ADD PRODUCT</span>
+            <PlusIcon size={16} /><span>Add product</span>
           </button>
         </div>
       </div>
@@ -215,7 +215,7 @@ export default function AdminShopPage() {
           <p className="font-body text-sm text-silver-muted mb-6">Add your first product to start selling keys.</p>
           <button onClick={() => { setEditingProduct(null); setIsModalOpen(true) }}
             className="btn-buy">
-            <PlusIcon size={16} /><span>ADD PRODUCT</span>
+            <PlusIcon size={16} /><span>Add product</span>
           </button>
         </div>
       ) : (
@@ -351,7 +351,7 @@ export default function AdminShopPage() {
           <div className="flex items-center justify-center gap-3">
             <button onClick={() => setDeleteConfirm(null)} className="px-5 h-10 border border-silver-faint text-silver-mid rounded-lg font-body text-sm hover:border-white hover:text-white transition-all">CANCEL</button>
             <button onClick={handleDelete} className="flex items-center gap-2 px-5 h-10 bg-danger text-white rounded-lg font-body text-sm hover:bg-danger/80 transition-all">
-              <TrashIcon size={16} /><span>DELETE</span>
+              <TrashIcon size={16} /><span>Delete</span>
             </button>
           </div>
         </div>

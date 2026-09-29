@@ -22,7 +22,6 @@ export const KV_KEYS = {
   EXECUTORS: 'voidhub:executors',
   ANALYTICS: 'voidhub:analytics',
   SITE_LINKS: 'voidhub:site_links',
-  KEY_PAGE: 'voidhub:key_page',
   SHOP_PRODUCTS: 'voidhub:shop_products',
   SHOP_ORDERS: 'voidhub:shop_orders',
   SHOP_EMAIL_TEMPLATE: 'voidhub:shop_email_template',
@@ -93,7 +92,7 @@ print("[VoidHub] Loader started for place " .. tostring(placeId))
 `
 
 const SEED_DEFAULTS: Record<string, string> = {
-  [KV_KEYS.DISCORD]: 'https://discord.gg/kPPsdZtndn',
+  [KV_KEYS.DISCORD]: 'https://discord.gg/UrTqzfq9DF',
   [KV_KEYS.TAGLINE]: 'Free. Powerful. No Limits.',
   [KV_KEYS.MAINTENANCE]: 'false',
   [KV_KEYS.LOADER_SCRIPT]: DEFAULT_LOADER_SCRIPT,
@@ -142,4 +141,16 @@ export async function kvSet(key: string, value: string): Promise<boolean> {
 
 export async function kvDel(key: string): Promise<boolean> {
   return r2Delete(keyFor(key))
+}
+
+/** Current Discord invite. */
+export const DISCORD_INVITE = 'https://discord.gg/UrTqzfq9DF'
+// Invites that were replaced; if one is still saved in R2, serve the new one instead.
+const RETIRED_INVITES = ['kPPsdZtndn']
+
+/** The saved Discord link, falling back to (or upgrading to) DISCORD_INVITE. */
+export function discordLink(saved: string | null | undefined): string {
+  const v = saved?.trim()
+  if (!v || RETIRED_INVITES.some(code => v.includes(code))) return DISCORD_INVITE
+  return v
 }

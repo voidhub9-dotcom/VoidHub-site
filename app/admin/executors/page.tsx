@@ -6,6 +6,7 @@ import {
   BoltIcon, RefreshIcon, EditIcon, GlobeIcon, DiscordIcon,
 } from '@/components/Icons'
 import Modal from '@/components/Modal'
+import { PageHead, StatStrip, Segmented, Switch, Field, Empty, inputCls, btnDanger } from '@/components/AdminUI'
 import ExecutorIcon from '@/components/ExecutorIcon'
 import { useToast } from '@/components/Toast'
 import ImageUploadInput from '@/components/ImageUploadInput'
@@ -142,347 +143,156 @@ export default function AdminExecutorsPage() {
   const supportedCount = executors.filter(e => e.status === 'supported').length
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-xl text-white tracking-widest uppercase">Executors</h1>
-          <p className="font-body text-sm text-silver-muted mt-1">
-            Manage the executor compatibility list shown on the public status page.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={load} className="btn-ghost !px-4 !py-2 text-xs" disabled={loading}>
-            <RefreshIcon size={14} />
-            Refresh
-          </button>
-          <button onClick={openAdd} className="btn-primary !px-4 !py-2 text-xs">
-            <PlusIcon size={14} />
-            Add Executor
-          </button>
-        </div>
-      </header>
+    <div className="max-w-5xl mx-auto">
+      <PageHead
+        eyebrow="Content"
+        title="Executors"
+        subtitle="The compatibility list on the public status page. Live version and platform data is added automatically from WEAO."
+        actions={
+          <>
+            <button onClick={load} disabled={loading} className="btn-outline h-10 px-4 text-sm">
+              <RefreshIcon size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+            </button>
+            <button onClick={openAdd} className="btn-white h-10 px-5 text-sm">
+              <PlusIcon size={14} /> Add executor
+            </button>
+          </>
+        }
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="void-card admin-stat-card p-4">
-          <p className="font-body text-[0.65rem] text-silver-muted tracking-widest uppercase">Total</p>
-          <p className="font-heading text-2xl text-white mt-1">{executors.length}</p>
-        </div>
-        <div className="void-card admin-stat-card p-4">
-          <p className="font-body text-[0.65rem] text-silver-muted tracking-widest uppercase">Working</p>
-          <p className="font-heading text-2xl text-success mt-1">{supportedCount}</p>
-        </div>
-        <div className="void-card admin-stat-card p-4">
-          <p className="font-body text-[0.65rem] text-silver-muted tracking-widest uppercase">Not Working</p>
-          <p className="font-heading text-2xl text-danger mt-1">{executors.length - supportedCount}</p>
-        </div>
-      </div>
+      <StatStrip items={[
+        { label: 'Total', value: loading ? '–' : executors.length, sub: 'on the list' },
+        { label: 'Working', value: loading ? '–' : supportedCount, sub: 'shown as ready', dot: 'bg-success' },
+        { label: 'Not working', value: loading ? '–' : executors.length - supportedCount, sub: 'shown crossed out', dot: 'bg-danger' },
+      ]} />
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
-          <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-silver-muted" />
+          <SearchIcon size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555]" />
           <input
-            type="text"
+            type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search executors..."
-            className="void-input !pl-9"
+            placeholder="Search executors…"
+            className={`${inputCls} !pl-10`}
           />
         </div>
-        <div className="flex rounded-md border border-border-mid overflow-hidden">
-          {(['all', 'supported', 'unsupported'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-xs font-body capitalize transition-colors ${
-                filter === f ? 'bg-black-elevated text-white' : 'text-silver-muted hover:text-silver-light'
-              }`}
-            >
-              {f === 'all' ? `All (${executors.length})` : f === 'supported' ? `Working (${supportedCount})` : `Not working (${executors.length - supportedCount})`}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: 'all', label: `All ${executors.length}` },
+            { value: 'supported', label: `Working ${supportedCount}` },
+            { value: 'unsupported', label: `Not working ${executors.length - supportedCount}` },
+          ]}
+        />
       </div>
 
-      {/* List */}
       {loading ? (
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="void-card h-16 animate-pulse" />
+        <div className="rounded-2xl border border-[#1c1c1c] bg-[#070707] divide-y divide-[#161616]">
+          {Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-4">
+              <div className="w-10 h-10 rounded-xl bg-[#141414] animate-pulse" />
+              <div className="h-3.5 w-32 rounded bg-[#141414] animate-pulse" />
+            </div>
           ))}
         </div>
       ) : visible.length === 0 ? (
-        <div className="void-card flex flex-col items-center justify-center py-16 gap-3">
-          <BoltIcon size={32} className="text-silver-faint" />
-          <p className="font-body text-sm text-silver-muted">
-            {executors.length === 0 ? 'No executors yet. Add your first one.' : 'Nothing matches your search.'}
-          </p>
-        </div>
+        <Empty
+          icon={<BoltIcon size={20} />}
+          title={executors.length === 0 ? 'No executors yet' : 'Nothing matches that'}
+          body={executors.length === 0 ? 'Add the executors you have tested with VoidHub.' : 'Try another search or filter.'}
+          action={executors.length === 0 ? <button onClick={openAdd} className="btn-white h-10 px-5 text-sm"><PlusIcon size={14} /> Add executor</button> : undefined}
+        />
       ) : (
-        <ul className="flex flex-col gap-2" aria-label="Executor list">
-          {visible.map(exec => (
-            <li key={`${exec.name}-${exec._index}`} className="void-card admin-stagger p-4">
-              <div className="flex items-center gap-3">
-                {/* Reorder */}
-                <div className="flex flex-col gap-0.5">
-                  <button
-                    onClick={() => move(exec._index, -1)}
-                    disabled={exec._index === 0 || saving}
-                    className="text-silver-faint hover:text-white disabled:opacity-30 transition-colors leading-none"
-                    aria-label={`Move ${exec.name} up`}
-                  >
-                    ▲
-                  </button>
-                  <button
-                    onClick={() => move(exec._index, 1)}
-                    disabled={exec._index === executors.length - 1 || saving}
-                    className="text-silver-faint hover:text-white disabled:opacity-30 transition-colors leading-none"
-                    aria-label={`Move ${exec.name} down`}
-                  >
-                    ▼
-                  </button>
+        <ul className="rounded-2xl border border-[#1c1c1c] bg-[#070707] divide-y divide-[#161616] overflow-hidden" aria-label="Executor list">
+          {visible.map(exec => {
+            const ok = exec.status === 'supported'
+            return (
+              <li key={`${exec.name}-${exec._index}`} className="flex flex-wrap sm:flex-nowrap items-center gap-3 px-4 sm:px-5 py-3.5">
+                <div className="flex flex-col -my-1">
+                  <button onClick={() => move(exec._index, -1)} disabled={exec._index === 0 || saving || filter !== 'all' || !!search}
+                    className="w-6 h-5 flex items-center justify-center text-[#555] hover:text-white disabled:opacity-20 text-[0.6rem]" aria-label={`Move ${exec.name} up`}>▲</button>
+                  <button onClick={() => move(exec._index, 1)} disabled={exec._index === executors.length - 1 || saving || filter !== 'all' || !!search}
+                    className="w-6 h-5 flex items-center justify-center text-[#555] hover:text-white disabled:opacity-20 text-[0.6rem]" aria-label={`Move ${exec.name} down`}>▼</button>
                 </div>
-
-                {/* Icon + status dot + name */}
-                <div className="relative shrink-0">
-                  <ExecutorIcon name={exec.name} icon={exec.icon} size={38} />
-                  <span
-                    className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-black-card ${
-                      exec.status === 'supported' ? 'bg-success shadow-[0_0_8px_rgba(0,255,136,0.6)]' : 'bg-danger shadow-[0_0_8px_rgba(255,51,51,0.6)]'
-                    }`}
-                  />
-                </div>
+                <ExecutorIcon name={exec.name} icon={exec.icon} size={40} className="!rounded-xl" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-body text-sm text-white truncate">{exec.name}</p>
-                  {(exec.websiteUrl || exec.discordUrl) && (
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {exec.websiteUrl && (
-                        <a
-                          href={exec.websiteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 font-body text-xs text-info hover:underline"
-                        >
-                          <GlobeIcon size={11} />
-                          Website
-                        </a>
-                      )}
-                      {exec.discordUrl && (
-                        <a
-                          href={exec.discordUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 font-body text-xs text-info hover:underline"
-                        >
-                          <DiscordIcon size={11} />
-                          Discord
-                        </a>
-                      )}
-                    </div>
-                  )}
+                  <p className={`text-[0.95rem] truncate ${ok ? 'text-white' : 'text-[#8a8a8a] line-through decoration-[#555]'}`}>{exec.name}</p>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    {exec.websiteUrl && <a href={exec.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-[#6b6b6b] hover:text-white"><GlobeIcon size={11} /> Website</a>}
+                    {exec.discordUrl && <a href={exec.discordUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-[#6b6b6b] hover:text-white"><DiscordIcon size={11} /> Discord</a>}
+                    {!exec.websiteUrl && !exec.discordUrl && <span className="text-xs text-[#444]">No links</span>}
+                  </div>
                 </div>
-
-                {/* Status toggle + actions — inline on sm+, moved below on mobile so the name isn't squeezed */}
-                <div className="hidden sm:flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => toggleStatus(exec._index)}
-                    disabled={saving}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.65rem] font-body tracking-wider uppercase border transition-colors ${
-                      exec.status === 'supported'
-                        ? 'border-success/40 text-success hover:bg-success/10'
-                        : 'border-danger/40 text-danger hover:bg-danger/10'
-                    }`}
-                    title="Click to toggle status"
-                  >
-                    {exec.status === 'supported' ? <CheckIcon size={12} /> : <AlertIcon size={12} />}
-                    {exec.status === 'supported' ? 'Working' : 'Not working'}
-                  </button>
-                  <button
-                    onClick={() => openEdit(exec._index)}
-                    className="p-2 text-silver-muted hover:text-white transition-colors"
-                    aria-label={`Edit ${exec.name}`}
-                  >
-                    <EditIcon size={16} />
-                  </button>
-                  <button
-                    onClick={() => setDeleteIndex(exec._index)}
-                    className="p-2 text-silver-muted hover:text-danger transition-colors"
-                    aria-label={`Delete ${exec.name}`}
-                  >
-                    <TrashIcon size={16} />
-                  </button>
+                <div className="flex items-center gap-3 w-full sm:w-auto pl-9 sm:pl-0 justify-between sm:justify-end">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <span className={`text-xs ${ok ? 'text-success' : 'text-danger'}`}>{ok ? 'Working' : 'Not working'}</span>
+                    <Switch checked={ok} onChange={() => toggleStatus(exec._index)} disabled={saving} label={`${exec.name} works`} />
+                  </label>
+                  <div className="flex items-center">
+                    <button onClick={() => openEdit(exec._index)} className="w-9 h-9 flex items-center justify-center rounded-full text-[#6b6b6b] hover:text-white hover:bg-white/[0.06]" aria-label={`Edit ${exec.name}`}><EditIcon size={15} /></button>
+                    <button onClick={() => setDeleteIndex(exec._index)} className="w-9 h-9 flex items-center justify-center rounded-full text-[#6b6b6b] hover:text-danger hover:bg-danger/10" aria-label={`Delete ${exec.name}`}><TrashIcon size={15} /></button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Mobile-only status toggle + actions row */}
-              <div className="flex sm:hidden items-center justify-between gap-2 mt-3 pt-3 border-t border-border-dim">
-                <button
-                  onClick={() => toggleStatus(exec._index)}
-                  disabled={saving}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.65rem] font-body tracking-wider uppercase border transition-colors ${
-                    exec.status === 'supported'
-                      ? 'border-success/40 text-success hover:bg-success/10'
-                      : 'border-danger/40 text-danger hover:bg-danger/10'
-                  }`}
-                  title="Tap to toggle status"
-                >
-                  {exec.status === 'supported' ? <CheckIcon size={12} /> : <AlertIcon size={12} />}
-                  {exec.status === 'supported' ? 'Working' : 'Not working'}
-                </button>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => openEdit(exec._index)}
-                    className="p-2 text-silver-muted hover:text-white transition-colors"
-                    aria-label={`Edit ${exec.name}`}
-                  >
-                    <EditIcon size={16} />
-                  </button>
-                  <button
-                    onClick={() => setDeleteIndex(exec._index)}
-                    className="p-2 text-silver-muted hover:text-danger transition-colors"
-                    aria-label={`Delete ${exec.name}`}
-                  >
-                    <TrashIcon size={16} />
-                  </button>
-                </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       )}
+      {!loading && executors.length > 1 && (
+        <p className="mt-3 text-xs text-[#555]">Use the arrows to set the order they appear on the status page{filter !== 'all' || search ? ' (clear the filter first)' : ''}.</p>
+      )}
 
-      {/* Add / Edit modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editIndex === null ? 'Add Executor' : 'Edit Executor'}
-      >
-        <div className="flex flex-col gap-4">
-          {/* Live icon preview + name */}
-          <div className="flex items-end gap-3">
-            <ExecutorIcon key={form.icon || form.name} name={form.name || '?'} icon={form.icon?.trim() || undefined} size={52} />
-            <div className="flex-1">
-              <label htmlFor="exec-name" className="font-body text-xs text-silver-muted tracking-wider uppercase block mb-1.5">
-                Name
-              </label>
-              <input
-                id="exec-name"
-                type="text"
-                value={form.name}
-                onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Delta"
-                className="void-input"
-              />
+      {/* Add / Edit */}
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editIndex === null ? 'Add executor' : 'Edit executor'} maxWidth="max-w-[520px]">
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center gap-4 p-4 rounded-2xl border border-[#1c1c1c] bg-black">
+            <ExecutorIcon key={form.icon || form.name} name={form.name || '?'} icon={form.icon?.trim() || undefined} size={52} className="!rounded-2xl" />
+            <div className="min-w-0">
+              <p className="text-white truncate">{form.name || 'Executor name'}</p>
+              <p className={`text-xs ${form.status === 'supported' ? 'text-success' : 'text-danger'}`}>{form.status === 'supported' ? 'Working with VoidHub' : 'Not working'}</p>
             </div>
           </div>
-
-          <div>
-            <label htmlFor="exec-icon" className="font-body text-xs text-silver-muted tracking-wider uppercase block mb-1.5">
-              Icon <span className="text-silver-faint normal-case">(optional — leave empty for auto badge)</span>
-            </label>
-            <ImageUploadInput
-              id="exec-icon"
-              value={form.icon || ''}
-              onChange={url => setForm({ ...form, icon: url })}
-              placeholder="https://... or upload"
-            />
-          </div>
-
-          <div>
-            <span className="font-body text-xs text-silver-muted tracking-wider uppercase block mb-1.5">Status</span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, status: 'supported' })}
-                className={`flex-1 py-2.5 rounded-md border text-sm font-body transition-colors ${
-                  form.status === 'supported'
-                    ? 'border-success/60 bg-success/10 text-success'
-                    : 'border-border-mid text-silver-muted hover:text-white'
-                }`}
-              >
-                Working
-              </button>
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, status: 'unsupported' })}
-                className={`flex-1 py-2.5 rounded-md border text-sm font-body transition-colors ${
-                  form.status === 'unsupported'
-                    ? 'border-danger/60 bg-danger/10 text-danger'
-                    : 'border-border-mid text-silver-muted hover:text-white'
-                }`}
-              >
-                Not working
-              </button>
+          <Field label="Name" htmlFor="exec-name">
+            <input id="exec-name" type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Delta" className={inputCls} autoFocus />
+          </Field>
+          <Field label="Status">
+            <div className="grid grid-cols-2 gap-2">
+              {([['supported', 'Working'], ['unsupported', 'Not working']] as const).map(([v, l]) => (
+                <button key={v} type="button" onClick={() => setForm({ ...form, status: v })}
+                  className={`h-11 rounded-xl border text-sm flex items-center justify-center gap-2 ${form.status === v ? 'bg-white text-black border-white' : 'border-[#262626] text-[#8a8a8a] hover:text-white'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${v === 'supported' ? 'bg-success' : 'bg-danger'}`} />{l}
+                </button>
+              ))}
             </div>
+          </Field>
+          <Field label="Icon" hint="Optional. Leave empty for a monogram badge." htmlFor="exec-icon">
+            <ImageUploadInput id="exec-icon" value={form.icon || ''} onChange={url => setForm({ ...form, icon: url })} placeholder="https://… or upload" />
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Website" htmlFor="exec-website">
+              <input id="exec-website" type="url" value={form.websiteUrl || ''} onChange={e => setForm({ ...form, websiteUrl: e.target.value })} placeholder="https://…" className={inputCls} />
+            </Field>
+            <Field label="Discord" htmlFor="exec-discord">
+              <input id="exec-discord" type="url" value={form.discordUrl || ''} onChange={e => setForm({ ...form, discordUrl: e.target.value })} placeholder="https://discord.gg/…" className={inputCls} />
+            </Field>
           </div>
-
-          <div>
-            <label htmlFor="exec-website" className="font-body text-xs text-silver-muted tracking-wider uppercase flex items-center gap-1.5 mb-1.5">
-              <GlobeIcon size={12} /> Website <span className="text-silver-faint normal-case">(optional)</span>
-            </label>
-            <input
-              id="exec-website"
-              type="url"
-              value={form.websiteUrl || ''}
-              onChange={e => setForm({ ...form, websiteUrl: e.target.value })}
-              placeholder="https://example.com"
-              className="void-input"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="exec-discord" className="font-body text-xs text-silver-muted tracking-wider uppercase flex items-center gap-1.5 mb-1.5">
-              <DiscordIcon size={12} /> Discord server <span className="text-silver-faint normal-case">(optional)</span>
-            </label>
-            <input
-              id="exec-discord"
-              type="url"
-              value={form.discordUrl || ''}
-              onChange={e => setForm({ ...form, discordUrl: e.target.value })}
-              placeholder="https://discord.gg/..."
-              className="void-input"
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="btn-ghost !px-5 !py-2 text-xs">
-              Cancel
-            </button>
-            <button onClick={submitForm} disabled={saving} className="btn-primary !px-5 !py-2 text-xs">
-              {editIndex === null ? 'Add' : 'Save'}
-            </button>
+          <div className="flex justify-end gap-2 pt-2 border-t border-[#181818] -mx-5 md:-mx-6 px-5 md:px-6 pt-5">
+            <button onClick={() => setModalOpen(false)} className="h-11 px-4 rounded-full text-sm text-[#8a8a8a] hover:text-white">Cancel</button>
+            <button onClick={submitForm} disabled={saving} className="btn-white h-11 px-6 text-sm"><CheckIcon size={15} /> {editIndex === null ? 'Add executor' : 'Save'}</button>
           </div>
         </div>
       </Modal>
 
-      {/* Delete confirmation */}
-      <Modal
-        isOpen={deleteIndex !== null}
-        onClose={() => setDeleteIndex(null)}
-        title="Delete Executor"
-      >
-        <div className="flex flex-col gap-4">
-          <p className="font-body text-sm text-silver-mid">
-            Delete{' '}
-            <span className="text-white font-semibold">
-              {deleteIndex !== null ? executors[deleteIndex]?.name : ''}
-            </span>{' '}
-            from the compatibility list? This updates the public status page immediately.
-          </p>
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setDeleteIndex(null)} className="btn-ghost !px-5 !py-2 text-xs">
-              Cancel
-            </button>
-            <button
-              onClick={confirmDelete}
-              className="inline-flex items-center gap-2 rounded-md bg-danger px-5 py-2 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
-            >
-              <TrashIcon size={14} />
-              Delete
-            </button>
-          </div>
+      {/* Delete */}
+      <Modal isOpen={deleteIndex !== null} onClose={() => setDeleteIndex(null)} title="Delete executor?" maxWidth="max-w-[420px]">
+        <p className="text-sm text-[#a3a3a3]">
+          <span className="text-white">{deleteIndex !== null ? executors[deleteIndex]?.name : ''}</span> will be removed from the status page right away.
+        </p>
+        <div className="flex justify-end gap-2 mt-6">
+          <button onClick={() => setDeleteIndex(null)} className="h-10 px-4 rounded-full text-sm text-[#8a8a8a] hover:text-white">Cancel</button>
+          <button onClick={confirmDelete} className={btnDanger}><TrashIcon size={14} /> Delete</button>
         </div>
       </Modal>
     </div>

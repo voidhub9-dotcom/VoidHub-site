@@ -1,9 +1,9 @@
-import { loadShopProducts } from '@/lib/shop'
+import { SHOP_ENABLED, loadShopProducts } from '@/lib/shop'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const products = await loadShopProducts()
+  const products = SHOP_ENABLED ? await loadShopProducts() : []
 
   const publicProducts = products
     .filter(p => p.active)

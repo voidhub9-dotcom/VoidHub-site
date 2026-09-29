@@ -9,9 +9,13 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ["var(--font-orbitron)", "sans-serif"],
-        body: ["var(--font-syne)", "sans-serif"],
+        display: ["var(--font-geist)", "sans-serif"],
+        gmono: ["var(--font-geist-mono)", "monospace"],
+        orbitron: ["var(--font-orbitron)", "sans-serif"],
+        body: ["var(--font-geist)", "sans-serif"],
         mono: ["var(--font-jetbrains)", "monospace"],
+        heading: ["var(--font-geist)", "sans-serif"],
+        code: ["var(--font-geist-mono)", "monospace"],
       },
       colors: {
         background: "hsl(var(--background))",

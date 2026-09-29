@@ -8,11 +8,10 @@
  * Cached server-side for a minute (same pattern as /api/public/weao) so a
  * page full of visitors doesn't hammer Discord's API on every load.
  */
-import { kvGet, KV_KEYS } from '@/lib/kv'
+import { kvGet, KV_KEYS, discordLink } from '@/lib/kv'
 
 export const dynamic = 'force-dynamic'
 
-const DEFAULT_INVITE = 'https://discord.gg/kPPsdZtndn'
 const CACHE_TTL_MS = 60 * 1000
 
 interface WidgetPayload {
@@ -60,7 +59,7 @@ async function fetchWidget(inviteUrl: string): Promise<WidgetPayload> {
 }
 
 export async function GET() {
-  const inviteUrl = (await kvGet(KV_KEYS.DISCORD)) || DEFAULT_INVITE
+  const inviteUrl = discordLink(await kvGet(KV_KEYS.DISCORD))
 
   if (cache && cache.forInvite === inviteUrl && Date.now() < cache.expires) {
     return Response.json(cache.data, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } })

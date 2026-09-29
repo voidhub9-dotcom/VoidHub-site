@@ -1,4 +1,4 @@
-import { kvGet, kvSet, KV_KEYS } from '@/lib/kv'
+import { kvGet, kvSet, KV_KEYS, discordLink } from '@/lib/kv'
 import { loadLinks, DEFAULT_LINKS, type SiteLinks } from '@/lib/site-links'
 
 function authorized(req: Request) {
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   ])
 
   return Response.json({
-    discord: discord || 'https://discord.gg/kPPsdZtndn',
+    discord: discordLink(discord),
     tagline: tagline || 'Free. Powerful. No Limits.',
     maintenance: maintenance === 'true',
     links,

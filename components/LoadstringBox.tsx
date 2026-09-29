@@ -5,6 +5,28 @@ import { CopyIcon, CheckIcon } from '@/components/Icons'
 import { getLoadstring, incrementCopyCount } from '@/lib/storage'
 import { useToast } from '@/components/Toast'
 
+/** Lua-ish highlight in greys: keywords bright, the URL string dimmer. */
+function Highlighted({ code }: { code: string }) {
+  const parts = code.split(/("[^"]*")/g)
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.startsWith('"') ? (
+          <span key={i} className="text-[#8f8f8f]">{part}</span>
+        ) : (
+          <span key={i}>
+            {part.split(/(loadstring|game)/g).map((w, j) =>
+              w === 'loadstring' || w === 'game'
+                ? <span key={j} className="text-white">{w}</span>
+                : <span key={j} className="text-[#bdbdbd]">{w}</span>,
+            )}
+          </span>
+        ),
+      )}
+    </>
+  )
+}
+
 export default function LoadstringBox() {
   const [loadstring, setLoadstring] = useState('')
   const [copied, setCopied] = useState(false)
@@ -17,47 +39,43 @@ export default function LoadstringBox() {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(loadstring)
-      setCopied(true)
-      incrementCopyCount()
-      showToast('Copied to clipboard!', 'success')
-      setTimeout(() => setCopied(false), 2000)
     } catch {
-      showToast('Failed to copy', 'error')
+      const el = document.createElement('textarea')
+      el.value = loadstring
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
     }
+    setCopied(true)
+    incrementCopyCount()
+    showToast('Script copied. Paste it into your executor.', 'success')
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
-    <div
-      className={`
-        relative max-w-[560px] w-full mx-auto
-        bg-black-card border border-border-mid rounded-lg
-        border-l-[3px] border-l-white
-        p-4 md:p-5 transition-all duration-300
-        ${copied ? 'border-glow-md' : 'border-glow'}
-      `}
-    >
-      {/* Label */}
-      <div className="flex justify-between items-center mb-3">
-        <span className="font-heading text-[0.65rem] text-silver-muted tracking-[0.15em] uppercase">
-          Loadstring
+    <div className="mono-card w-full !rounded-2xl overflow-hidden text-left">
+      <div className="flex items-center justify-between h-9 px-4 border-b border-[#1c1c1c]">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-[#2e2e2e]" />
+          <span className="w-2 h-2 rounded-full bg-[#2e2e2e]" />
+          <span className="w-2 h-2 rounded-full bg-[#2e2e2e]" />
         </span>
+        <span className="font-gmono text-[0.65rem] text-[#6b6b6b]">loader.lua</span>
+      </div>
+      <div className="flex items-center gap-3 pl-4 pr-2.5 py-2.5">
+        <code className="min-w-0 flex-1 font-gmono text-[0.74rem] md:text-[0.8rem] break-all leading-relaxed select-text">
+          <Highlighted code={loadstring} /><span className="caret text-white">▍</span>
+        </code>
         <button
           onClick={handleCopy}
-          className="text-silver-mid hover:text-white transition-all duration-200 hover:scale-110"
+          className={`shrink-0 h-9 px-4 text-[0.8rem] ${copied ? 'btn-outline' : 'btn-white'}`}
           aria-label="Copy loadstring"
         >
-          {copied ? (
-            <CheckIcon size={18} className="text-success" />
-          ) : (
-            <CopyIcon size={18} />
-          )}
+          {copied ? <CheckIcon size={15} /> : <CopyIcon size={15} />}
+          <span>{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
-
-      {/* Code */}
-      <code className="font-code text-[0.85rem] text-silver-bright break-all leading-relaxed">
-        {loadstring}
-      </code>
     </div>
   )
 }

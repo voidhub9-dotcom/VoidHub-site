@@ -2,417 +2,204 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import {
-  BarChartIcon,
-  CheckIcon,
-  AlertIcon,
-  CopyIcon,
-  PlusIcon,
-  TerminalIcon,
-  SettingsIcon,
-  ActivityIcon,
-  GamesIcon,
-  ImageIcon,
-  ShieldIcon,
-  StarIcon,
-  EyeOffIcon,
-  BoltIcon,
-  ShopIcon,
-  CartIcon,
-} from '@/components/Icons'
-import {
-  getCopyCount,
-  getActivityLog,
-  getLoadstring,
-  ActivityLogEntry,
-  Game,
-} from '@/lib/storage'
+import { useRobloxInfo, placeIdOf, compact } from '@/lib/roblox-info'
+import { PlusIcon, TerminalIcon, SettingsIcon, ActivityIcon, GamesIcon, BoltIcon, CopyIcon, ChevronRightIcon, ExternalIcon } from '@/components/Icons'
+import { getCopyCount, getActivityLog, getLoadstring, getUsername, type ActivityLogEntry, type Game } from '@/lib/storage'
 import { useToast } from '@/components/Toast'
 import LoaderAnalytics from '@/components/LoaderAnalytics'
+import { StatStrip } from '@/components/AdminUI'
 
 function getAdminKey() {
   if (typeof window === 'undefined') return 'voidhub123'
   return localStorage.getItem('voidhub_password') || 'voidhub123'
 }
 
+function greeting() {
+  const h = new Date().getHours()
+  return h < 5 ? 'Up late' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
+}
+
+function ago(iso: string) {
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  if (m < 1440) return `${Math.floor(m / 60)}h ago`
+  return `${Math.floor(m / 1440)}d ago`
+}
+
 export default function AdminDashboardPage() {
   const { showToast } = useToast()
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    outdated: 0,
-    featured: 0,
-    copies: 0,
-  })
-  const [shopStats, setShopStats] = useState({ orders: 0, fulfilled: 0, revenueCents: 0 })
+  const [games, setGames] = useState<Game[] | null>(null)
   const [recentActivity, setRecentActivity] = useState<ActivityLogEntry[]>([])
-  const [recentGames, setRecentGames] = useState<Game[]>([])
-  const [loaderSource, setLoaderSource] = useState<'raw-url' | 'database' | 'none' | 'error'>('none')
-  const [storageOk, setStorageOk] = useState<boolean | null>(null)
-  const [storageInfo, setStorageInfo] = useState<{ latencyMs: number | null; objects: number; totalBytes: number } | null>(null)
+  const [loaderSource, setLoaderSource] = useState<'raw-url' | 'database' | 'none' | 'error' | null>(null)
+  const [storage, setStorage] = useState<{ ok: boolean; latencyMs: number | null; objects: number; totalBytes: number } | null>(null)
   const [loadstring, setLoadstringText] = useState('')
+  const [copies, setCopies] = useState(0)
+  const [name, setName] = useState('')
 
   useEffect(() => {
     setLoadstringText(getLoadstring())
+    setCopies(getCopyCount())
+    setName(getUsername() || 'admin')
+    setRecentActivity(getActivityLog().slice(0, 6))
+    const h = { headers: { 'x-admin-key': getAdminKey() } }
 
-    const loadData = async () => {
-      // Real R2 health probe (write -> read -> delete round-trip)
-      try {
-        const healthRes = await fetch('/api/admin/health', { headers: { 'x-admin-key': getAdminKey() } })
-        if (healthRes.ok) {
-          const h = await healthRes.json()
-          setStorageOk(h.ok)
-          setStorageInfo({ latencyMs: h.latencyMs, objects: h.objects, totalBytes: h.totalBytes })
-        } else {
-          setStorageOk(false)
-        }
-      } catch {
-        setStorageOk(false)
-      }
+    fetch('/api/admin/health', h)
+      .then(r => (r.ok ? r.json() : { ok: false }))
+      .then(d => setStorage({ ok: !!d.ok, latencyMs: d.latencyMs ?? null, objects: d.objects ?? 0, totalBytes: d.totalBytes ?? 0 }))
+      .catch(() => setStorage({ ok: false, latencyMs: null, objects: 0, totalBytes: 0 }))
 
-      // Games
-      try {
-        const gamesRes = await fetch('/api/admin/games', { headers: { 'x-admin-key': getAdminKey() } })
-        const games = await gamesRes.json()
-        const list: Game[] = Array.isArray(games) ? games : []
+    fetch('/api/admin/games', h)
+      .then(r => r.json())
+      .then(d => setGames(Array.isArray(d) ? d : []))
+      .catch(() => setGames([]))
 
-        setStats({
-          total: list.length,
-          active: list.filter(g => g.status === 'active').length,
-          outdated: list.filter(g => g.status === 'outdated').length,
-          featured: list.filter(g => g.featured).length,
-          copies: getCopyCount(),
-        })
-        setRecentGames(list.slice(0, 5))
-      } catch {
-        /* health probe above is the authoritative storage status */
-      }
-
-      // Loader source
-      try {
-        const loaderRes = await fetch('/api/admin/loader', { headers: { 'x-admin-key': getAdminKey() } })
-        if (loaderRes.ok) {
-          const data = await loaderRes.json()
-          setLoaderSource(data.source || 'none')
-        } else {
-          setLoaderSource('error')
-        }
-      } catch {
-        setLoaderSource('error')
-      }
-
-      // Shop orders
-      try {
-        const ordersRes = await fetch('/api/admin/shop/orders', { headers: { 'x-admin-key': getAdminKey() } })
-        if (ordersRes.ok) {
-          const allOrders: { status: string; amountTotal: number; currency: string; isTest?: boolean }[] = await ordersRes.json()
-          const orders = allOrders.filter(o => !o.isTest)
-          const fulfilled = orders.filter(o => o.status === 'fulfilled')
-          setShopStats({
-            orders: orders.length,
-            fulfilled: fulfilled.length,
-            revenueCents: fulfilled.reduce((sum, o) => sum + o.amountTotal, 0),
-          })
-        }
-      } catch {
-        /* shop stats are supplemental, ignore failures */
-      }
-
-      setRecentActivity(getActivityLog().slice(0, 6))
-    }
-    loadData()
+    fetch('/api/admin/loader', h)
+      .then(r => (r.ok ? r.json() : Promise.reject()))
+      .then(d => setLoaderSource(d.source || 'none'))
+      .catch(() => setLoaderSource('error'))
   }, [])
 
-  const handleCopyLoadstring = () => {
+  const list = games ?? []
+  const working = list.filter(g => g.status === 'active').length
+  const fresh = list.filter(g => Date.now() - new Date(g.createdAt).getTime() < 7 * 864e5).length
+  const loaderText = { 'raw-url': 'Hidden URL', database: 'Pasted script', none: 'Not set up', error: 'Unreachable' }
+
+  const copyLoadstring = () => {
     navigator.clipboard.writeText(loadstring)
-    showToast('Loadstring copied!', 'success')
+    showToast('Loadstring copied', 'success')
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-fadeIn">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+    <div className="max-w-6xl mx-auto">
+      {/* Greeting + health */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-heading text-2xl text-white tracking-wider">DASHBOARD</h1>
-          <p className="font-body text-sm text-silver-muted">VoidHub control center overview</p>
+          <p className="font-gmono text-[0.65rem] uppercase tracking-[0.2em] text-[#555] mb-2">Dashboard</p>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-[-0.035em] text-chrome">{greeting()}, {name}.</h1>
         </div>
-        {storageOk !== null && (
-          <div className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-body ${
-            storageOk ? 'border-success/30 bg-success/5 text-success' : 'border-danger/30 bg-danger/5 text-danger'
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${storageOk ? 'bg-success' : 'bg-danger'}`} />
-            {storageOk
-              ? `R2 Online${storageInfo?.latencyMs != null ? ` · ${storageInfo.latencyMs}ms` : ''}${storageInfo ? ` · ${storageInfo.objects} objects · ${(storageInfo.totalBytes / 1024).toFixed(1)} KB` : ''}`
-              : 'R2 Storage Offline'}
-          </div>
-        )}
-      </div>
-
-      {/* Shop pills */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <span className="stat-pill">
-          <ShopIcon size={13} className="text-violet" />
-          {shopStats.orders} shop order{shopStats.orders !== 1 ? 's' : ''}
-        </span>
-        <span className="stat-pill">
-          <CartIcon size={13} className="text-cyber" />
-          {shopStats.fulfilled} fulfilled
-        </span>
-        <span className="stat-pill">
-          {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(shopStats.revenueCents / 100)} revenue
-        </span>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <StatCard icon={BarChartIcon} label="TOTAL GAMES" value={stats.total} sub="In library" color="info" />
-        <StatCard icon={CheckIcon} label="ACTIVE" value={stats.active} sub="Scripts working" color="success" />
-        <StatCard icon={AlertIcon} label="OUTDATED" value={stats.outdated} sub="Needs update" color="danger" />
-        <StatCard icon={StarIcon} label="FEATURED" value={stats.featured} sub="On homepage" color="warning" />
-        <StatCard icon={CopyIcon} label="COPIES" value={stats.copies} sub="Times copied" color="silver" />
-      </div>
-
-      {/* Loader analytics */}
-      <LoaderAnalytics />
-
-      {/* Loader status + quick loadstring */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="admin-panel p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <ShieldIcon size={18} className="text-silver-base" />
-            <h2 className="font-heading text-sm text-white">LOADER STATUS</h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${
-              loaderSource === 'raw-url'
-                ? 'border-info/30 bg-info/10 text-info'
-                : loaderSource === 'database'
-                  ? 'border-success/30 bg-success/10 text-success'
-                  : 'border-warning/30 bg-warning/10 text-warning'
-            }`}>
-              {loaderSource === 'raw-url' ? <EyeOffIcon size={18} /> : <TerminalIcon size={18} />}
-            </div>
-            <div>
-              <p className="font-body text-sm text-white">
-                {loaderSource === 'raw-url' && 'Serving from hidden raw URL'}
-                {loaderSource === 'database' && 'Serving pasted script from R2'}
-                {loaderSource === 'none' && 'No script configured yet'}
-                {loaderSource === 'error' && 'Could not reach loader API'}
-              </p>
-              <p className="font-body text-xs text-silver-muted">
-                {loaderSource === 'raw-url' && 'Source link stays server-side — never exposed'}
-                {loaderSource === 'database' && 'Set a raw URL to auto-sync from your source'}
-                {(loaderSource === 'none' || loaderSource === 'error') && 'Open the loader page to set it up'}
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/admin/loader"
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 border border-silver-faint text-silver-mid rounded-lg text-xs font-body transition-all hover:border-white hover:text-white"
-          >
-            <TerminalIcon size={14} />
-            Manage Loader
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full border border-[#1f1f1f] bg-[#0a0a0a] text-xs text-[#a3a3a3]">
+            <span className={`w-1.5 h-1.5 rounded-full ${storage === null ? 'bg-[#444]' : storage.ok ? 'bg-success' : 'bg-danger'}`} />
+            {storage === null ? 'Checking R2…' : storage.ok ? `R2 online${storage.latencyMs != null ? ` · ${storage.latencyMs}ms` : ''}` : 'R2 offline'}
+          </span>
+          <Link href="/admin/loader" className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full border border-[#1f1f1f] bg-[#0a0a0a] text-xs text-[#a3a3a3] hover:text-white">
+            <span className={`w-1.5 h-1.5 rounded-full ${loaderSource === null ? 'bg-[#444]' : loaderSource === 'raw-url' || loaderSource === 'database' ? 'bg-success' : 'bg-warning'}`} />
+            Loader: {loaderSource ? loaderText[loaderSource] : '…'}
           </Link>
         </div>
+      </header>
 
-        <div className="admin-panel p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <BoltIcon size={18} className="text-silver-base" />
-            <h2 className="font-heading text-sm text-white">PUBLIC LOADSTRING</h2>
-          </div>
-          <div className="rounded-lg border border-border-dim bg-black-surface p-3 font-code text-xs text-silver-bright break-all">
-            {loadstring || 'Not set'}
-          </div>
-          <button
-            onClick={handleCopyLoadstring}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 border border-silver-faint text-silver-mid rounded-lg text-xs font-body transition-all hover:border-white hover:text-white"
-          >
-            <CopyIcon size={14} />
-            Copy Loadstring
-          </button>
-        </div>
-      </div>
+      <LoaderAnalytics />
 
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3 mb-8">
-        <QuickAction href="/admin/games?action=add" icon={PlusIcon} label="Add New Game" />
-        <QuickAction href="/admin/games" icon={GamesIcon} label="Manage Games" />
-        <QuickAction href="/admin/shop" icon={ShopIcon} label="Manage Shop" />
-        <QuickAction href="/admin/loader" icon={TerminalIcon} label="Edit Loader" />
-        <QuickAction href="/admin/settings" icon={SettingsIcon} label="Site Settings" />
-        <QuickAction href="/admin/activity" icon={ActivityIcon} label="Activity Log" />
-      </div>
+      <StatStrip items={[
+        { label: 'Games', value: games ? list.length : '–', sub: 'in the library' },
+        { label: 'Working', value: games ? working : '–', sub: 'scripts running fine', dot: 'bg-success' },
+        { label: 'Updating', value: games ? list.length - working : '–', sub: 'need a fix', dot: list.length - working ? 'bg-warning' : 'bg-[#333]' },
+        { label: 'New this week', value: games ? fresh : '–', sub: 'with the just-added glow', dot: 'bg-white' },
+      ]} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <div className="admin-panel p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <ActivityIcon size={18} className="text-silver-base" />
-              <h2 className="font-heading text-sm text-white">RECENT ACTIVITY</h2>
-            </div>
-            <Link
-              href="/admin/activity"
-              className="text-xs text-silver-mid hover:text-white transition-colors font-body"
-            >
-              View All
-            </Link>
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
+        {/* Recent games */}
+        <section className="rounded-2xl border border-[#1c1c1c] bg-[#070707] overflow-hidden">
+          <div className="flex items-center justify-between px-5 h-14 border-b border-[#161616]">
+            <h2 className="text-base font-semibold tracking-tight text-white">Latest games</h2>
+            <Link href="/admin/games" className="text-xs text-[#8a8a8a] hover:text-white flex items-center gap-1">All games <ChevronRightIcon size={12} /></Link>
           </div>
-          {recentActivity.length > 0 ? (
-            <div className="space-y-2">
-              {recentActivity.map(entry => (
-                <ActivityRow key={entry.id} entry={entry} />
-              ))}
+          {games === null ? (
+            <div className="p-5 space-y-3">{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-12 rounded-xl bg-[#101010] animate-pulse" />)}</div>
+          ) : list.length === 0 ? (
+            <div className="px-5 py-12 text-center">
+              <p className="text-white">No games yet</p>
+              <p className="mt-1 text-sm text-[#6b6b6b]">Paste a Roblox link and it fills itself in.</p>
+              <Link href="/admin/games?action=add" className="btn-white h-10 px-5 mt-5 text-sm"><PlusIcon size={14} /> Add your first game</Link>
             </div>
           ) : (
-            <p className="text-silver-muted text-sm font-body py-4 text-center">No activity yet</p>
+            <ul className="divide-y divide-[#141414]">
+              {list.slice(0, 6).map(g => <GameRow key={g.id} game={g} />)}
+            </ul>
           )}
-        </div>
+        </section>
 
-        {/* Recent Games */}
-        <div className="admin-panel p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <GamesIcon size={18} className="text-silver-base" />
-              <h2 className="font-heading text-sm text-white">RECENT GAMES</h2>
+        <div className="flex flex-col gap-6">
+          {/* Quick actions */}
+          <section className="grid grid-cols-2 gap-2">
+            {[
+              { href: '/admin/games?action=add', icon: PlusIcon, label: 'Add game', primary: true },
+              { href: '/admin/loader', icon: TerminalIcon, label: 'Edit loader' },
+              { href: '/admin/executors', icon: BoltIcon, label: 'Executors' },
+              { href: '/admin/settings', icon: SettingsIcon, label: 'Settings' },
+            ].map(a => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className={`group rounded-2xl border p-4 flex flex-col gap-6 transition-colors ${a.primary ? 'bg-white text-black border-white hover:bg-[#e9e9e9]' : 'border-[#1c1c1c] bg-[#070707] text-white hover:border-[#333]'}`}
+              >
+                <a.icon size={18} />
+                <span className="flex items-center justify-between text-sm font-medium">{a.label}<ChevronRightIcon size={14} className="opacity-50 group-hover:translate-x-0.5 transition-transform" /></span>
+              </Link>
+            ))}
+          </section>
+
+          {/* Loadstring */}
+          <section className="rounded-2xl border border-[#1c1c1c] bg-[#070707] p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold tracking-tight text-white">Public loadstring</h2>
+              <span className="font-gmono text-[0.62rem] text-[#6b6b6b]">{copies} copies here</span>
             </div>
-            <Link
-              href="/admin/games"
-              className="text-xs text-silver-mid hover:text-white transition-colors font-body"
-            >
-              Manage
-            </Link>
-          </div>
-          {recentGames.length > 0 ? (
-            <div className="space-y-2">
-              {recentGames.map(game => (
-                <GameRow key={game.id} game={game} />
-              ))}
+            <code className="block rounded-xl border border-[#1a1a1a] bg-black px-3.5 py-3 font-gmono text-[0.72rem] text-[#d4d4d4] break-all">{loadstring}</code>
+            <div className="mt-3 flex gap-2">
+              <button onClick={copyLoadstring} className="btn-outline h-9 px-4 text-xs"><CopyIcon size={13} /> Copy</button>
+              <a href="/" target="_blank" rel="noopener noreferrer" className="btn-outline h-9 px-4 text-xs"><ExternalIcon size={13} /> View site</a>
             </div>
-          ) : (
-            <p className="text-silver-muted text-sm font-body py-4 text-center">No games yet</p>
-          )}
+          </section>
+
+          {/* Activity */}
+          <section className="rounded-2xl border border-[#1c1c1c] bg-[#070707] overflow-hidden">
+            <div className="flex items-center justify-between px-5 h-14 border-b border-[#161616]">
+              <h2 className="text-base font-semibold tracking-tight text-white">Recent activity</h2>
+              <Link href="/admin/activity" className="text-xs text-[#8a8a8a] hover:text-white flex items-center gap-1">All <ChevronRightIcon size={12} /></Link>
+            </div>
+            {recentActivity.length === 0 ? (
+              <p className="px-5 py-8 text-sm text-[#6b6b6b] text-center">Nothing yet.</p>
+            ) : (
+              <ul className="divide-y divide-[#141414]">
+                {recentActivity.map(e => (
+                  <li key={e.id} className="flex items-center gap-3 px-5 py-3">
+                    <ActivityIcon size={13} className="text-[#555] shrink-0" />
+                    <span className="flex-1 min-w-0 text-sm text-[#d4d4d4] truncate">{e.message}</span>
+                    <span className="font-gmono text-[0.62rem] text-[#555] shrink-0">{ago(e.timestamp)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       </div>
-    </div>
-  )
-}
-
-function QuickAction({ href, icon: Icon, label }: { href: string; icon: typeof PlusIcon; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="
-        flex items-center gap-2 px-4 py-2.5
-        border border-silver-faint text-silver-mid rounded-lg
-        text-sm font-body transition-all duration-200
-        hover:border-white hover:text-white
-      "
-    >
-      <Icon size={16} />
-      <span>{label}</span>
-    </Link>
-  )
-}
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  color,
-}: {
-  icon: typeof BarChartIcon
-  label: string
-  value: number
-  sub: string
-  color: 'info' | 'success' | 'danger' | 'warning' | 'silver'
-}) {
-  const borderColor = {
-    info: 'border-t-info',
-    success: 'border-t-success',
-    danger: 'border-t-danger',
-    warning: 'border-t-warning',
-    silver: 'border-t-silver-base',
-  }[color]
-
-  return (
-    <div className={`bg-black-card border border-border-dim rounded-lg p-4 border-t-2 ${borderColor}`}>
-      <Icon size={20} className="text-silver-muted mb-2" />
-      <p className="font-heading text-[0.6rem] text-silver-muted tracking-wider uppercase">{label}</p>
-      <p className="font-heading text-2xl text-white my-1">{value}</p>
-      <p className="font-body text-[0.7rem] text-silver-faint">{sub}</p>
-    </div>
-  )
-}
-
-function ActivityRow({ entry }: { entry: ActivityLogEntry }) {
-  const iconMap: Record<string, typeof CheckIcon> = {
-    add: CheckIcon,
-    edit: SettingsIcon,
-    delete: AlertIcon,
-    loader: TerminalIcon,
-    login: CheckIcon,
-    logout: AlertIcon,
-    settings: SettingsIcon,
-    password: CheckIcon,
-  }
-  const Icon = iconMap[entry.type] || ActivityIcon
-
-  const colorMap: Record<string, string> = {
-    add: 'text-success',
-    edit: 'text-silver-mid',
-    delete: 'text-danger',
-    loader: 'text-info',
-    login: 'text-warning',
-    logout: 'text-silver-mid',
-    settings: 'text-silver-mid',
-    password: 'text-warning',
-  }
-
-  const timeAgo = getTimeAgo(new Date(entry.timestamp))
-
-  return (
-    <div className="flex items-center gap-3 py-2 px-3 rounded bg-black-surface/50">
-      <Icon size={14} className={colorMap[entry.type] || 'text-silver-mid'} />
-      <span className="flex-1 text-sm text-silver-light font-body truncate">{entry.message}</span>
-      <span className="text-xs text-silver-faint font-body">{timeAgo}</span>
     </div>
   )
 }
 
 function GameRow({ game }: { game: Game }) {
+  const info = useRobloxInfo(placeIdOf(game))
+  const icon = game.thumbnail || info?.thumbnail
+  const ok = game.status === 'active'
   return (
-    <div className="flex items-center gap-3 py-2 px-3 rounded bg-black-surface/50">
-      <div className="w-10 h-10 rounded bg-black-card border border-border-dim flex items-center justify-center overflow-hidden flex-shrink-0">
-        {game.thumbnail ? (
-          <img src={game.thumbnail || "/placeholder.svg"} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <ImageIcon size={16} className="text-silver-faint" />
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-white font-body truncate">{game.name}</p>
-        <span
-          className={`text-xs font-body ${game.status === 'active' ? 'text-success' : 'text-danger'}`}
-        >
-          {game.status === 'active' ? 'Active' : 'Outdated'}
+    <li>
+      <Link href="/admin/games" className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02]">
+        <span className="w-10 h-10 rounded-xl overflow-hidden border border-[#222] bg-[#141414] shrink-0 flex items-center justify-center">
+          {icon ? <img src={icon} alt="" className="w-full h-full object-cover" /> : <GamesIcon size={15} className="text-[#555]" />}
         </span>
-      </div>
-      <span className="text-xs text-silver-faint font-body">{getTimeAgo(new Date(game.createdAt))}</span>
-    </div>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm text-white truncate">{game.name}</span>
+          <span className="block text-xs text-[#6b6b6b]">
+            added {ago(game.createdAt)}{info?.playing != null ? ` · ${compact(info.playing)} playing` : ''}
+          </span>
+        </span>
+        <span className={`inline-flex items-center gap-1.5 text-xs ${ok ? 'text-success' : 'text-warning'}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${ok ? 'bg-success' : 'bg-warning'}`} />{ok ? 'Working' : 'Updating'}
+        </span>
+      </Link>
+    </li>
   )
-}
-
-function getTimeAgo(date: Date): string {
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (hours < 24) return `${hours}h ago`
-  return `${days}d ago`
 }

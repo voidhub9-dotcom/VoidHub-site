@@ -5,9 +5,18 @@ export type { ShopEmailTemplate }
 
 /**
  * Paid key shop — Stripe Checkout products with an admin-managed stock of
- * keys. Separate from the free ad-gated `/getkey` flow in `key-page.ts`.
- * Stored as JSON blobs in KV, same pattern as `key-page.ts` / `site-links.ts`.
+ * keys.
+ * Stored as JSON blobs in KV, same pattern as `site-links.ts`.
  */
+
+/**
+ * The site went keyless, so the shop is switched off: /shop and /admin/shop
+ * redirect away (next.config.mjs), the public product list is empty and
+ * checkout refuses new orders. The Stripe webhook keeps working so any
+ * payment already in flight still gets fulfilled. Flip to true (and remove
+ * the redirects) to bring it back.
+ */
+export const SHOP_ENABLED = false
 
 export interface ShopProduct {
   id: string

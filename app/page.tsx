@@ -5,316 +5,244 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import LoadstringBox from '@/components/LoadstringBox'
-import AnimatedLogo from '@/components/AnimatedLogo'
-import DiscordWidget from '@/components/DiscordWidget'
+import ScriptPreview from '@/components/ScriptPreview'
+import GamesMarquee, { type MarqueeGame } from '@/components/GamesMarquee'
 import { ToastProvider } from '@/components/Toast'
 import {
   DiscordIcon,
-  GamesIcon,
   ChevronDownIcon,
-  BoltIcon,
-  CheckIcon,
-  UsersIcon,
+  ChevronRightIcon,
   RefreshIcon,
-  ShieldIcon,
-  CodeIcon,
+  KeyOffIcon,
+  TerminalIcon,
   GlobeIcon,
-  ShopIcon,
-  CartIcon,
+  CopyIcon,
+  BoltIcon,
 } from '@/components/Icons'
-import { getDiscordLink, getTagline, initializeStorage } from '@/lib/storage'
+import { initializeStorage } from '@/lib/storage'
 
-const whyCards = [
-  {
-    icon: ShieldIcon,
-    title: 'Undetected Scripts',
-    body: "Every script is regularly tested and updated to stay undetected. We prioritize your account's safety above all.",
-  },
-  {
-    icon: BoltIcon,
-    title: 'Instant, No Waiting',
-    body: 'Paste the loadstring and execute — no checkpoints, no ads, no waiting around. It just works, every time.',
-  },
-  {
-    icon: CodeIcon,
-    title: 'Optimized Code',
-    body: 'Lightweight, clean Lua scripts that run without lag. No bloat, no unnecessary processes slowing your game.',
-  },
-  {
-    icon: RefreshIcon,
-    title: 'Auto-Updating',
-    body: 'Scripts update automatically through the loader. You always get the latest version without doing anything.',
-  },
-  {
-    icon: GlobeIcon,
-    title: 'Multi-Game Support',
-    body: 'Covering the most popular Roblox games with new games being added regularly based on community votes.',
-  },
-  {
-    icon: UsersIcon,
-    title: 'Community Driven',
-    body: 'Join our Discord to suggest games, report bugs, get help, and connect with thousands of members.',
-  },
+const steps = [
+  { n: '01', title: 'Copy', body: 'Hit copy on the loadstring. That one line covers every supported game.' },
+  { n: '02', title: 'Paste', body: 'Open your executor on PC or mobile and paste it into the editor.' },
+  { n: '03', title: 'Execute', body: 'Join the game and run it. VoidHub detects the game and loads the right script.' },
 ]
 
 const faqItems = [
-  {
-    q: 'Is VoidHub really free?',
-    a: 'Yes — the core scripts are 100% free, forever, with no paywall. Just paste the loadstring and execute. Prefer instant delivery without the free-key steps? Premium keys are available in the Shop.',
-  },
-  {
-    q: 'Do scripts work on mobile?',
-    a: 'Most VoidHub scripts are compatible with popular Android executors. iOS support depends on the executor you use. Check our Discord for executor recommendations.',
-  },
-  {
-    q: 'Will I get banned for using these scripts?',
-    a: 'Every script is built with safety in mind and tested regularly to minimize detection. While no script is ever 100% risk-free, we do everything possible to keep things safe.',
-  },
-  {
-    q: 'How do scripts stay updated?',
-    a: 'Scripts update automatically through the loader. When you run the loadstring, you always receive the latest version. No manual updates needed.',
-  },
-  {
-    q: 'How do I get help if something breaks?',
-    a: 'Join our Discord server and head to the #support channel. Our community and team will get you sorted quickly.',
-  },
-  {
-    q: 'How often are new games added?',
-    a: 'New game scripts are added regularly. Join the Discord and vote in #game-suggestions to influence what we build next.',
-  },
-  {
-    q: 'What executor should I use?',
-    a: 'We recommend popular executors like Delta, Solara, or Fluxus for free options. Any executor that supports the loadstring function will work.',
-  },
+  { q: 'Is VoidHub really free?', a: 'Yes. No paywall, no premium tier, no ads. Everything on the site is free.' },
+  { q: 'Do I need a key?', a: 'No. VoidHub is fully keyless. The loadstring works the moment you run it.' },
+  { q: 'Does it work on mobile?', a: 'Yes, on any mobile executor that supports loadstring and HttpGet. The Status page lists the executors we have tested.' },
+  { q: 'Will I get banned?', a: 'Scripts are tested after every game update, but no script is ever 100% risk-free. Use an alt if you want zero risk.' },
+  { q: 'How do updates work?', a: 'The loader always pulls the newest build. You never need to grab a new script after an update.' },
+  { q: 'Can I request a game?', a: 'Yes. Post it in the Discord suggestions channel. The most requested games get built first.' },
 ]
 
 export default function HomePage() {
-  const [discordLink, setDiscordLink] = useState('https://discord.gg/kPPsdZtndn')
-  const [tagline, setTagline] = useState('Free. Powerful. No Limits.')
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
-  const [titleVisible, setTitleVisible] = useState(false)
-  const [glitching, setGlitching] = useState(false)
-  const [heroStats, setHeroStats] = useState({ games: 0, executors: 0 })
+  const [discordLink, setDiscordLink] = useState('https://discord.gg/UrTqzfq9DF')
+  const [games, setGames] = useState<MarqueeGame[]>([])
+  const [gamesLoading, setGamesLoading] = useState(true)
+  const [executors, setExecutors] = useState<number | null>(null)
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(0)
+  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
     initializeStorage()
+    const t = setTimeout(() => setVisible(true), 60)
 
-    const loadPublicSettings = async () => {
-      try {
-        const res = await fetch('/api/public/settings')
-        const data = await res.json()
-        setDiscordLink(data.discord)
-        setTagline(data.tagline)
-      } catch (e) {
-        console.error('Failed to load settings:', e)
-        setDiscordLink(getDiscordLink())
-        setTagline(getTagline())
-      }
-    }
-    loadPublicSettings()
+    fetch('/api/public/settings')
+      .then(r => r.json())
+      .then(d => d.discord && setDiscordLink(d.discord))
+      .catch(() => {})
 
-    Promise.all([
-      fetch('/api/public/games').then(r => r.json()).catch(() => []),
-      fetch('/api/public/executors').then(r => r.json()).catch(() => []),
-    ]).then(([games, executors]) => {
-      setHeroStats({
-        games: Array.isArray(games) ? games.length : 0,
-        executors: Array.isArray(executors) ? executors.filter((e: { status?: string }) => e.status === 'supported').length : 0,
-      })
-    })
+    fetch('/api/public/games')
+      .then(r => r.json())
+      .then(d => setGames(Array.isArray(d) ? d : []))
+      .catch(() => setGames([]))
+      .finally(() => setGamesLoading(false))
 
-    // Title animation
-    setTimeout(() => setTitleVisible(true), 200)
+    fetch('/api/public/executors')
+      .then(r => r.json())
+      .then(d => setExecutors(Array.isArray(d) ? d.filter((e: { status?: string }) => e.status === 'supported').length : 0))
+      .catch(() => setExecutors(0))
 
-    // Glitch animation
-    const glitchTimeout = setTimeout(() => {
-      setGlitching(true)
-      setTimeout(() => setGlitching(false), 500)
-    }, 3000)
-
-    const glitchInterval = setInterval(() => {
-      setGlitching(true)
-      setTimeout(() => setGlitching(false), 500)
-    }, 8000)
-
-    return () => {
-      clearTimeout(glitchTimeout)
-      clearInterval(glitchInterval)
-    }
+    return () => clearTimeout(t)
   }, [])
+
+  const reveal = (delay = 0) => ({
+    className: `transition-all duration-1000 ease-out ${visible ? 'opacity-100 translate-y-0 blur-0' : 'opacity-0 translate-y-4 blur-[2px]'}`,
+    style: { transitionDelay: `${delay}ms` },
+  })
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-black-void">
+      <div className="min-h-screen bg-black overflow-x-hidden font-display">
         <Navbar />
 
-        {/* Hero Section — product-first: copy + live preview, not a splash screen */}
-        <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24 px-4">
-          <div className="absolute inset-0 hero-grid opacity-50" />
-          <div className="absolute top-10 -left-16 w-72 h-72 bg-[rgba(0,255,204,0.08)] rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-72 h-72 bg-[rgba(168,85,247,0.08)] rounded-full blur-3xl" />
+        {/* Hero */}
+        <section id="get" className="relative pt-32 md:pt-40 px-4 scroll-mt-24 mono-grain">
+          <div className="absolute inset-0 mono-spot pointer-events-none" />
+          <div className="absolute inset-0 mono-dots pointer-events-none" />
 
-          <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-10 items-center">
-            {/* Left — copy */}
-            <div
-              className={`
-                text-center lg:text-left
-                transition-all duration-700
-                ${titleVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}
-              `}
-            >
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-black-card border border-border-dim rounded-full mb-6">
-                <AnimatedLogo
-                  src="/logo.png"
-                  alt="VoidHub"
-                  size={16}
-                  playIntro={false}
-                />
-                <span className="font-body text-xs text-silver-mid tracking-wide">{tagline}</span>
-              </div>
+          <div className="relative max-w-3xl mx-auto flex flex-col items-center text-center">
+            <div {...reveal(0)}>
+              <img src="/logo.png" alt="VoidHub" className="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-[0_0_28px_rgba(255,255,255,0.35)]" />
+            </div>
 
-              <h1
-                className={`
-                  font-heading text-white leading-[1.05] tracking-wide text-balance
-                  text-[clamp(2.25rem,4.5vw,3.75rem)]
-                  ${glitching ? 'animate-glitch' : ''}
-                `}
-              >
-                Free Roblox Scripts.
+            <div {...reveal(80)}>
+              <span className="mt-7 inline-flex items-center gap-2 h-7 px-3 rounded-full border border-[#262626] bg-white/[0.03] font-gmono text-[0.68rem] text-[#a3a3a3]">
+                <span className="relative flex w-1.5 h-1.5">
+                  <span className="absolute inset-0 rounded-full bg-white animate-ping opacity-60" />
+                  <span className="relative w-1.5 h-1.5 rounded-full bg-white" />
+                </span>
+                keyless · free · auto-updating
+              </span>
+            </div>
+
+            <h1 {...reveal(160)}>
+              <span className="block mt-6 font-semibold tracking-[-0.045em] leading-[0.95] text-[clamp(2.9rem,8vw,5.6rem)]">
+                <span className="text-chrome">Scripts that</span>
                 <br />
-                <span className="text-glow">Premium</span> When You Want It.
-              </h1>
+                <span className="text-fade">just work.</span>
+              </span>
+            </h1>
 
-              <p className="mt-5 font-body text-silver-mid text-base md:text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed text-pretty">
-                One universal loadstring covers every supported game — completely free, no link
-                shorteners, no ads. Want instant delivery? Grab a premium key in the Shop.
-              </p>
+            <p {...reveal(240)}>
+              <span className="block mt-6 text-[#8a8a8a] text-base md:text-lg max-w-md mx-auto leading-relaxed">
+                One loadstring for every game VoidHub supports. No keys, no checkpoints, no ads.
+              </span>
+            </p>
 
-              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                <a
-                  href={discordLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary !h-11 !py-0 !rounded-lg"
-                >
-                  <DiscordIcon size={18} />
-                  <span>JOIN DISCORD</span>
-                </a>
-                <Link
-                  href="/games"
-                  className="
-                    h-11 flex items-center justify-center gap-2 px-6
-                    border border-silver-faint text-silver-mid rounded-lg font-body text-sm
-                    transition-all duration-200 hover:border-white hover:text-white
-                  "
-                >
-                  <GamesIcon size={18} />
-                  <span>VIEW GAMES</span>
-                </Link>
-              </div>
-
-              <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-2">
-                <span className="stat-pill">
-                  <GamesIcon size={13} />
-                  {heroStats.games || '—'} Games
-                </span>
-                <span className="stat-pill">
-                  <BoltIcon size={13} className="text-success" />
-                  {heroStats.executors || '—'} Executors
-                </span>
-                <span className="stat-pill">
-                  <CheckIcon size={13} className="text-cyber" />
-                  100% Free
-                </span>
+            <div {...reveal(320)}>
+              <div className="mt-9 w-[min(36rem,calc(100vw-2rem))]">
+                <LoadstringBox />
               </div>
             </div>
 
-            {/* Right — live product preview */}
-            <div
-              className={`
-                relative
-                transition-all duration-700 delay-200
-                ${titleVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}
-              `}
-            >
-              <div className="relative void-card overflow-hidden max-w-[480px] mx-auto lg:mx-0">
-                {/* window title bar */}
-                <div className="flex items-center gap-2 px-4 h-10 border-b border-border-dim bg-black-surface">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
-                  <span className="ml-2 font-code text-[0.7rem] text-silver-muted">
-                    loader.lua — connected
-                  </span>
-                </div>
-                <div className="p-5">
-                  <LoadstringBox />
-                  <div className="mt-4 flex items-center gap-2 font-code text-xs text-success">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                    <span>Ready — executor detected</span>
+            <div {...reveal(400)}>
+              <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link href="/games" className="btn-white h-11 px-6 text-sm w-full sm:w-auto">
+                  Browse games <ChevronRightIcon size={15} />
+                </Link>
+                <a href={discordLink} target="_blank" rel="noopener noreferrer" className="btn-outline h-11 px-6 text-sm w-full sm:w-auto">
+                  <DiscordIcon size={16} /> Join the Discord
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div {...reveal(520)}>
+            <div className="relative max-w-5xl mx-auto mt-16 md:mt-20">
+              <ScriptPreview />
+            </div>
+          </div>
+        </section>
+
+        <GamesMarquee games={games} loading={gamesLoading} discordLink={discordLink} />
+
+        {/* Bento */}
+        <section className="px-4 pb-24">
+          <div className="max-w-6xl mx-auto">
+            <p className="font-gmono text-[0.7rem] uppercase tracking-[0.2em] text-[#6b6b6b] mb-2">Why VoidHub</p>
+            <h2 className="font-semibold tracking-tight text-3xl md:text-4xl text-fade mb-8 max-w-lg">
+              Built to stay out of your way.
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              {/* No keys, the big one */}
+              <div className="mono-card md:col-span-4 p-7 md:p-8 overflow-hidden">
+                <KeyOffIcon size={22} className="text-white" />
+                <h3 className="mt-4 text-xl font-medium text-white">No keys. Ever.</h3>
+                <p className="mt-1.5 text-sm text-[#8a8a8a] max-w-sm">Other hubs make you grind link shorteners for a key that expires tomorrow. We don&apos;t.</p>
+                <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3 font-gmono text-[0.72rem]">
+                  <div className="rounded-xl border border-[#1f1f1f] bg-[#0a0a0a] p-4">
+                    <p className="text-[#707070] mb-3">other hubs</p>
+                    {['open key link', 'checkpoint 1 of 3', 'disable adblock', 'copy key · expires 24h'].map(x => (
+                      <p key={x} className="py-1 text-[#707070] line-through decoration-[#707070]">{x}</p>
+                    ))}
+                  </div>
+                  <div className="rounded-xl border border-[#333] bg-[#0f0f0f] p-4">
+                    <p className="text-[#8a8a8a] mb-3">voidhub</p>
+                    <p className="py-1 text-white">copy loadstring</p>
+                    <p className="py-1 text-white">execute</p>
+                    <p className="py-1 text-[#8a8a8a]">done<span className="caret">▍</span></p>
                   </div>
                 </div>
               </div>
 
-              {/* floating chips */}
-              <div
-                className="hidden md:flex absolute -top-5 -right-4 items-center gap-2 px-3 py-2 bg-black-card border border-border-mid rounded-xl shadow-lg animate-float"
-              >
-                <ShieldIcon size={14} className="text-success" />
-                <span className="font-body text-xs text-silver-light whitespace-nowrap">Undetected</span>
+              <div className="mono-card md:col-span-2 p-7 flex flex-col">
+                <TerminalIcon size={22} className="text-white" />
+                <div className="mt-auto pt-10">
+                  <div className="text-6xl font-semibold tracking-tighter text-chrome">{executors ?? '–'}</div>
+                  <h3 className="mt-2 text-base font-medium text-white">Executors tested</h3>
+                  <p className="mt-1 text-sm text-[#8a8a8a]">PC and mobile. Live list on the <Link href="/status" className="text-white underline underline-offset-4 decoration-[#444] hover:decoration-white">status page</Link>.</p>
+                </div>
               </div>
-              <Link
-                href="/shop"
-                className="hidden md:flex absolute -bottom-6 -left-6 items-center gap-2 px-3.5 py-2.5 price-card !rounded-xl shadow-lg animate-float"
-                style={{ animationDelay: '1.4s' }}
-              >
-                <CartIcon size={14} className="text-violet shrink-0" />
-                <span className="font-body text-xs text-white whitespace-nowrap">Shop keys →</span>
-              </Link>
+
+              <div className="mono-card md:col-span-2 p-7">
+                <RefreshIcon size={22} className="text-white" />
+                <h3 className="mt-4 text-base font-medium text-white">Updates itself</h3>
+                <p className="mt-1.5 text-sm text-[#8a8a8a]">The loader always pulls the newest build. Game updated? Just run it again.</p>
+              </div>
+
+              <div className="mono-card md:col-span-2 p-7">
+                <GlobeIcon size={22} className="text-white" />
+                <h3 className="mt-4 text-base font-medium text-white">One line, every game</h3>
+                <p className="mt-1.5 text-sm text-[#8a8a8a]">VoidHub detects the game you&apos;re in and loads the right script for it.</p>
+              </div>
+
+              <div className="mono-card md:col-span-2 p-7">
+                <BoltIcon size={22} className="text-white" />
+                <h3 className="mt-4 text-base font-medium text-white">Lightweight</h3>
+                <p className="mt-1.5 text-sm text-[#8a8a8a]">Clean Lua, no bloat. Your game runs as smooth with it as without it.</p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Stats Bar */}
-        <section id="stats-section" className="bg-black-surface border-y border-border-dim py-8">
-          <div className="max-w-5xl mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0 md:divide-x md:divide-silver-faint/20">
-              <StatItem icon={BoltIcon} label="100% FREE" sub="No paywalls" />
-              <StatItem icon={CartIcon} label="SHOP" sub="Premium Keys" />
-              <StatItem icon={UsersIcon} label="ACTIVE" sub="COMMUNITY" />
-              <StatItem icon={RefreshIcon} label="ALWAYS" sub="UPDATED" />
+        {/* Steps */}
+        <section className="px-4 pb-24">
+          <div className="max-w-6xl mx-auto border-t border-[#1a1a1a] pt-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6">
+              {steps.map((s, i) => (
+                <div key={s.n} className="relative">
+                  <div className="flex items-center gap-3">
+                    <span className="font-gmono text-sm text-white">{s.n}</span>
+                    <span className="h-px flex-1 bg-gradient-to-r from-[#333] to-transparent" />
+                    {i === 0 && <CopyIcon size={15} className="text-[#6b6b6b]" />}
+                  </div>
+                  <h3 className="mt-5 text-2xl font-semibold tracking-tight text-white">{s.title}</h3>
+                  <p className="mt-2 text-sm text-[#8a8a8a] leading-relaxed max-w-xs">{s.body}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Why VoidHub */}
-        <section className="py-20 md:py-28 px-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="font-heading text-[clamp(1.4rem,2.5vw,2rem)] text-white mb-3">
-                WHY VOIDHUB?
-                <span className="block h-0.5 w-16 bg-white mx-auto mt-3 rounded-full" />
-              </h2>
-              <p className="font-body text-silver-mid text-sm md:text-base">
-                Built for the community, maintained by the community.
-              </p>
+        {/* FAQ */}
+        <section className="px-4 pb-28">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-10">
+            <div>
+              <p className="font-gmono text-[0.7rem] uppercase tracking-[0.2em] text-[#6b6b6b] mb-2">FAQ</p>
+              <h2 className="font-semibold tracking-tight text-3xl md:text-4xl text-fade">Questions, answered.</h2>
+              <p className="mt-3 text-sm text-[#8a8a8a] max-w-xs">Anything else, ask in the Discord. Someone&apos;s always around.</p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {whyCards.map((card, idx) => {
-                const Icon = card.icon
+            <div className="border-t border-[#1a1a1a]">
+              {faqItems.map((item, idx) => {
+                const open = expandedFaq === idx
                 return (
-                  <div
-                    key={idx}
-                    className="
-                      bg-black-card border border-border-dim rounded-lg p-7
-                      transition-all duration-300
-                      hover:border-silver-faint hover:-translate-y-1 hover:shadow-[0_0_8px_rgba(255,255,255,0.15)]
-                    "
-                  >
-                    <Icon size={28} className="text-silver-base mb-4" />
-                    <h3 className="font-heading text-[1rem] text-white mb-2">{card.title}</h3>
-                    <p className="font-body text-[0.9rem] text-silver-mid leading-relaxed">{card.body}</p>
+                  <div key={item.q} className="border-b border-[#1a1a1a]">
+                    <button
+                      onClick={() => setExpandedFaq(open ? null : idx)}
+                      className="w-full flex items-center justify-between gap-4 py-5 text-left group"
+                      aria-expanded={open}
+                    >
+                      <span className={`text-[0.98rem] transition-colors ${open ? 'text-white' : 'text-[#bdbdbd] group-hover:text-white'}`}>{item.q}</span>
+                      <ChevronDownIcon size={18} className={`shrink-0 text-[#6b6b6b] transition-transform duration-300 ${open ? 'rotate-180 text-white' : ''}`} />
+                    </button>
+                    <div className={`grid transition-all duration-300 ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                      <div className="overflow-hidden">
+                        <p className="pb-5 pr-8 text-sm text-[#8a8a8a] leading-relaxed">{item.a}</p>
+                      </div>
+                    </div>
                   </div>
                 )
               })}
@@ -322,112 +250,26 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Shop teaser */}
-        <section className="py-20 md:py-28 px-4">
-          <div className="max-w-5xl mx-auto">
-            <div className="price-card p-10 md:p-14 flex flex-col md:flex-row items-center gap-10 text-center md:text-left">
-              <div className="flex-1">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-black-surface border border-border-dim rounded-full mb-4">
-                  <ShopIcon size={13} className="text-violet" />
-                  <span className="font-body text-xs text-silver-mid tracking-wide">New — Premium Shop</span>
-                </div>
-                <h2 className="font-heading text-[clamp(1.4rem,2.8vw,2.2rem)] text-white mb-3">
-                  Want it instantly? Skip the wait.
-                </h2>
-                <p className="font-body text-silver-mid text-sm md:text-base max-w-md mx-auto md:mx-0">
-                  Grab a premium key from the shop and get delivered automatically after checkout — no ads, no checkpoints.
-                </p>
-              </div>
-              <Link href="/shop" className="btn-buy shrink-0 !px-8 !py-4">
-                <CartIcon size={18} />
-                <span>VISIT SHOP</span>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ */}
-        <section className="py-20 md:py-28 px-4 bg-black-surface">
-          <div className="max-w-[720px] mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="font-heading text-[clamp(1.4rem,2.5vw,2rem)] text-white mb-3">
-                FAQ
-              </h2>
-              <p className="font-body text-silver-mid text-sm md:text-base">
-                Common questions answered.
-              </p>
-            </div>
-
-            <div className="flex flex-col">
-              {faqItems.map((item, idx) => (
-                <div key={idx} className="border-b border-border-dim">
-                  <button
-                    onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
-                    className="w-full flex items-center justify-between py-5 px-4 text-left"
-                  >
-                    <span className="font-body text-silver-bright text-[0.95rem]">{item.q}</span>
-                    <ChevronDownIcon
-                      size={20}
-                      className={`
-                        text-silver-mid flex-shrink-0 ml-4
-                        transition-transform duration-300
-                        ${expandedFaq === idx ? 'rotate-180' : ''}
-                      `}
-                    />
-                  </button>
-                  <div
-                    className={`
-                      overflow-hidden transition-all duration-300
-                      ${expandedFaq === idx ? 'max-h-[200px] pb-5' : 'max-h-0'}
-                    `}
-                  >
-                    <p className="px-4 font-body text-silver-mid text-[0.9rem] leading-relaxed">
-                      {item.a}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Discord CTA Banner */}
-        <section className="bg-black-elevated border-y border-border-mid py-16 md:py-20 px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <DiscordIcon size={40} className="mx-auto text-white animate-pulse-glow mb-6" />
-            <div className="flex justify-center">
-              <DiscordWidget />
-            </div>
-            <h2 className="font-heading text-[clamp(1.2rem,3vw,1.6rem)] text-white mb-3 tracking-wide">
-              JOIN THE VOIDHUB COMMUNITY
+        {/* Closing */}
+        <section className="relative px-4 pt-24 pb-28 overflow-hidden border-t border-[#141414] mono-grain">
+          <div className="absolute inset-0 mono-spot pointer-events-none" />
+          <div className="relative max-w-2xl mx-auto text-center flex flex-col items-center">
+            <img src="/logo.png" alt="" className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.35)]" />
+            <h2 className="mt-8 font-semibold tracking-[-0.04em] leading-[1] text-[clamp(2.2rem,5.5vw,3.8rem)] text-chrome">
+              Enter the void.
             </h2>
-            <p className="font-body text-silver-mid text-sm md:text-base mb-8 max-w-md mx-auto">
-              Get updates, suggest games, get help, and connect with thousands of fellow script users.
-            </p>
-            <a
-              href={discordLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary !px-8"
-            >
-              <DiscordIcon size={20} />
-              <span>JOIN DISCORD</span>
-            </a>
+            <p className="mt-4 text-[#8a8a8a] max-w-sm">Copy, paste, execute. That&apos;s the whole setup.</p>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <Link href="/#get" className="btn-white h-11 px-6 text-sm">Get the script <ChevronRightIcon size={15} /></Link>
+              <a href={discordLink} target="_blank" rel="noopener noreferrer" className="btn-outline h-11 px-6 text-sm">
+                <DiscordIcon size={16} /> Discord
+              </a>
+            </div>
           </div>
         </section>
 
         <Footer />
       </div>
     </ToastProvider>
-  )
-}
-
-function StatItem({ icon: Icon, label, sub }: { icon: typeof BoltIcon; label: string; sub: string }) {
-  return (
-    <div className="flex flex-col items-center text-center py-2">
-      <Icon size={20} className="text-silver-base mb-2" />
-      <span className="font-heading text-[0.65rem] text-silver-light tracking-wider">{label}</span>
-      <span className="font-body text-[0.65rem] text-silver-muted uppercase">{sub}</span>
-    </div>
   )
 }

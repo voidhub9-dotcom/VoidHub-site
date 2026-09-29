@@ -1,4 +1,5 @@
 import { getFile, saveFile } from '@/lib/github-storage'
+import { GAMES_FILE } from '@/lib/games-file'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +9,7 @@ function authorized(req: Request) {
 }
 
 async function getGames() {
-  const data = await getFile('games.json')
+  const data = await getFile(GAMES_FILE)
 
   if (!data) return []
 
@@ -16,7 +17,7 @@ async function getGames() {
 }
 
 async function saveGames(games: any[]) {
-  await saveFile('games.json', games)
+  await saveFile(GAMES_FILE, games)
 }
 
 export async function GET(req: Request) {
@@ -125,6 +126,12 @@ export async function DELETE(req: Request) {
     }
 
     const body = await req.json()
+
+    // { all: true } wipes the whole list (admin "Reset all games").
+    if (body.all === true) {
+      await saveGames([])
+      return Response.json({ success: true, deleted: 'all' })
+    }
 
     if (!body.id) {
       return Response.json(

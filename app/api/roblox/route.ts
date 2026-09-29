@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     if (!universeId) throw new Error('No universe ID returned')
 
     // Step 2: Fetch game info + thumbnail in parallel
-    const [infoRes, thumbRes] = await Promise.all([
+    const [infoRes, thumbRes, bannerRes] = await Promise.all([
       fetch(`https://games.roblox.com/v1/games?universeIds=${universeId}`, {
         headers: { 'User-Agent': 'VoidHub/1.0' },
         cache: 'no-store',
@@ -29,12 +29,19 @@ export async function GET(request: Request) {
         `https://thumbnails.roblox.com/v1/places/gameicons?placeIds=${placeId}&returnPolicy=PlaceHolder&size=512x512&format=Png&isCircular=false`,
         { headers: { 'User-Agent': 'VoidHub/1.0' }, cache: 'no-store' }
       ),
+      // Wide 16:9 promo shot, used as the banner on game cards
+      fetch(
+        `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${universeId}&countPerUniverse=1&defaults=true&size=768x432&format=Png&isCircular=false`,
+        { headers: { 'User-Agent': 'VoidHub/1.0' }, cache: 'no-store' }
+      ),
     ])
 
     const infoData  = infoRes.ok  ? await infoRes.json()  : {}
     const thumbData = thumbRes.ok ? await thumbRes.json() : {}
     const gameInfo  = infoData?.data?.[0]
     const thumbnail = thumbData?.data?.[0]?.imageUrl ?? ''
+    const bannerData = bannerRes.ok ? await bannerRes.json() : {}
+    const banner = bannerData?.data?.[0]?.thumbnails?.[0]?.imageUrl ?? ''
 
     if (!gameInfo) throw new Error('Game not found — make sure the place ID is correct')
 
@@ -42,9 +49,15 @@ export async function GET(request: Request) {
       name:        gameInfo.name        ?? '',
       description: (gameInfo.description ?? '').replace(/\n+/g, ' ').trim().slice(0, 150),
       thumbnail,
+      banner,
+      playing:     typeof gameInfo.playing === 'number' ? gameInfo.playing : null,
+      visits:      typeof gameInfo.visits === 'number' ? gameInfo.visits : null,
       universeId,
       placeId,
       robloxUrl: `https://www.roblox.com/games/${placeId}`,
+    }, {
+      // Player counts change slowly enough; let the CDN absorb card traffic.
+      headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=600' },
     })
   } catch (err: any) {
     return Response.json(

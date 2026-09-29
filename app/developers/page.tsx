@@ -3,207 +3,234 @@
 import { useState } from 'react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import { ToastProvider, useToast } from '@/components/Toast'
-import { CodeIcon, CopyIcon, CheckIcon, GlobeIcon, BoltIcon } from '@/components/Icons'
+import { ToastProvider } from '@/components/Toast'
+import { CopyIcon, CheckIcon, BoltIcon, GlobeIcon, ShieldIcon, RefreshIcon } from '@/components/Icons'
+
+const BASE = 'https://www.voidon.top'
 
 const EXAMPLE_RESPONSE = `[
   {
     "id": "1788154138376",
     "name": "Blox Fruits",
-    "description": "Auto farm + ESP for Blox Fruits.",
-    "category": "Roblox",
+    "description": "Auto farm levels, masteries and bosses.",
+    "category": "RPG",
     "status": "active",
     "thumbnail": "https://...",
-    "scriptLink": "https://discord.gg/...",
+    "scriptLink": "",
     "robloxUrl": "https://www.roblox.com/games/2753915549",
     "placeId": "2753915549",
-    "features": ["Auto Farm", "ESP"],
-    "featured": true,
-    "createdAt": "2026-08-31T05:28:58.376Z",
-    "updatedAt": "2026-08-31T05:28:58.376Z"
+    "createdAt": "2026-09-28T05:28:58.376Z",
+    "updatedAt": "2026-09-29T11:02:10.004Z"
   }
 ]`
 
+const SNIPPETS: Record<string, string> = {
+  curl: `curl "${BASE}/api/public/games?status=active"`,
+  JavaScript: `const res = await fetch("${BASE}/api/public/games?status=active")
+const games = await res.json()
+console.log(games.map(g => g.name))`,
+  Lua: `local HttpService = game:GetService("HttpService")
+local body = game:HttpGet("${BASE}/api/public/games?status=active")
+for _, g in ipairs(HttpService:JSONDecode(body)) do
+  print(g.name, g.status)
+end`,
+}
+
 const PARAMS = [
-  { name: 'status', example: 'active | outdated', desc: 'Only return games with this status.' },
-  { name: 'category', example: 'Roblox', desc: 'Only return games in this category (case-insensitive).' },
-  { name: 'featured', example: 'true', desc: 'Only return featured games.' },
+  { name: 'status', type: 'active | outdated', desc: 'Only games with this status.' },
+  { name: 'category', type: 'string', desc: 'Only games in this category (case-insensitive).' },
 ]
 
 const FIELDS = [
-  { name: 'id', desc: 'Stable unique identifier.' },
-  { name: 'name', desc: 'Game name.' },
-  { name: 'description', desc: 'Short SEO description.' },
-  { name: 'category', desc: 'Category label, e.g. "Roblox", "Simulator".' },
-  { name: 'status', desc: '"active" or "outdated".' },
-  { name: 'thumbnail', desc: 'Thumbnail image URL.' },
-  { name: 'scriptLink', desc: 'Optional secondary script link (may be empty).' },
-  { name: 'robloxUrl', desc: 'Roblox game page URL, if set.' },
-  { name: 'placeId', desc: 'Roblox place ID, if known.' },
-  { name: 'features', desc: 'Array of feature tag strings.' },
-  { name: 'featured', desc: 'Boolean.' },
-  { name: 'createdAt / updatedAt', desc: 'ISO timestamps.' },
+  { name: 'id', type: 'string', desc: 'Stable unique identifier.' },
+  { name: 'name', type: 'string', desc: 'Game name.' },
+  { name: 'description', type: 'string', desc: 'Short description.' },
+  { name: 'category', type: 'string', desc: 'e.g. "RPG", "Simulator".' },
+  { name: 'status', type: 'string', desc: '"active" (working) or "outdated" (being updated).' },
+  { name: 'thumbnail', type: 'string', desc: 'Icon URL, may be empty.' },
+  { name: 'scriptLink', type: 'string', desc: 'Optional extra link, may be empty.' },
+  { name: 'robloxUrl', type: 'string', desc: 'Roblox game page, if set.' },
+  { name: 'placeId', type: 'string', desc: 'Roblox place ID, if known.' },
+  { name: 'createdAt', type: 'ISO date', desc: 'When the game was added.' },
+  { name: 'updatedAt', type: 'ISO date', desc: 'Last change.' },
 ]
 
-function CodeBlock({ code, label }: { code: string; label?: string }) {
-  const { showToast } = useToast()
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(code)
-    } catch {
-      const el = document.createElement('textarea')
-      el.value = code
-      document.body.appendChild(el)
-      el.select()
-      document.execCommand('copy')
-      document.body.removeChild(el)
-    }
-    setCopied(true)
-    showToast('Copied to clipboard', 'success')
-    setTimeout(() => setCopied(false), 1600)
+async function copy(text: string) {
+  try { await navigator.clipboard.writeText(text) } catch {
+    const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el)
   }
+}
 
+function CopyButton({ text }: { text: string }) {
+  const [done, setDone] = useState(false)
   return (
-    <div className="relative rounded-xl border border-border-dim bg-black-surface overflow-hidden">
-      {label && (
-        <div className="flex items-center justify-between px-4 h-9 border-b border-border-dim">
-          <span className="font-body text-[0.65rem] tracking-widest uppercase text-silver-muted">{label}</span>
-        </div>
-      )}
-      <button
-        onClick={handleCopy}
-        aria-label="Copy to clipboard"
-        className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-mid bg-black-card text-silver-mid font-body text-xs hover:border-white hover:text-white transition-all"
-        style={label ? { top: '2.75rem' } : undefined}
-      >
-        {copied ? <CheckIcon size={12} className="text-success" /> : <CopyIcon size={12} />}
-        {copied ? 'Copied' : 'Copy'}
-      </button>
-      <pre className="overflow-x-auto p-4 pr-20 font-code text-[0.8rem] leading-relaxed text-silver-bright">
-        <code>{code}</code>
-      </pre>
+    <button
+      onClick={async () => { await copy(text); setDone(true); setTimeout(() => setDone(false), 1500) }}
+      className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg border border-[#262626] text-[0.7rem] text-[#a3a3a3] hover:text-white hover:border-[#444]"
+      aria-label="Copy"
+    >
+      {done ? <CheckIcon size={11} /> : <CopyIcon size={11} />}{done ? 'Copied' : 'Copy'}
+    </button>
+  )
+}
+
+/** Tiny JSON colouring in greys: keys white, strings mid, punctuation dim. */
+function Json({ text }: { text: string }) {
+  const parts = text.split(/("(?:[^"\\]|\\.)*"(?=\s*:)|"(?:[^"\\]|\\.)*"|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?)/g)
+  return (
+    <>
+      {parts.map((p, i) => {
+        if (!p) return null
+        if (/^".*"$/.test(p) && text.slice(text.indexOf(p)).length && parts[i + 1]?.trimStart().startsWith(':'))
+          return <span key={i} className="text-white">{p}</span>
+        if (/^"/.test(p)) return <span key={i} className="text-[#9a9a9a]">{p}</span>
+        if (/^(true|false|null|-?\d)/.test(p)) return <span key={i} className="text-[#d4d4d4]">{p}</span>
+        return <span key={i} className="text-[#555]">{p}</span>
+      })}
+    </>
+  )
+}
+
+function Panel({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-[#1c1c1c] bg-[#070707] overflow-hidden">
+      <div className="flex items-center justify-between gap-2 h-11 px-4 border-b border-[#1a1a1a]">
+        <span className="font-gmono text-[0.68rem] text-[#6b6b6b]">{title}</span>
+        {right}
+      </div>
+      {children}
     </div>
   )
 }
 
-function DevelopersPageInner() {
+function Inner() {
+  const [lang, setLang] = useState<keyof typeof SNIPPETS>('curl')
+  const [live, setLive] = useState<{ ms: number; status: number; body: string } | null>(null)
+  const [trying, setTrying] = useState(false)
+
+  const tryIt = async () => {
+    setTrying(true)
+    const t = performance.now()
+    try {
+      const res = await fetch('/api/public/games?status=active')
+      const data = await res.json()
+      const arr = Array.isArray(data) ? data.slice(0, 2) : data
+      setLive({ ms: Math.round(performance.now() - t), status: res.status, body: JSON.stringify(arr, null, 2) + (Array.isArray(data) && data.length > 2 ? `\n// …and ${data.length - 2} more` : '') })
+    } catch (e: any) {
+      setLive({ ms: 0, status: 0, body: String(e?.message || e) })
+    } finally {
+      setTrying(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-black-void">
+    <div className="min-h-screen bg-black font-display">
       <Navbar />
-      <main className="pt-24 pb-20 px-4">
-        <div className="max-w-3xl mx-auto">
 
-          {/* Hero */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border-mid bg-black-card px-4 py-1.5 mb-5">
-              <CodeIcon size={13} className="text-silver-muted" />
-              <span className="font-body text-xs text-silver-muted tracking-wider">PUBLIC API</span>
-            </div>
-            <h1 className="font-heading text-[clamp(2rem,4vw,3.5rem)] text-white mb-3 text-balance">
-              BUILD ON <span className="text-glow">VOIDHUB</span>
-            </h1>
-            <p className="font-body text-silver-mid text-sm md:text-base text-pretty">
-              A read-only, no-auth API for the games catalog. Free to use, no API key required.
-            </p>
+      <section className="relative px-4 pt-28 md:pt-36 pb-12 mono-grain">
+        <div className="absolute inset-0 mono-spot pointer-events-none" />
+        <div className="absolute inset-0 mono-dots pointer-events-none" />
+        <div className="relative max-w-6xl mx-auto">
+          <p className="font-gmono text-[0.7rem] uppercase tracking-[0.2em] text-[#6b6b6b]">Public API</p>
+          <h1 className="mt-4 font-semibold tracking-[-0.045em] leading-[0.98] text-[clamp(2.4rem,6vw,4.4rem)] text-chrome">Build on VoidHub.</h1>
+          <p className="mt-5 max-w-xl text-base md:text-lg text-[#8a8a8a]">A free, read-only API for the games catalog. No key, no sign-up. Use it for bots, sites or your own tools.</p>
+          <div className="mt-8 flex flex-wrap gap-2">
+            {[[GlobeIcon, 'CORS open'], [BoltIcon, 'No auth'], [ShieldIcon, '60 req / min per IP']].map(([Icon, label]) => {
+              const I = Icon as typeof GlobeIcon
+              return (
+                <span key={label as string} className="inline-flex items-center gap-2 h-9 px-4 rounded-full border border-[#262626] bg-white/[0.02] text-sm text-[#d4d4d4]">
+                  <I size={14} className="text-[#8a8a8a]" />{label as string}
+                </span>
+              )
+            })}
           </div>
+        </div>
+      </section>
 
-          {/* At a glance */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
-            <div className="void-card p-4 flex items-start gap-3">
-              <GlobeIcon size={16} className="text-silver-muted mt-0.5 shrink-0" />
-              <div>
-                <p className="font-body text-sm text-white">CORS enabled</p>
-                <p className="font-body text-xs text-silver-muted mt-0.5">Call it from any origin — browser or server.</p>
-              </div>
+      <main className="px-4 pb-24">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+          {/* Reference */}
+          <div className="min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="h-7 px-2.5 rounded-lg bg-white text-black font-gmono text-xs font-semibold flex items-center">GET</span>
+              <code className="font-gmono text-[0.95rem] text-white break-all">/api/public/games</code>
+              <CopyButton text={`${BASE}/api/public/games`} />
             </div>
-            <div className="void-card p-4 flex items-start gap-3">
-              <BoltIcon size={16} className="text-silver-muted mt-0.5 shrink-0" />
-              <div>
-                <p className="font-body text-sm text-white">No auth needed</p>
-                <p className="font-body text-xs text-silver-muted mt-0.5">It's the same public data the site itself reads.</p>
-              </div>
-            </div>
-            <div className="void-card p-4 flex items-start gap-3">
-              <ShieldRateIcon />
-              <div>
-                <p className="font-body text-sm text-white">Rate limited</p>
-                <p className="font-body text-xs text-silver-muted mt-0.5">60 requests / minute per IP.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Endpoint */}
-          <section className="mb-10">
-            <h2 className="font-heading text-lg tracking-wide text-white mb-3">GET GAMES</h2>
-            <p className="font-body text-sm text-silver-muted mb-4 leading-relaxed">
-              Returns the current games catalog. This is the same list shown on the{' '}
-              <a href="/games" className="text-silver-bright underline hover:text-white">Games page</a> — internal
-              admin-only fields (like private notes) are stripped before this response is built.
+            <p className="mt-4 text-sm text-[#8a8a8a] leading-relaxed">
+              Every supported game as a JSON array. Private admin fields (like notes) are never included. Responses are never cached, so you always get the live list.
             </p>
 
-            <CodeBlock label="Request" code={`GET https://www.voidon.top/api/public/games`} />
-
-            <p className="font-body text-xs text-silver-muted mt-4 mb-2 uppercase tracking-widest">Query params (all optional)</p>
-            <div className="rounded-xl border border-border-dim overflow-hidden">
-              {PARAMS.map((p, i) => (
-                <div key={p.name} className={`flex items-start gap-4 p-3.5 ${i > 0 ? 'border-t border-border-dim' : ''}`}>
-                  <code className="shrink-0 w-24 font-code text-xs text-silver-bright">{p.name}</code>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-body text-xs text-silver-mid">{p.desc}</p>
-                    <p className="font-code text-[0.7rem] text-silver-muted mt-1">e.g. ?{p.name}={p.example}</p>
+            <h2 className="mt-10 mb-3 text-lg font-semibold tracking-tight text-white">Query parameters</h2>
+            <div className="rounded-2xl border border-[#1c1c1c] divide-y divide-[#161616] overflow-hidden">
+              {PARAMS.map(p => (
+                <div key={p.name} className="px-4 py-3.5 grid grid-cols-[110px_1fr] gap-3">
+                  <code className="font-gmono text-sm text-white">{p.name}</code>
+                  <div>
+                    <span className="font-gmono text-[0.7rem] text-[#6b6b6b]">{p.type}</span>
+                    <p className="text-sm text-[#9a9a9a]">{p.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            <p className="font-body text-xs text-silver-muted mt-6 mb-2 uppercase tracking-widest">Example</p>
-            <CodeBlock label="curl" code={`curl "https://www.voidon.top/api/public/games?status=active&featured=true"`} />
-
-            <p className="font-body text-xs text-silver-muted mt-6 mb-2 uppercase tracking-widest">Response — 200 OK</p>
-            <CodeBlock label="application/json" code={EXAMPLE_RESPONSE} />
-
-            <p className="font-body text-xs text-silver-muted mt-6 mb-2 uppercase tracking-widest">Fields</p>
-            <div className="rounded-xl border border-border-dim overflow-hidden">
-              {FIELDS.map((f, i) => (
-                <div key={f.name} className={`flex items-start gap-4 p-3.5 ${i > 0 ? 'border-t border-border-dim' : ''}`}>
-                  <code className="shrink-0 w-32 font-code text-xs text-silver-bright">{f.name}</code>
-                  <p className="font-body text-xs text-silver-mid">{f.desc}</p>
+            <h2 className="mt-10 mb-3 text-lg font-semibold tracking-tight text-white">Response fields</h2>
+            <div className="rounded-2xl border border-[#1c1c1c] divide-y divide-[#161616] overflow-hidden">
+              {FIELDS.map(f => (
+                <div key={f.name} className="px-4 py-3 grid grid-cols-[110px_1fr] gap-3">
+                  <code className="font-gmono text-sm text-white">{f.name}</code>
+                  <p className="text-sm text-[#9a9a9a]"><span className="font-gmono text-[0.7rem] text-[#555] mr-2">{f.type}</span>{f.desc}</p>
                 </div>
               ))}
             </div>
-          </section>
 
-          <div className="void-card p-5">
-            <p className="font-body text-sm text-silver-mid leading-relaxed">
-              Rate limited to 60 requests per minute per IP; excess requests get a{' '}
-              <code className="text-silver-bright">429</code> with a <code className="text-silver-bright">Retry-After</code> header.
-              This endpoint reflects live admin edits with no cache, so there's no need to poll faster than your own use case needs.
-              Something else you'd find useful here? Ask in Discord.
-            </p>
+            <h2 className="mt-10 mb-3 text-lg font-semibold tracking-tight text-white">Errors</h2>
+            <div className="rounded-2xl border border-[#1c1c1c] px-4 py-3.5 grid grid-cols-[110px_1fr] gap-3">
+              <code className="font-gmono text-sm text-white">429</code>
+              <p className="text-sm text-[#9a9a9a]">Over 60 requests a minute. Wait for the <code className="font-gmono text-xs text-white">Retry-After</code> seconds and try again.</p>
+            </div>
           </div>
 
+          {/* Code */}
+          <div className="lg:sticky lg:top-24 flex flex-col gap-4 min-w-0">
+            <Panel
+              title="Request"
+              right={
+                <div className="flex items-center gap-1">
+                  {Object.keys(SNIPPETS).map(k => (
+                    <button key={k} onClick={() => setLang(k)} className={`h-7 px-2.5 rounded-lg text-[0.7rem] ${lang === k ? 'bg-white text-black' : 'text-[#8a8a8a] hover:text-white'}`}>{k}</button>
+                  ))}
+                </div>
+              }
+            >
+              <div className="relative">
+                <pre className="overflow-x-auto p-4 pr-20 font-gmono text-[0.78rem] leading-relaxed text-[#d4d4d4]"><code>{SNIPPETS[lang]}</code></pre>
+                <div className="absolute top-3 right-3"><CopyButton text={SNIPPETS[lang]} /></div>
+              </div>
+            </Panel>
+
+            <Panel
+              title={live ? `Live response · ${live.status} · ${live.ms}ms` : 'Example response'}
+              right={
+                <button onClick={tryIt} disabled={trying} className="btn-white h-7 px-3 text-[0.7rem]">
+                  <RefreshIcon size={11} className={trying ? 'animate-spin' : ''} /> {live ? 'Run again' : 'Send request'}
+                </button>
+              }
+            >
+              <pre className="overflow-auto max-h-[420px] p-4 font-gmono text-[0.76rem] leading-relaxed"><code><Json text={live?.body ?? EXAMPLE_RESPONSE} /></code></pre>
+            </Panel>
+          </div>
         </div>
       </main>
+
       <Footer />
     </div>
-  )
-}
-
-function ShieldRateIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      className="text-silver-muted mt-0.5 shrink-0">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
   )
 }
 
 export default function DevelopersPage() {
   return (
     <ToastProvider>
-      <DevelopersPageInner />
+      <Inner />
     </ToastProvider>
   )
 }

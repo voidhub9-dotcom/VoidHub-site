@@ -11,51 +11,49 @@ import {
   SettingsIcon,
   LogoutIcon,
   BoltIcon,
-  KeyIcon,
-  ShopIcon,
   MailIcon,
+  ExternalIcon,
 } from '@/components/Icons'
 import { logout, getUsername } from '@/lib/storage'
 
-const mainLinks = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: BarChartIcon },
-  { href: '/admin/games', label: 'Games', icon: GamesIcon },
-  { href: '/admin/shop', label: 'Shop', icon: ShopIcon },
-  { href: '/admin/shop/orders', label: 'Orders', icon: ActivityIcon },
-  { href: '/admin/executors', label: 'Executors', icon: BoltIcon },
-  { href: '/admin/loader', label: 'Loader', icon: TerminalIcon },
-  { href: '/admin/keys', label: 'Keys', icon: KeyIcon },
-  { href: '/admin/email', label: 'Send Email', icon: MailIcon },
-  { href: '/admin/activity', label: 'Activity', icon: ActivityIcon },
+export const ADMIN_NAV: { group: string; links: { href: string; label: string; icon: typeof BarChartIcon }[] }[] = [
+  {
+    group: 'Overview',
+    links: [
+      { href: '/admin/dashboard', label: 'Dashboard', icon: BarChartIcon },
+      { href: '/admin/activity', label: 'Activity', icon: ActivityIcon },
+    ],
+  },
+  {
+    group: 'Content',
+    links: [
+      { href: '/admin/games', label: 'Games', icon: GamesIcon },
+      { href: '/admin/executors', label: 'Executors', icon: BoltIcon },
+      { href: '/admin/loader', label: 'Loader', icon: TerminalIcon },
+    ],
+  },
+  {
+    group: 'Manage',
+    links: [
+      { href: '/admin/email', label: 'Send Email', icon: MailIcon },
+      { href: '/admin/settings', label: 'Settings', icon: SettingsIcon },
+    ],
+  },
 ]
 
-const manageLinks = [
-  { href: '/admin/settings', label: 'Settings', icon: SettingsIcon },
-]
-
-function NavLink({ href, label, icon: Icon, isActive }: {
-  href: string; label: string; icon: typeof BarChartIcon; isActive: boolean
+export function AdminNavLink({ href, label, icon: Icon, isActive, onClick }: {
+  href: string; label: string; icon: typeof BarChartIcon; isActive: boolean; onClick?: () => void
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={`
-        relative flex items-center gap-3 px-4 py-2.5 rounded-md
-        transition-all duration-200 text-sm font-body overflow-hidden
-        ${isActive
-          ? 'text-white bg-white/[0.06]'
-          : 'text-silver-muted hover:text-silver-light hover:bg-black-elevated'
-        }
+        flex items-center gap-3 h-9 px-3 rounded-lg text-[0.85rem] transition-colors duration-150
+        ${isActive ? 'bg-white text-black font-medium' : 'text-[#8a8a8a] hover:text-white hover:bg-white/[0.05]'}
       `}
     >
-      {isActive && (
-        <span
-          className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full"
-          style={{ background: 'linear-gradient(180deg, var(--accent-violet), var(--accent-cyber))' }}
-          aria-hidden="true"
-        />
-      )}
-      <Icon size={18} className={isActive ? 'text-white' : 'text-silver-muted'} />
+      <Icon size={16} className={isActive ? 'text-black' : ''} />
       <span>{label}</span>
     </Link>
   )
@@ -76,64 +74,39 @@ export default function AdminSidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-[60px] bottom-0 w-[220px] bg-black-surface/90 backdrop-blur-xl border-r border-border-dim overflow-y-auto hidden lg:block">
-      <div className="flex flex-col h-full py-4">
-        <div className="px-4 mb-4">
-          <span className="font-heading text-[0.6rem] text-silver-muted tracking-widest uppercase">
-            Main
-          </span>
-        </div>
-        <nav className="flex flex-col gap-1 px-2">
-          {mainLinks.map(link => (
-            <NavLink key={link.href} {...link} isActive={pathname === link.href} />
-          ))}
-        </nav>
+    <aside className="fixed left-0 top-0 bottom-0 z-40 w-[240px] bg-[#050505] border-r border-[#171717] overflow-y-auto hidden lg:flex flex-col font-display">
+      <Link href="/admin/dashboard" className="flex items-center gap-2.5 h-[60px] px-5 border-b border-[#171717] shrink-0">
+        <img src="/logo.png" alt="" className="w-7 h-7 object-contain" />
+        <span className="font-semibold tracking-tight text-white">VoidHub</span>
+        <span className="ml-auto px-1.5 py-0.5 rounded border border-[#262626] font-gmono text-[0.6rem] text-[#8a8a8a]">admin</span>
+      </Link>
 
-        <div className="px-4 mt-6 mb-4">
-          <span className="font-heading text-[0.6rem] text-silver-muted tracking-widest uppercase">
-            Manage
-          </span>
-        </div>
-        <nav className="flex flex-col gap-1 px-2">
-          {manageLinks.map(link => (
-            <NavLink key={link.href} {...link} isActive={pathname === link.href} />
-          ))}
-        </nav>
-
-        <div className="px-4 mt-6 mb-4">
-          <span className="font-heading text-[0.6rem] text-silver-muted tracking-widest uppercase">
-            Account
-          </span>
-        </div>
-        <nav className="flex flex-col gap-1 px-2">
-          <button
-            onClick={handleLogout}
-            className="
-              flex items-center gap-3 px-4 py-2.5 rounded-md
-              transition-all duration-200 text-sm font-body
-              text-silver-muted hover:text-danger hover:bg-danger/10
-            "
-          >
-            <LogoutIcon size={18} />
-            <span>Logout</span>
-          </button>
-        </nav>
-
-        <div className="mt-auto px-4 py-4 border-t border-border-dim">
-          <div className="flex items-center gap-3">
-            <div
-              className="relative w-9 h-9 rounded-full flex items-center justify-center p-[1.5px] shrink-0"
-              style={{ background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-cyber))' }}
-            >
-              <div className="w-full h-full rounded-full bg-black-card flex items-center justify-center">
-                <span className="font-heading text-[0.7rem] text-silver-light">VH</span>
-              </div>
-            </div>
-            <div>
-              <p className="font-body text-[0.8rem] text-silver-mid">{username}</p>
-              <p className="font-body text-[0.7rem] text-silver-faint">Administrator</p>
+      <nav className="flex-1 px-3 py-5 flex flex-col gap-6">
+        {ADMIN_NAV.map(({ group, links }) => (
+          <div key={group}>
+            <p className="px-3 mb-2 font-gmono text-[0.6rem] uppercase tracking-[0.2em] text-[#525252]">{group}</p>
+            <div className="flex flex-col gap-0.5">
+              {links.map(link => <AdminNavLink key={link.href} {...link} isActive={pathname === link.href} />)}
             </div>
           </div>
+        ))}
+      </nav>
+
+      <div className="p-3 border-t border-[#171717] shrink-0">
+        <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 h-9 px-3 rounded-lg text-[0.85rem] text-[#8a8a8a] hover:text-white hover:bg-white/[0.05] transition-colors">
+          <ExternalIcon size={16} /><span>Visit site</span>
+        </a>
+        <div className="mt-2 flex items-center gap-3 p-2 rounded-xl bg-[#0c0c0c] border border-[#1a1a1a]">
+          <span className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center text-xs font-semibold uppercase shrink-0">
+            {(username || 'v').slice(0, 1)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.8rem] text-white truncate">{username}</p>
+            <p className="text-[0.68rem] text-[#6b6b6b]">Administrator</p>
+          </div>
+          <button onClick={handleLogout} aria-label="Log out" title="Log out" className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6b6b6b] hover:text-white hover:bg-white/[0.06] transition-colors">
+            <LogoutIcon size={15} />
+          </button>
         </div>
       </div>
     </aside>

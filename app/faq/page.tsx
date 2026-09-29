@@ -5,39 +5,30 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { ToastProvider } from '@/components/Toast'
-import {
-  ChevronDownIcon,
-  DiscordIcon,
-  SearchIcon,
-  BoltIcon,
-  ShieldIcon,
-  TerminalIcon,
-  HelpIcon,
-  CloseIcon,
-} from '@/components/Icons'
+import { ChevronDownIcon, DiscordIcon, SearchIcon, XIcon, ChevronRightIcon } from '@/components/Icons'
 
-type Category = 'all' | 'getting-started' | 'scripts' | 'executors' | 'safety'
+type Category = 'getting-started' | 'scripts' | 'executors' | 'safety'
 
 interface Faq {
   q: string
   a: string
-  category: Exclude<Category, 'all'>
+  category: Category
 }
 
 const faqs: Faq[] = [
   {
     q: 'How do I use the script?',
-    a: 'Copy the universal loadstring from any game card on the Games page, paste it into your executor while in a supported Roblox game, and execute it. The loader automatically detects which game you are in and loads the right script.',
+    a: 'Copy the loadstring from the home page or any game on the Games page, paste it into your executor while in a supported Roblox game, and execute it. The loader automatically detects which game you are in and loads the right script.',
     category: 'getting-started',
   },
   {
     q: 'Do I need a key to use VoidHub?',
-    a: 'No — the free scripts don\'t require a key. Copy the loadstring, execute it, and you are in. Prefer instant delivery without any steps? Premium keys are available in the Shop.',
+    a: 'No. VoidHub is fully keyless. Copy the loadstring, execute it, and you are in.',
     category: 'getting-started',
   },
   {
     q: 'Is VoidHub free?',
-    a: 'The core scripts are 100% free — forever, no subscription. The Shop also sells optional premium keys for instant delivery, but they\'re never required to use the free scripts.',
+    a: 'Yes, 100% free forever. No subscription, no premium tier, no key system.',
     category: 'getting-started',
   },
   {
@@ -62,7 +53,7 @@ const faqs: Faq[] = [
   },
   {
     q: 'Which executors are supported?',
-    a: 'VoidHub works with Potassium, Seliware, Madium, Cosmic, Macsploit, Volt, Delta, Codex, Wave, and Real. Xeno, Solara, Velocity, Ronix, and Arceus X are NOT supported. Check the Status page for the live compatibility list.',
+    a: 'The Status page has the live list: which executors work with VoidHub right now, whether each one is updated for the current Roblox version, the platform and whether it is free.',
     category: 'executors',
   },
   {
@@ -87,50 +78,25 @@ const faqs: Faq[] = [
   },
 ]
 
-const categories: { id: Category; label: string; icon: typeof BoltIcon }[] = [
-  { id: 'all', label: 'All', icon: HelpIcon },
-  { id: 'getting-started', label: 'Getting Started', icon: BoltIcon },
-  { id: 'scripts', label: 'Scripts', icon: TerminalIcon },
-  { id: 'executors', label: 'Executors', icon: TerminalIcon },
-  { id: 'safety', label: 'Safety', icon: ShieldIcon },
+const topics: { id: Category; label: string; blurb: string }[] = [
+  { id: 'getting-started', label: 'Getting started', blurb: 'Copy, paste, execute' },
+  { id: 'scripts', label: 'Scripts', blurb: 'Games, updates, requests' },
+  { id: 'executors', label: 'Executors', blurb: 'What runs VoidHub' },
+  { id: 'safety', label: 'Safety', blurb: 'Bans, data, risk' },
 ]
 
-function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
-  const [open, setOpen] = useState(false)
-
+function Row({ faq, open, onToggle }: { faq: Faq; open: boolean; onToggle: () => void }) {
   return (
-    <div
-      className={`bg-black-card border rounded-xl transition-all duration-200 ${
-        open ? 'border-silver-faint shadow-[0_0_15px_rgba(255,255,255,0.05)]' : 'border-border-dim hover:border-silver-faint'
-      }`}
-      style={{ animationDelay: `${index * 40}ms` }}
-    >
-      <button
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        className="w-full flex items-center gap-4 px-5 py-4 text-left"
-      >
-        <span
-          className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition-colors duration-200 ${
-            open ? 'border-success/40 bg-success/10 text-success' : 'border-border-mid text-silver-muted'
-          }`}
-        >
-          <span className="font-heading text-[0.65rem]">{String(index + 1).padStart(2, '0')}</span>
+    <div className="border-b border-[#171717] last:border-b-0">
+      <button onClick={onToggle} aria-expanded={open} className="group w-full flex items-center justify-between gap-4 px-5 py-5 text-left">
+        <span className={`text-[0.98rem] transition-colors ${open ? 'text-white' : 'text-[#c4c4c4] group-hover:text-white'}`}>{faq.q}</span>
+        <span className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 transition-all ${open ? 'bg-white border-white text-black rotate-180' : 'border-[#2a2a2a] text-[#8a8a8a]'}`}>
+          <ChevronDownIcon size={14} />
         </span>
-        <span className={`flex-1 font-body text-sm transition-colors duration-200 ${open ? 'text-white' : 'text-silver-light'}`}>
-          {q}
-        </span>
-        <ChevronDownIcon
-          size={18}
-          className={`text-silver-muted shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
-        />
       </button>
-      <div
-        className="grid transition-all duration-300 ease-out"
-        style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
-      >
+      <div className="grid transition-all duration-300 ease-out" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
         <div className="overflow-hidden">
-          <p className="px-5 pb-5 pl-16 font-body text-sm text-silver-mid leading-relaxed">{a}</p>
+          <p className="px-5 pb-5 pr-14 text-sm text-[#9a9a9a] leading-relaxed">{faq.a}</p>
         </div>
       </div>
     </div>
@@ -138,142 +104,126 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
 }
 
 export default function FaqPage() {
-  const [discordLink, setDiscordLink] = useState('https://discord.gg/kPPsdZtndn')
+  const [discordLink, setDiscordLink] = useState('https://discord.gg/UrTqzfq9DF')
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<Category>('all')
+  const [topic, setTopic] = useState<Category | 'all'>('all')
+  const [open, setOpen] = useState<string | null>(faqs[0]?.q ?? null)
 
   useEffect(() => {
-    fetch('/api/public/settings')
-      .then(r => r.json())
-      .then(data => { if (data?.discord) setDiscordLink(data.discord) })
-      .catch(() => {})
+    fetch('/api/public/settings').then(r => r.json()).then(d => d?.discord && setDiscordLink(d.discord)).catch(() => {})
   }, [])
 
-  const filtered = useMemo(() => {
-    let list = faqs
-    if (category !== 'all') list = list.filter(f => f.category === category)
-    if (query.trim()) {
-      const q = query.trim().toLowerCase()
-      list = list.filter(f => f.q.toLowerCase().includes(q) || f.a.toLowerCase().includes(q))
-    }
-    return list
-  }, [query, category])
+  const q = query.trim().toLowerCase()
+  const groups = useMemo(() => topics
+    .filter(t => topic === 'all' || t.id === topic)
+    .map(t => ({
+      ...t,
+      items: faqs.filter(f => f.category === t.id && (!q || f.q.toLowerCase().includes(q) || f.a.toLowerCase().includes(q))),
+    }))
+    .filter(g => g.items.length), [topic, q])
 
-  const countFor = (id: Category) =>
-    id === 'all' ? faqs.length : faqs.filter(f => f.category === id).length
+  const total = groups.reduce((n, g) => n + g.items.length, 0)
+  const chip = (on: boolean) =>
+    `shrink-0 h-9 px-4 rounded-full text-[0.82rem] whitespace-nowrap transition-colors ${on ? 'bg-white text-black' : 'border border-[#262626] text-[#a3a3a3] hover:text-white'}`
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-black-void">
+      <div className="min-h-screen bg-black font-display">
         <Navbar />
-        <main className="pt-24 pb-20 px-4">
-          <div className="max-w-3xl mx-auto">
 
-            {/* Hero */}
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border-mid bg-black-card px-4 py-1.5 mb-5">
-                <HelpIcon size={13} className="text-silver-muted" />
-                <span className="font-body text-xs text-silver-muted tracking-wider">HELP CENTER</span>
-              </div>
-              <h1 className="font-heading text-[clamp(2rem,4vw,3.5rem)] text-white mb-3 text-balance">
-                FREQUENTLY ASKED QUESTIONS
-              </h1>
-              <p className="font-body text-silver-mid text-sm md:text-base text-pretty">
-                Everything you need to know about using VoidHub. Search or browse by topic.
-              </p>
-            </div>
-
-            {/* Search */}
-            <div className="relative mb-5">
-              <SearchIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-silver-muted pointer-events-none" />
+        <section className="relative px-4 pt-28 md:pt-36 pb-10 mono-grain">
+          <div className="absolute inset-0 mono-spot pointer-events-none" />
+          <div className="absolute inset-0 mono-dots pointer-events-none" />
+          <div className="relative max-w-6xl mx-auto">
+            <p className="font-gmono text-[0.7rem] uppercase tracking-[0.2em] text-[#6b6b6b]">Help center</p>
+            <h1 className="mt-4 font-semibold tracking-[-0.045em] leading-[0.98] text-[clamp(2.4rem,6vw,4.4rem)] text-chrome">
+              How can we help?
+            </h1>
+            <div className="relative mt-8 max-w-xl">
+              <SearchIcon size={17} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#6b6b6b]" />
               <input
                 type="search"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Search questions… e.g. key, executor, banned"
-                aria-label="Search FAQ"
-                className="w-full bg-black-card border border-border-dim rounded-xl pl-11 pr-10 py-3.5 font-body text-sm text-white placeholder:text-silver-faint focus:outline-none focus:border-silver-faint focus:shadow-[0_0_15px_rgba(255,255,255,0.06)] transition-all duration-200"
+                placeholder="Search: executor, mobile, banned…"
+                aria-label="Search the FAQ"
+                className="w-full h-14 pl-12 pr-12 rounded-2xl bg-[#0a0a0a] border border-[#262626] text-white text-[16px] placeholder:text-[#555] focus:outline-none focus:border-[#555] focus:shadow-[0_0_0_4px_rgba(255,255,255,0.05)] transition-all"
               />
               {query && (
-                <button
-                  onClick={() => setQuery('')}
-                  aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-silver-muted hover:text-white transition-colors"
-                >
-                  <CloseIcon size={14} />
+                <button onClick={() => setQuery('')} aria-label="Clear" className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full text-[#8a8a8a] hover:text-white hover:bg-white/10">
+                  <XIcon size={14} />
                 </button>
               )}
             </div>
+          </div>
+        </section>
 
-            {/* Category tabs */}
-            <div className="flex flex-wrap gap-2 mb-8">
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategory(cat.id)}
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 font-body text-xs transition-all duration-200 ${
-                    category === cat.id
-                      ? 'border-white bg-white text-black'
-                      : 'border-border-dim text-silver-muted hover:border-silver-faint hover:text-white'
-                  }`}
-                >
-                  <span>{cat.label}</span>
-                  <span className={`text-[0.65rem] ${category === cat.id ? 'text-black/60' : 'text-silver-faint'}`}>
-                    {countFor(cat.id)}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {/* FAQ list */}
-            {filtered.length > 0 ? (
-              <div className="flex flex-col gap-3 mb-16">
-                {filtered.map((item, idx) => (
-                  <FaqItem key={item.q} q={item.q} a={item.a} index={idx} />
+        <main className="px-4 pb-24">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 lg:gap-12 items-start">
+            {/* Topics: sidebar on desktop, swipeable chips on phones */}
+            <aside className="lg:sticky lg:top-28">
+              <div className="flex lg:hidden gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+                <button onClick={() => setTopic('all')} className={chip(topic === 'all')}>All</button>
+                {topics.map(t => <button key={t.id} onClick={() => setTopic(t.id)} className={chip(topic === t.id)}>{t.label}</button>)}
+              </div>
+              <nav className="hidden lg:flex flex-col gap-1">
+                {[{ id: 'all' as const, label: 'Everything', blurb: `${faqs.length} answers` }, ...topics].map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTopic(t.id)}
+                    className={`text-left px-4 py-3 rounded-2xl transition-colors ${topic === t.id ? 'bg-white text-black' : 'text-[#a3a3a3] hover:bg-white/[0.04] hover:text-white'}`}
+                  >
+                    <span className="block text-sm font-medium">{t.label}</span>
+                    <span className={`block text-xs ${topic === t.id ? 'text-black/55' : 'text-[#555]'}`}>{t.blurb}</span>
+                  </button>
                 ))}
-              </div>
-            ) : (
-              <div className="bg-black-card border border-border-dim rounded-xl p-10 text-center mb-16">
-                <SearchIcon size={28} className="mx-auto text-silver-faint mb-3" />
-                <p className="font-body text-sm text-silver-mid mb-1">
-                  No results for <span className="text-white">&quot;{query}&quot;</span>
-                </p>
-                <p className="font-body text-xs text-silver-muted">
-                  Try different keywords, or ask directly in the Discord below.
-                </p>
-              </div>
-            )}
+              </nav>
+              <a href={discordLink} target="_blank" rel="noopener noreferrer" className="hidden lg:flex mt-6 mono-card p-4 items-center gap-3 hover:!border-[#333]">
+                <span className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center shrink-0"><DiscordIcon size={18} /></span>
+                <span className="min-w-0">
+                  <span className="block text-sm text-white">Still stuck?</span>
+                  <span className="block text-xs text-[#6b6b6b]">Ask in the Discord</span>
+                </span>
+              </a>
+            </aside>
 
-            {/* Still need help */}
-            <div className="relative overflow-hidden bg-black-card border border-border-mid rounded-xl p-8 md:p-10 text-center">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,136,0.04),transparent_70%)]" aria-hidden="true" />
-              <div className="relative">
-                <h2 className="font-heading text-lg text-white mb-2">STILL HAVE A QUESTION?</h2>
-                <p className="font-body text-silver-mid text-sm mb-6 max-w-md mx-auto leading-relaxed">
-                  Our community and staff are active every day. Ask anything in the Discord and get a fast answer.
-                </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <a
-                    href={discordLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary"
-                  >
-                    <DiscordIcon size={18} />
-                    <span>ASK IN DISCORD</span>
-                  </a>
-                  <Link
-                    href="/status"
-                    className="inline-flex items-center gap-2 px-6 py-3 border border-silver-faint text-silver-mid rounded-lg font-body text-sm transition-all duration-200 hover:bg-white hover:text-black hover:border-white"
-                  >
-                    <BoltIcon size={16} />
-                    <span>CHECK SCRIPT STATUS</span>
-                  </Link>
+            <div className="flex flex-col gap-10 min-w-0">
+              {q && <p className="font-gmono text-xs text-[#6b6b6b]">{total} {total === 1 ? 'answer' : 'answers'} for “{query.trim()}”</p>}
+              {groups.map(g => (
+                <section key={g.id}>
+                  <h2 className="mb-3 flex items-baseline gap-3">
+                    <span className="text-xl font-semibold tracking-tight text-white">{g.label}</span>
+                    <span className="font-gmono text-xs text-[#555]">{g.items.length}</span>
+                  </h2>
+                  <div className="rounded-2xl border border-[#1c1c1c] bg-[#070707] overflow-hidden">
+                    {g.items.map(f => (
+                      <Row key={f.q} faq={f} open={open === f.q} onToggle={() => setOpen(open === f.q ? null : f.q)} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+              {!groups.length && (
+                <div className="mono-card py-14 text-center">
+                  <p className="text-white">No answers for that.</p>
+                  <p className="mt-1 text-sm text-[#6b6b6b]">Try different words, or just ask us.</p>
+                  <a href={discordLink} target="_blank" rel="noopener noreferrer" className="btn-white h-10 px-5 mt-5 text-sm"><DiscordIcon size={15} /> Ask in Discord</a>
+                </div>
+              )}
+
+              <div className="rounded-2xl border border-[#1c1c1c] bg-[#070707] p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-5">
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold tracking-tight text-white">Script not working?</h2>
+                  <p className="mt-1 text-sm text-[#8a8a8a]">Check if it&apos;s already being patched, and which executors are ready right now.</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Link href="/status" className="btn-white h-11 px-5 text-sm">Status page <ChevronRightIcon size={14} /></Link>
+                  <a href={discordLink} target="_blank" rel="noopener noreferrer" className="btn-outline h-11 px-5 text-sm"><DiscordIcon size={15} /> Discord</a>
                 </div>
               </div>
             </div>
           </div>
         </main>
+
         <Footer />
       </div>
     </ToastProvider>

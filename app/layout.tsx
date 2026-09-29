@@ -1,9 +1,10 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Orbitron, Syne, JetBrains_Mono } from 'next/font/google'
+import { Orbitron, Syne, JetBrains_Mono, Geist, Geist_Mono } from 'next/font/google'
 import AntiDebug from '@/components/AntiDebug'
 import MaintenanceGate from '@/components/MaintenanceGate'
 import './globals.css'
+import { OG_IMAGE } from '@/lib/seo'
 
 const orbitron = Orbitron({
   variable: '--font-orbitron',
@@ -23,16 +24,26 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ['400', '500', '600', '700'],
 })
 
+const geist = Geist({
+  variable: '--font-geist',
+  subsets: ['latin'],
+})
+
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+})
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.voidon.top'),
   title: {
-    default: 'VoidHub | Free Roblox Scripts & Premium Keys',
+    default: 'VoidHub | Free Keyless Roblox Scripts',
     template: '%s | VoidHub',
   },
   description:
-    'VoidHub provides free Roblox scripts for the most popular games, plus premium keys in the Shop for instant delivery. No paywall on the free tier.',
+    'VoidHub is a free, keyless Roblox script hub. One loadstring, every supported game, no keys, no checkpoints, no ads.',
   keywords: [
-    'Roblox scripts', 'free Roblox scripts', 'VoidHub', 'Roblox key shop',
+    'Roblox scripts', 'free Roblox scripts', 'VoidHub', 'keyless Roblox scripts',
     'Roblox executor', 'Roblox exploits', 'Blox Fruits script', 'free script hub',
     'premium Roblox scripts', 'Roblox hack free',
   ],
@@ -47,24 +58,19 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'VoidHub',
-    title: 'VoidHub | Free Roblox Scripts & Premium Keys',
+    title: 'VoidHub | Free Keyless Roblox Scripts',
     description:
-      'Free Roblox scripts for the most popular games, plus premium keys in the Shop for instant delivery.',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'VoidHub — Free Roblox Scripts & Premium Keys',
-      },
-    ],
+      'Free, keyless Roblox scripts. One loadstring, every supported game.',
+    url: '/',
+    locale: 'en_US',
+    images: [OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'VoidHub | Free Roblox Scripts & Premium Keys',
+    title: 'VoidHub | Free Keyless Roblox Scripts',
     description:
-      'Free Roblox scripts for the most popular games, plus premium keys in the Shop.',
-    images: ['/og-image.png'],
+      'Free, keyless Roblox scripts. One loadstring, every supported game.',
+    images: [OG_IMAGE],
   },
 }
 
@@ -82,7 +88,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${orbitron.variable} ${syne.variable} ${jetbrainsMono.variable} bg-black-void`}
+      className={`${orbitron.variable} ${syne.variable} ${jetbrainsMono.variable} ${geist.variable} ${geistMono.variable} bg-black-void`}
     >
       <body className="font-body antialiased bg-black-void text-white min-h-screen select-none">
         <AntiDebug />

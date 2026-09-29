@@ -1,5 +1,5 @@
 import { getFile } from '@/lib/github-storage'
-import { DEFAULT_GAMES } from '@/lib/storage'
+import { GAMES_FILE } from '@/lib/games-file'
 import { isRateLimited, getClientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
@@ -62,12 +62,11 @@ function sanitize(raw: any): PublicGame {
 
 async function getGames(): Promise<any[]> {
   try {
-    const raw = await getFile('games.json')
-    if (!raw) return DEFAULT_GAMES
-    const parsed = Array.isArray(raw) ? raw : JSON.parse(raw)
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_GAMES
+    const raw = await getFile(GAMES_FILE)
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+    return Array.isArray(parsed) ? parsed : []
   } catch {
-    return DEFAULT_GAMES
+    return []
   }
 }
 
