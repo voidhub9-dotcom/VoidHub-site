@@ -34,28 +34,27 @@ export default function MaintenanceGate({ children }: { children: React.ReactNod
   if (maintenance !== true) return <>{children}</>
 
   return (
-    <main className="fixed inset-0 z-[200] bg-black-void flex flex-col items-center justify-center px-6 text-center overflow-hidden">
-      {/* Subtle grid backdrop */}
-      <div className="hero-grid absolute inset-0 opacity-50" aria-hidden="true" />
+    <main className="fixed inset-0 z-[200] bg-black font-display flex flex-col items-center justify-center px-6 text-center overflow-hidden mono-grain">
+      <div className="absolute inset-0 mono-spot pointer-events-none" aria-hidden="true" />
+      <div className="absolute inset-0 mono-dots pointer-events-none" aria-hidden="true" />
 
-      <div className="relative flex flex-col items-center gap-6 max-w-md">
-        <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-black-card border border-border-mid shadow-[0_0_40px_rgba(0,0,0,0.8)]">
-          <svg className="w-10 h-10 text-warning animate-breathe" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085" />
-          </svg>
-        </div>
+      <div className="relative flex flex-col items-center max-w-md">
+        <img src="/logo.png" alt="VoidHub" className="w-16 h-16 object-contain drop-shadow-[0_0_28px_rgba(255,255,255,0.35)]" />
 
-        <h1 className="font-heading text-white text-3xl sm:text-4xl tracking-widest">
-          UNDER MAINTENANCE
+        <span className="mt-7 inline-flex items-center gap-2 h-7 px-3 rounded-full border border-[#262626] bg-white/[0.03] font-gmono text-[0.68rem] text-[#a3a3a3]">
+          <span className="relative flex w-1.5 h-1.5">
+            <span className="absolute inset-0 rounded-full bg-white animate-ping opacity-60" />
+            <span className="relative w-1.5 h-1.5 rounded-full bg-white" />
+          </span>
+          maintenance in progress
+        </span>
+
+        <h1 className="mt-6 font-semibold tracking-[-0.045em] leading-[0.98] text-[clamp(2.4rem,9vw,3.6rem)] text-chrome">
+          Back in a moment.
         </h1>
-        <p className="font-body text-silver-mid text-sm leading-relaxed text-pretty">
-          VoidHub is temporarily down while we make things better. We&apos;ll be back shortly — scripts, loader, and everything else will be right where you left them.
+        <p className="mt-4 text-[#8a8a8a] text-sm md:text-base leading-relaxed text-pretty">
+          VoidHub is down while we make things better. Your scripts and the loader will be right where you left them.
         </p>
-
-        <div className="flex items-center gap-2 text-silver-muted text-xs font-body tracking-[0.3em] uppercase">
-          <span className="w-2 h-2 rounded-full bg-warning animate-pulse" aria-hidden="true" />
-          Working on it
-        </div>
       </div>
     </main>
   )
