@@ -41,15 +41,7 @@ export default function MaintenanceGate({ children }: { children: React.ReactNod
       <div className="relative flex flex-col items-center max-w-md">
         <img src="/logo.png" alt="VoidHub" className="w-16 h-16 object-contain drop-shadow-[0_0_28px_rgba(255,255,255,0.35)]" />
 
-        <span className="mt-7 inline-flex items-center gap-2 h-7 px-3 rounded-full border border-[#262626] bg-white/[0.03] font-gmono text-[0.68rem] text-[#a3a3a3]">
-          <span className="relative flex w-1.5 h-1.5">
-            <span className="absolute inset-0 rounded-full bg-white animate-ping opacity-60" />
-            <span className="relative w-1.5 h-1.5 rounded-full bg-white" />
-          </span>
-          maintenance in progress
-        </span>
-
-        <h1 className="mt-6 font-semibold tracking-[-0.045em] leading-[0.98] text-[clamp(2.4rem,9vw,3.6rem)] text-chrome">
+        <h1 className="mt-7 font-semibold tracking-[-0.045em] leading-[0.98] text-[clamp(2.4rem,9vw,3.6rem)] text-chrome">
           Back in a moment.
         </h1>
         <p className="mt-4 text-[#8a8a8a] text-sm md:text-base leading-relaxed text-pretty">
