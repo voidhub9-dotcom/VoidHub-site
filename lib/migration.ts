@@ -6,7 +6,8 @@
  * with two buttons:
  *   - Join Discord: copies the invite, then leaves the game so the player
  *     can go and join. The window says this up front, before they press.
- *   - Not now: closes the window and does nothing else.
+ *   - Not now: closes the window and carries on loading their script as
+ *     normal (fetches /api/loader?continue=1, which skips this notice).
  * Nothing happens until the player presses a button.
  */
 
@@ -21,6 +22,7 @@ export function buildMigrationScript(inviteUrl: string, siteUrl = 'https://www.v
   return `-- VoidHub moved
 local INVITE = "${invite}"
 local SITE = "${site}"
+local CONTINUE_URL = SITE .. "/api/loader?continue=1"
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -62,7 +64,7 @@ dim.Parent = gui
 local card = Instance.new("Frame")
 card.AnchorPoint = Vector2.new(0.5, 0.5)
 card.Position = UDim2.fromScale(0.5, 0.5)
-card.Size = UDim2.new(0.9, 0, 0, 300)
+card.Size = UDim2.new(0.9, 0, 0, 320)
 card.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 card.BorderSizePixel = 0
 card.Parent = gui
@@ -71,8 +73,8 @@ local stroke = Instance.new("UIStroke", card)
 stroke.Color = Color3.fromRGB(60, 60, 60)
 stroke.Thickness = 1.5
 local limit = Instance.new("UISizeConstraint", card)
-limit.MaxSize = Vector2.new(420, 300)
-limit.MinSize = Vector2.new(260, 300)
+limit.MaxSize = Vector2.new(420, 320)
+limit.MinSize = Vector2.new(260, 320)
 
 local function label(text, y, h, size, color, font)
   local l = Instance.new("TextLabel")
@@ -93,8 +95,8 @@ end
 label("VOIDHUB", 22, 16, 13, Color3.fromRGB(120, 120, 120), Enum.Font.GothamBold)
 label("We moved to a new server", 42, 32, 24, Color3.new(1, 1, 1), Enum.Font.GothamBold)
 local body = label(
-  "This script is no longer updated. Join the new VoidHub Discord to get the latest one. Pressing Join copies the invite and leaves this game so you can join right away.",
-  84, 90, 15, Color3.fromRGB(170, 170, 170)
+  "This script is no longer updated. Join the new VoidHub Discord to get the latest one. Join copies the invite and leaves this game so you can join right away. Not now keeps loading your script.",
+  84, 112, 15, Color3.fromRGB(170, 170, 170)
 )
 
 local function button(text, x, w, primary)
@@ -123,7 +125,7 @@ link.ClearTextOnFocus = false
 link.TextEditable = false
 link.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 link.BorderSizePixel = 0
-link.Position = UDim2.new(0, 24, 0, 176)
+link.Position = UDim2.new(0, 24, 0, 200)
 link.Size = UDim2.new(1, -48, 0, 34)
 link.Font = Enum.Font.Code
 link.TextSize = 14
@@ -150,11 +152,21 @@ join.MouseButton1Click:Connect(function()
   end
 end)
 
+-- Not now: close the window, then load the script they came here to run.
 close.MouseButton1Click:Connect(function()
+  if busy then return end
+  busy = true
   gui:Destroy()
+  task.spawn(function()
+    local ok, src = pcall(function() return game:HttpGet(CONTINUE_URL) end)
+    if ok and type(src) == "string" and #src > 0 then
+      local fn = loadstring(src)
+      if fn then fn() end
+    end
+  end)
 end)
 
-card.Size = UDim2.new(0.9, 0, 0, 280)
-TweenService:Create(card, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0.9, 0, 0, 300) }):Play()
+card.Size = UDim2.new(0.9, 0, 0, 300)
+TweenService:Create(card, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0.9, 0, 0, 320) }):Play()
 `
 }

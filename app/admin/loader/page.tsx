@@ -252,14 +252,14 @@ export default function LoaderPage() {
             <p className="mt-1 text-sm text-[#8a8a8a] leading-relaxed max-w-2xl">
               For people still running the old script. While this is on, <code className="font-gmono text-white">/api/loader</code> shows a small window in-game instead of the script:
               <span className="text-white"> &ldquo;We moved to a new server.&rdquo;</span> The <span className="text-white">Join Discord</span> button copies your invite
-              {migrationInvite && <> (<code className="font-gmono text-white">{migrationInvite}</code>)</>} and then leaves the game so they can join. The window says so up front, and <span className="text-white">Not now</span> just closes it.
+              {migrationInvite && <> (<code className="font-gmono text-white">{migrationInvite}</code>)</>} and then leaves the game so they can join. The window says so up front, and <span className="text-white">Not now</span> closes it and carries on loading their script as normal.
             </p>
           </div>
           <Switch checked={migration} onChange={handleToggleMigration} disabled={savingMigration || storageStatus === 'unavailable'} label="Migration notice" />
         </div>
         {migration && (
           <p className="mt-4 flex items-start gap-2 text-xs text-warning">
-            <AlertIcon size={14} className="mt-0.5 shrink-0" /> It&apos;s on right now: nobody gets the real script until you turn it off. The invite comes from Settings → Discord invite.
+            <AlertIcon size={14} className="mt-0.5 shrink-0" /> It&apos;s on right now: everyone sees this window each time they run it. Pressing Not now still loads the real script. The invite comes from Settings → Discord invite.
           </p>
         )}
       </section>
