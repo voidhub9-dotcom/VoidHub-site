@@ -9,9 +9,16 @@ function fromb64url(s: string): Buffer {
   return Buffer.from(s, 'base64url')
 }
 
+function getRpId(req: NextRequest): string {
+  if (process.env.PASSKEY_RP_ID) return process.env.PASSKEY_RP_ID
+  const host = (req.headers.get('host') || new URL(req.url).hostname).split(':')[0]
+  return host.startsWith('www.') ? host.slice(4) : host
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json()
   const { id, rawId, response: credResponse } = body
+  const rpId = getRpId(request)
 
   // Load stored credential
   const storedRaw = await kvGet(KV_KEYS.PASSKEY_CREDENTIAL)
@@ -36,6 +43,11 @@ export async function POST(request: NextRequest) {
 
   // Parse authData
   const authDataBuf = fromb64url(credResponse.authenticatorData)
+  // Verify rpIdHash (first 32 bytes of authData = SHA-256(rpId))
+  const expectedRpIdHash = createHash('sha256').update(rpId).digest()
+  if (!authDataBuf.subarray(0, 32).equals(expectedRpIdHash)) {
+    return NextResponse.json({ ok: false, error: 'RP ID mismatch' }, { status: 400 })
+  }
   const flags = authDataBuf[32]
   const userPresent = (flags & 0x01) !== 0
   if (!userPresent) return NextResponse.json({ ok: false, error: 'User not present' }, { status: 400 })
