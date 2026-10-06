@@ -107,10 +107,10 @@ function DrawnUI() {
 
 export default function ScriptPreview() {
   return (
-    <div className="relative [perspective:2000px]">
+    <div className="relative [perspective:2000px] [transform-style:preserve-3d]">
       {/* light spilling onto the "floor" under the window */}
       <div className="absolute left-[10%] right-[10%] -top-10 h-40 bg-white/10 blur-[80px] rounded-full" />
-      <div className="relative [transform:rotateX(14deg)] origin-top transition-transform duration-700 hover:[transform:rotateX(4deg)]">
+      <div className="relative animate-ui-orbit origin-top" style={{ transformStyle: 'preserve-3d' }}>
         <div className="rounded-[18px] p-[1px] bg-gradient-to-b from-white/50 via-white/10 to-white/0 shadow-[0_-20px_80px_-30px_rgba(255,255,255,0.35)]">
           <div className="rounded-[17px] bg-[#070707] p-1.5">
             {SCRIPT_UI_IMAGE
