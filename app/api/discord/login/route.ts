@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   url.searchParams.set('client_id', clientId)
   url.searchParams.set('redirect_uri', redirectUri)
   url.searchParams.set('response_type', 'code')
-  url.searchParams.set('scope', 'identify guilds.members.read')
+  url.searchParams.set('scope', 'identify guilds.members.read guilds.join')
   url.searchParams.set('state', state)
 
   return NextResponse.redirect(url.toString())
