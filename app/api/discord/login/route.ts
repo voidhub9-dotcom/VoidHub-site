@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { kvSet, KV_KEYS } from '@/lib/kv'
+import { cfg } from '@/lib/config'
 import { randomBytes } from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  const clientId = process.env.DISCORD_CLIENT_ID
+  const clientId = await cfg('discordClientId', 'DISCORD_CLIENT_ID')
   if (!clientId) {
     return NextResponse.json({ error: 'Discord OAuth not configured' }, { status: 500 })
   }

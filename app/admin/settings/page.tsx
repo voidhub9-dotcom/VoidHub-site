@@ -152,7 +152,16 @@ export default function SettingsPage() {
     logoUrl: '',
     defaultScriptLink: '',
   })
+  const [config, setConfig] = useState({
+    discordClientId: '',
+    discordClientSecret: '',
+    discordBotToken: '',
+    discordGuildId: '',
+    discordVerifiedRoleId: '',
+  })
 
+  const [configSaved, setConfigSaved] = useState(false)
+  const [savingConfig, setSavingConfig] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [username, setUsername] = useState('')
   const [sessionStart] = useState(() => new Date().toLocaleString())
@@ -168,6 +177,7 @@ export default function SettingsPage() {
       setMaintenance(data.maintenance)
       const nextLinks = { ...links, ...(data.links || {}) }
       setLinks(nextLinks)
+      if (data.config) setConfig(c => ({ ...c, ...data.config }))
       setSaved(JSON.stringify({ discord: data.discord, tagline: data.tagline, links: nextLinks }))
       setUsername(getUsername() || 'voidhub')
     } catch (e: any) {
@@ -194,6 +204,24 @@ export default function SettingsPage() {
       setSaving(false)
     }
   }
+
+  const handleSaveConfig = async () => {
+    setSavingConfig(true)
+    try {
+      await apiSettings('POST', { config })
+      setConfigSaved(true)
+      setTimeout(() => setConfigSaved(false), 3000)
+      addActivityLog('settings', 'Updated Discord config')
+      showToast('Config saved', 'success')
+    } catch (e: any) {
+      showToast(e.message, 'error')
+    } finally {
+      setSavingConfig(false)
+    }
+  }
+
+  const setConfigField = (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setConfig(c => ({ ...c, [k]: e.target.value }))
   const dirty = !loading && saved !== '' && saved !== JSON.stringify({ discord, tagline, links })
 
   const handleToggleMaintenance = async () => {
@@ -281,6 +309,7 @@ export default function SettingsPage() {
   const nav = [
     { id: 'general', label: 'General' },
     { id: 'branding', label: 'Links & branding' },
+    { id: 'config', label: 'Discord config' },
     { id: 'data', label: 'Data' },
     { id: 'account', label: 'Account' },
   ]
@@ -351,6 +380,82 @@ export default function SettingsPage() {
                   <input id="lb-script" type="url" value={links.defaultScriptLink} onChange={setLink('defaultScriptLink')} placeholder="https://…" className={inputCls} />
                 </Field>
               </div>
+            </Section>
+          </div>
+
+          <div id="config" className="scroll-mt-24">
+            <Section title="Discord config" description="Stored in Cloudflare R2 — no redeployment needed when you change servers. Sensitive fields are masked after saving.">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Field label="Client ID" htmlFor="cfg-clientid">
+                  <input
+                    id="cfg-clientid"
+                    value={config.discordClientId}
+                    onChange={setConfigField('discordClientId')}
+                    placeholder="Saved in env or enter here"
+                    className={inputCls}
+                    autoComplete="off"
+                  />
+                </Field>
+                <Field label="Client Secret" htmlFor="cfg-clientsecret">
+                  <input
+                    id="cfg-clientsecret"
+                    type="password"
+                    value={config.discordClientSecret}
+                    onChange={setConfigField('discordClientSecret')}
+                    placeholder="Saved in env or enter here"
+                    className={inputCls}
+                    autoComplete="new-password"
+                  />
+                </Field>
+                <Field label="Bot Token" htmlFor="cfg-bottoken">
+                  <input
+                    id="cfg-bottoken"
+                    type="password"
+                    value={config.discordBotToken}
+                    onChange={setConfigField('discordBotToken')}
+                    placeholder="Saved in env or enter here"
+                    className={inputCls}
+                    autoComplete="new-password"
+                  />
+                </Field>
+                <Field label="Guild ID" htmlFor="cfg-guildid">
+                  <input
+                    id="cfg-guildid"
+                    value={config.discordGuildId}
+                    onChange={setConfigField('discordGuildId')}
+                    placeholder="Your Discord server ID"
+                    className={inputCls}
+                    autoComplete="off"
+                  />
+                </Field>
+                <Field label="Verified Role ID" htmlFor="cfg-roleid" hint="Optional. Auto-assigned when someone verifies.">
+                  <input
+                    id="cfg-roleid"
+                    value={config.discordVerifiedRoleId}
+                    onChange={setConfigField('discordVerifiedRoleId')}
+                    placeholder="Role ID or leave blank"
+                    className={inputCls}
+                    autoComplete="off"
+                  />
+                </Field>
+              </div>
+              <div className="mt-5 flex items-center gap-3">
+                <button
+                  onClick={handleSaveConfig}
+                  disabled={savingConfig}
+                  className="btn-white h-10 px-5 text-sm"
+                >
+                  {savingConfig
+                    ? <RefreshIcon size={14} className="animate-spin" />
+                    : null}
+                  {savingConfig ? 'Saving…' : 'Save config'}
+                </button>
+                {configSaved && <span className="text-xs text-success">Saved.</span>}
+              </div>
+              <p className="mt-4 text-xs text-[#555] leading-relaxed">
+                Leave a field blank to fall back to the matching Vercel env var.
+                Clearing a field (erasing it and saving) removes the R2 override — env var wins again.
+              </p>
             </Section>
           </div>
 

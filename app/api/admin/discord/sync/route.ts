@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { kvGet, kvSet, KV_KEYS, type DiscordMember } from '@/lib/kv'
+import { cfg } from '@/lib/config'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,10 +12,12 @@ function validAdmin(req: NextRequest) {
 export async function POST(request: NextRequest) {
   if (!validAdmin(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const botToken = process.env.DISCORD_BOT_TOKEN
-  const guildId = process.env.DISCORD_GUILD_ID
+  const [botToken, guildId] = await Promise.all([
+    cfg('discordBotToken', 'DISCORD_BOT_TOKEN'),
+    cfg('discordGuildId', 'DISCORD_GUILD_ID'),
+  ])
   if (!botToken || !guildId) {
-    return NextResponse.json({ error: 'DISCORD_BOT_TOKEN and DISCORD_GUILD_ID must be set' }, { status: 400 })
+    return NextResponse.json({ error: 'Discord Bot Token and Guild ID must be set (Settings → Config)' }, { status: 400 })
   }
 
   // Fetch all guild members (paginated, max 1000/request)

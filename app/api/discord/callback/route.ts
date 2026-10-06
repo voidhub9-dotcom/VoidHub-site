@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { kvGet, kvSet, KV_KEYS, type DiscordMember } from '@/lib/kv'
+import { cfg } from '@/lib/config'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,8 +39,8 @@ export async function GET(request: NextRequest) {
   // Invalidate state
   await kvSet(KV_KEYS.DISCORD_OAUTH_STATE, JSON.stringify({ state: '', ts: 0 }))
 
-  const clientId = process.env.DISCORD_CLIENT_ID!
-  const clientSecret = process.env.DISCORD_CLIENT_SECRET!
+  const clientId = (await cfg('discordClientId', 'DISCORD_CLIENT_ID'))!
+  const clientSecret = (await cfg('discordClientSecret', 'DISCORD_CLIENT_SECRET'))!
   const redirectUri = `${siteUrl}/api/discord/callback`
 
   // Exchange code for token
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
   const user = await discordFetch('https://discord.com/api/users/@me', access_token)
 
   // Get guild member info if a guild ID is configured
-  const guildId = process.env.DISCORD_GUILD_ID
+  const guildId = await cfg('discordGuildId', 'DISCORD_GUILD_ID')
   let guildMember: any = null
   if (guildId) {
     try {
@@ -99,8 +100,8 @@ export async function GET(request: NextRequest) {
   await kvSet(KV_KEYS.DISCORD_MEMBERS, JSON.stringify(members))
 
   // Optionally assign verified role via bot token
-  const botToken = process.env.DISCORD_BOT_TOKEN
-  const verifiedRoleId = process.env.DISCORD_VERIFIED_ROLE_ID
+  const botToken = await cfg('discordBotToken', 'DISCORD_BOT_TOKEN')
+  const verifiedRoleId = await cfg('discordVerifiedRoleId', 'DISCORD_VERIFIED_ROLE_ID')
   if (botToken && guildId && verifiedRoleId && guildMember) {
     try {
       await fetch(

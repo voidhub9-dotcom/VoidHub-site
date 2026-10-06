@@ -33,7 +33,17 @@ export const KV_KEYS = {
   // Discord member management
   DISCORD_MEMBERS: 'voidhub:discord_members',
   DISCORD_OAUTH_STATE: 'voidhub:discord_oauth_state',
+  // Site-managed credentials (replaces env vars)
+  CONFIG: 'voidhub:config',
 } as const
+
+export interface SiteConfig {
+  discordClientId?: string
+  discordClientSecret?: string
+  discordBotToken?: string
+  discordGuildId?: string
+  discordVerifiedRoleId?: string
+}
 
 export interface DiscordMember {
   discordId: string
