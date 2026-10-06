@@ -162,6 +162,8 @@ export default function SettingsPage() {
 
   const [configSaved, setConfigSaved] = useState(false)
   const [savingConfig, setSavingConfig] = useState(false)
+  const [origin, setOrigin] = useState('')
+  useEffect(() => { setOrigin(window.location.origin) }, [])
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [username, setUsername] = useState('')
   const [sessionStart] = useState(() => new Date().toLocaleString())
@@ -456,6 +458,53 @@ export default function SettingsPage() {
                 Leave a field blank to fall back to the matching Vercel env var.
                 Clearing a field (erasing it and saving) removes the R2 override — env var wins again.
               </p>
+
+              {/* Generated URLs */}
+              {origin && (
+                <div className="mt-5 rounded-xl border border-[#1f1f1f] bg-black p-4 space-y-4">
+                  <p className="font-gmono text-[0.58rem] uppercase tracking-[0.18em] text-[#444]">Generated URLs</p>
+
+                  {/* Redirect URI — always shown */}
+                  <div>
+                    <p className="font-gmono text-[0.6rem] uppercase tracking-wider text-[#3a3a3a] mb-1.5">Redirect URI — add this in Discord Developer Portal</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 min-w-0 text-xs text-[#777] bg-white/[0.02] border border-[#1a1a1a] rounded-lg px-3 py-2 font-gmono break-all">
+                        {origin}/api/discord/callback
+                      </code>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(`${origin}/api/discord/callback`)}
+                        className="shrink-0 h-8 px-3 rounded-lg text-xs text-[#555] hover:text-white hover:bg-white/[0.04] border border-[#1f1f1f] transition-all"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* OAuth URL — only when Client ID is a real value (not masked) */}
+                  {config.discordClientId && config.discordClientId !== '••••••••' ? (
+                    <div>
+                      <p className="font-gmono text-[0.6rem] uppercase tracking-wider text-[#3a3a3a] mb-1.5">OAuth2 authorize URL — share with users to verify</p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 min-w-0 text-xs text-[#777] bg-white/[0.02] border border-[#1a1a1a] rounded-lg px-3 py-2 font-gmono break-all">
+                          {`https://discord.com/oauth2/authorize?client_id=${config.discordClientId}&redirect_uri=${encodeURIComponent(`${origin}/api/discord/callback`)}&response_type=code&scope=identify%20guilds.members.read`}
+                        </code>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(`https://discord.com/oauth2/authorize?client_id=${config.discordClientId}&redirect_uri=${encodeURIComponent(`${origin}/api/discord/callback`)}&response_type=code&scope=identify%20guilds.members.read`)}
+                          className="shrink-0 h-8 px-3 rounded-lg text-xs text-[#555] hover:text-white hover:bg-white/[0.04] border border-[#1f1f1f] transition-all"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#444]">
+                      {config.discordClientId === '••••••••'
+                        ? <>Client ID is saved — verify page lives at <a href="/-verify" target="_blank" className="text-[#888] hover:text-white underline underline-offset-2 transition-colors">/-verify</a>.</>
+                        : 'Enter your Client ID above to generate the OAuth2 URL.'}
+                    </p>
+                  )}
+                </div>
+              )}
             </Section>
           </div>
 
