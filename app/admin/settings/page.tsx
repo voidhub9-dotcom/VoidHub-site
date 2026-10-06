@@ -19,6 +19,91 @@ import {
   RefreshIcon
 } from '@/components/Icons'
 
+function getAdminKeyForPasskey() {
+  if (typeof window === 'undefined') return ''
+  return localStorage.getItem('voidhub_password') || ''
+}
+
+function PasskeySection() {
+  const [status, setStatus] = useState<'loading' | 'none' | 'registered'>('loading')
+  const [working, setWorking] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.PublicKeyCredential) { setStatus('none'); return }
+    fetch('/api/admin/passkey/options?mode=authenticate')
+      .then(r => r.json())
+      .then(d => setStatus(d.allowCredentials?.length ? 'registered' : 'none'))
+      .catch(() => setStatus('none'))
+  }, [])
+
+  const register = async () => {
+    setWorking(true); setMsg('')
+    try {
+      const adminKey = getAdminKeyForPasskey()
+      const optsRes = await fetch('/api/admin/passkey/options?mode=register', {
+        headers: { 'x-admin-key': adminKey },
+      })
+      if (!optsRes.ok) { setMsg('Unauthorized — log in first'); setWorking(false); return }
+      const opts = await optsRes.json()
+      const cred = await navigator.credentials.create({
+        publicKey: {
+          ...opts,
+          challenge: Uint8Array.from(atob(opts.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+          user: { ...opts.user, id: new TextEncoder().encode(opts.user.id) },
+          excludeCredentials: (opts.excludeCredentials || []).map((c: any) => ({
+            ...c,
+            id: Uint8Array.from(atob(c.id.replace(/-/g, '+').replace(/_/g, '/')), x => x.charCodeAt(0)),
+          })),
+        },
+      }) as PublicKeyCredential | null
+      if (!cred) { setMsg('Passkey creation cancelled'); setWorking(false); return }
+      const resp = cred.response as AuthenticatorAttestationResponse
+      const b64url = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+      const regRes = await fetch('/api/admin/passkey/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        body: JSON.stringify({
+          id: cred.id, rawId: b64url(cred.rawId),
+          response: {
+            attestationObject: b64url(resp.attestationObject),
+            clientDataJSON: b64url(resp.clientDataJSON),
+          }, type: cred.type,
+        }),
+      })
+      const result = await regRes.json()
+      if (result.ok) { setStatus('registered'); setMsg('Passkey registered! You can now sign in with your device.') }
+      else setMsg(result.error || 'Registration failed')
+    } catch (e: any) {
+      setMsg(e?.message || 'Error registering passkey')
+    }
+    setWorking(false)
+  }
+
+  if (status === 'loading') return null
+  if (!window.PublicKeyCredential) return null
+
+  return (
+    <div className="mt-5 p-4 rounded-xl border border-[#1f1f1f] bg-black space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white font-medium">Passkey sign-in</p>
+          <p className="text-xs text-[#6b6b6b] mt-0.5">
+            {status === 'registered' ? 'A passkey is registered for this account.' : 'No passkey yet. Register one to sign in without a password.'}
+          </p>
+        </div>
+        <span className={`w-2 h-2 rounded-full ${status === 'registered' ? 'bg-success' : 'bg-[#444]'}`} />
+      </div>
+      {msg && <p className={`text-xs ${msg.includes('registered') || msg.includes('sign in') ? 'text-success' : 'text-danger'}`}>{msg}</p>}
+      <button onClick={register} disabled={working} className="btn-outline h-9 px-4 text-xs disabled:opacity-50">
+        {working
+          ? <span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+          : status === 'registered' ? 'Re-register passkey' : 'Register passkey'}
+      </button>
+    </div>
+  )
+}
+
 function getAdminKey() {
   if (typeof window === 'undefined') return 'voidhub123'
   return localStorage.getItem('voidhub_password') || 'voidhub123'
@@ -304,6 +389,7 @@ export default function SettingsPage() {
                   Vercel → project → Settings → Environment Variables → edit it → redeploy, then log in again.
                 </p>
               </div>
+              <PasskeySection />
             </Section>
           </div>
         </div>

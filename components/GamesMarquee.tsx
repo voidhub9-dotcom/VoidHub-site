@@ -58,9 +58,13 @@ export default function GamesMarquee({
         </div>
       ) : (
         <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
-          <div className="flex w-max gap-5 py-3 animate-marquee hover:[animation-play-state:paused]">
+          <div className="flex w-max gap-5 py-6 animate-marquee hover:[animation-play-state:paused]">
             {track.map((g, i) => (
-              <div key={`${g.id}-${i}`} className="w-[280px] md:w-[320px] shrink-0">
+              <div
+                key={`${g.id}-${i}`}
+                className="w-[280px] md:w-[320px] shrink-0 animate-card-float"
+                style={{ animationDelay: `${(i % 7) * 0.55}s`, animationPlayState: 'inherit' }}
+              >
                 <GameCard game={g} onOpen={setOpen} />
               </div>
             ))}

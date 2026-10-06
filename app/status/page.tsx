@@ -308,15 +308,15 @@ export default function StatusPage() {
               )}
 
               <a
-                href="https://whatexpsare.online/"
+                href="https://weao.gg/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-3 flex items-center gap-3 rounded-2xl border border-[#1c1c1c] bg-[#070707] px-4 py-4 hover:border-[#333] transition-colors"
               >
                 <GlobeIcon size={16} className="text-[#8a8a8a] shrink-0" />
                 <span className="flex-1 min-w-0">
-                  <span className="block text-sm text-white">Get executors safely</span>
-                  <span className="block text-xs text-[#6b6b6b]">Live data from whatexpsare.online. Using something unlisted? Ask in the Discord.</span>
+                  <span className="block text-sm text-white">Download executors safely</span>
+                  <span className="block text-xs text-[#6b6b6b]">weao.gg — community-trusted executor hub. Live version data sourced from there too.</span>
                 </span>
                 <ExternalIcon size={14} className="text-[#555] shrink-0" />
               </a>
@@ -389,16 +389,18 @@ function ExecutorRow({ exec, live }: { exec: Executor; live: WeaoStatus | null }
           {down ? 'Down' : 'Ready'}
         </span>
       </div>
-      {(exec.websiteUrl || exec.discordUrl) && (
-        <div className="mt-2.5 ml-[52px] flex gap-4">
-          {exec.websiteUrl && (
-            <a href={exec.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-[#6b6b6b] hover:text-white"><GlobeIcon size={12} /> Website</a>
-          )}
-          {exec.discordUrl && (
-            <a href={exec.discordUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-[#6b6b6b] hover:text-white"><DiscordIcon size={12} /> Discord</a>
-          )}
-        </div>
-      )}
+      <div className="mt-2.5 ml-[52px] flex gap-4 items-center">
+        <a href="https://weao.gg/" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs font-medium text-white bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.12] transition-colors px-2.5 py-1 rounded-full">
+          <ExternalIcon size={11} /> Get
+        </a>
+        {exec.websiteUrl && (
+          <a href={exec.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-[#6b6b6b] hover:text-white"><GlobeIcon size={12} /> Website</a>
+        )}
+        {exec.discordUrl && (
+          <a href={exec.discordUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-[#6b6b6b] hover:text-white"><DiscordIcon size={12} /> Discord</a>
+        )}
+      </div>
     </div>
   )
 }

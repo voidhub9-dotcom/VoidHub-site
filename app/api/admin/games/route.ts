@@ -1,5 +1,5 @@
 import { getFile, saveFile } from '@/lib/github-storage'
-import { GAMES_FILE, purgeLegacyGames } from '@/lib/games-file'
+import { GAMES_FILE } from '@/lib/games-file'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +9,6 @@ function authorized(req: Request) {
 }
 
 async function getGames() {
-  await purgeLegacyGames()
   const data = await getFile(GAMES_FILE)
 
   if (!data) return []

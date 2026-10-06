@@ -13,6 +13,7 @@ import {
   BoltIcon,
   MailIcon,
   ExternalIcon,
+  DiscordIcon,
 } from '@/components/Icons'
 import { logout, getUsername } from '@/lib/storage'
 
@@ -35,6 +36,7 @@ export const ADMIN_NAV: { group: string; links: { href: string; label: string; i
   {
     group: 'Manage',
     links: [
+      { href: '/admin/discord', label: 'Discord Members', icon: DiscordIcon },
       { href: '/admin/email', label: 'Send Email', icon: MailIcon },
       { href: '/admin/settings', label: 'Settings', icon: SettingsIcon },
     ],

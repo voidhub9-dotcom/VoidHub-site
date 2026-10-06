@@ -25,9 +25,36 @@ export const KV_KEYS = {
   SHOP_PRODUCTS: 'voidhub:shop_products',
   SHOP_ORDERS: 'voidhub:shop_orders',
   SHOP_EMAIL_TEMPLATE: 'voidhub:shop_email_template',
-  MIGRATION: 'voidhub:migration_mode',
   SEEDED: 'voidhub:seeded',
+  // Passkeys
+  PASSKEY_CREDENTIAL: 'voidhub:passkey_credential',
+  PASSKEY_CHALLENGE: 'voidhub:passkey_challenge',
+  // Discord member management
+  DISCORD_MEMBERS: 'voidhub:discord_members',
+  DISCORD_OAUTH_STATE: 'voidhub:discord_oauth_state',
 } as const
+
+export interface DiscordMember {
+  discordId: string
+  username: string
+  displayName: string
+  avatar: string | null
+  roles: string[]
+  joinedAt: string
+  verifiedAt: string
+  accessToken?: string
+  refreshToken?: string
+  tokenExpiry?: number
+  guildJoinedAt?: string
+  banned?: boolean
+}
+
+export interface PasskeyCredential {
+  id: string
+  publicKey: string
+  counter: number
+  createdAt: string
+}
 
 export interface Executor {
   name: string
