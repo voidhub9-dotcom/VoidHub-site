@@ -1,4 +1,4 @@
-import { kvGet, kvSet, KV_KEYS } from '@/lib/kv'
+import { kvGet, kvSet, KV_KEYS, discordLink } from '@/lib/kv'
 
 function isAuthorized(request: Request): boolean {
   const key = request.headers.get('x-admin-key') || ''
@@ -12,10 +12,12 @@ export async function GET(request: Request) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: HEADERS })
   }
 
-  const [script, rawScriptUrl, endpointUrl] = await Promise.all([
+  const [script, rawScriptUrl, endpointUrl, migration, discord] = await Promise.all([
     kvGet(KV_KEYS.LOADER_SCRIPT),
     kvGet(KV_KEYS.RAW_SCRIPT_URL),
     kvGet(KV_KEYS.ENDPOINT_URL),
+    kvGet(KV_KEYS.MIGRATION),
+    kvGet(KV_KEYS.DISCORD),
   ])
 
   return new Response(
@@ -23,7 +25,9 @@ export async function GET(request: Request) {
       script: script ?? '',
       rawScriptUrl: rawScriptUrl ?? '',
       endpointUrl: endpointUrl || 'https://www.voidon.top/api/loader',
-      source: rawScriptUrl ? 'raw-url' : script ? 'database' : 'none',
+      source: migration === 'true' ? 'migration' : rawScriptUrl ? 'raw-url' : script ? 'database' : 'none',
+      migration: migration === 'true',
+      migrationInvite: discordLink(discord),
     }),
     { status: 200, headers: HEADERS }
   )
@@ -34,7 +38,7 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: HEADERS })
   }
 
-  let body: { script?: string; rawScriptUrl?: string; endpointUrl?: string; testRawUrl?: string }
+  let body: { migration?: boolean; script?: string; rawScriptUrl?: string; endpointUrl?: string; testRawUrl?: string }
   try {
     body = await request.json()
   } catch {
@@ -75,6 +79,10 @@ export async function POST(request: Request) {
   }
 
   const results: Record<string, boolean> = {}
+
+  if (typeof body.migration === 'boolean') {
+    results.migration = await kvSet(KV_KEYS.MIGRATION, body.migration ? 'true' : 'false')
+  }
 
   if (typeof body.script === 'string') {
     results.script = await kvSet(KV_KEYS.LOADER_SCRIPT, body.script)
