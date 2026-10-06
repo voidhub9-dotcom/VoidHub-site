@@ -4,6 +4,19 @@ import { recordLoaderHit } from '@/lib/analytics'
 import { isRateLimited, getClientIp } from '@/lib/rate-limit'
 
 /**
+ * XOR-encrypt a UTF-8 string with a key, return base64.
+ * The executor must decode + decrypt to get the original Lua.
+ * Only active when LOADER_ENCRYPT_KEY is set in env.
+ */
+function encryptScript(plain: string, key: string): string {
+  const src = Buffer.from(plain, 'utf8')
+  const k   = Buffer.from(key,   'utf8')
+  const out  = Buffer.alloc(src.length)
+  for (let i = 0; i < src.length; i++) out[i] = src[i] ^ k[i % k.length]
+  return out.toString('base64')
+}
+
+/**
  * Protected script loader.
  *
  * Priority:
@@ -151,13 +164,17 @@ export async function GET(request: Request) {
     })
   }
 
-  return new Response(script, {
+  const encKey = process.env.LOADER_ENCRYPT_KEY
+  const body   = encKey ? encryptScript(script, encKey) : script
+
+  return new Response(body, {
     status: 200,
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'no-store, no-cache, must-revalidate',
       'X-Content-Type-Options': 'nosniff',
       'X-Robots-Tag': 'noindex, nofollow',
+      'X-Encrypted': encKey ? '1' : '0',
       'Vary': 'User-Agent',
     },
   })

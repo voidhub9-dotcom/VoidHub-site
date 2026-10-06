@@ -2,83 +2,78 @@
 
 import { useEffect } from 'react'
 
-/**
- * Blocks common methods people use to inspect/steal code:
- * - F12 / Ctrl+Shift+I (DevTools)
- * - Right-click context menu
- * - Ctrl+S (Save page)
- * - Ctrl+U (View source)
- * - Text selection
- * - Copy/Paste
- *
- * Note: These are bypassed easily by determined users.
- * Real protection is: don't put sensitive code in the frontend.
- */
 export default function AntiDebug() {
   useEffect(() => {
-    // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.key === 'F12' ||
-        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-        (e.ctrlKey && e.shiftKey && e.key === 'J') ||
-        (e.ctrlKey && e.shiftKey && e.key === 'C') ||
-        (e.ctrlKey && e.key === 'u') ||
-        (e.ctrlKey && e.key === 's')
+        (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'K'].includes(e.key)) ||
+        (e.ctrlKey && ['u', 's', 'p'].includes(e.key)) ||
+        (e.metaKey && e.altKey && e.key === 'i') // mac: Cmd+Option+I
       ) {
         e.preventDefault()
+        e.stopImmediatePropagation()
         return false
       }
     }
 
-    // Block right-click
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault()
-      return false
-    }
-
-    // Disable text selection via CSS is better, but this helps too
+    const handleContextMenu = (e: MouseEvent) => { e.preventDefault(); return false }
     const handleSelectStart = (e: Event) => {
-      // Allow selection on specific elements (like buttons with text)
-      const target = e.target as HTMLElement
-      if (target?.closest('[data-selectable]')) return
+      if ((e.target as HTMLElement)?.closest('[data-selectable]')) return
       e.preventDefault()
     }
+    const handleCopy      = (e: ClipboardEvent) => { e.preventDefault() }
+    const handleCut       = (e: ClipboardEvent) => { e.preventDefault() }
+    const handleDragStart = (e: DragEvent)      => { e.preventDefault() }
 
-    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('keydown', handleKeyDown, true)
     document.addEventListener('contextmenu', handleContextMenu)
     document.addEventListener('selectstart', handleSelectStart)
+    document.addEventListener('copy', handleCopy)
+    document.addEventListener('cut', handleCut)
+    document.addEventListener('dragstart', handleDragStart)
 
-    // Disable copy paste
-    document.addEventListener('copy', (e) => {
-      e.preventDefault()
-    })
-    document.addEventListener('cut', (e) => {
-      e.preventDefault()
-    })
+    let devOpen = false
 
-    // Detect if DevTools is open (basic check)
-    let devToolsOpen = false
-    const checkDevTools = () => {
-      const threshold = 160
-      if (window.outerHeight - window.innerHeight > threshold) {
-        if (!devToolsOpen) {
-          console.log('%c⚠️ DevTools detected and blocked', 'color: red; font-size: 14px;')
-          devToolsOpen = true
-        }
-      } else {
-        devToolsOpen = false
-      }
+    const onDevTools = () => {
+      if (devOpen) return
+      devOpen = true
+      // eslint-disable-next-line no-debugger
+      debugger
+      console.clear()
     }
-    const devToolsInterval = setInterval(checkDevTools, 500)
+
+    // Heuristic 1: docked devtools change the window/outer size ratio
+    const checkSize = () => {
+      const docked =
+        window.outerHeight - window.innerHeight > 160 ||
+        window.outerWidth  - window.innerWidth  > 160
+      if (docked) onDevTools()
+      else devOpen = false
+    }
+
+    // Heuristic 2: object with toString() getter fires when devtools evaluates it
+    const timingCheck = () => {
+      const sentinel = new (class {
+        toString() { onDevTools(); return '' }
+      })()
+      console.log('%c', sentinel)
+    }
+
+    const sizeId   = setInterval(checkSize,   800)
+    const timingId = setInterval(timingCheck, 2500)
+    const clearId  = setInterval(() => { if (devOpen) console.clear() }, 1000)
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keydown', handleKeyDown, true)
       document.removeEventListener('contextmenu', handleContextMenu)
       document.removeEventListener('selectstart', handleSelectStart)
-      document.removeEventListener('copy', () => {})
-      document.removeEventListener('cut', () => {})
-      clearInterval(devToolsInterval)
+      document.removeEventListener('copy', handleCopy)
+      document.removeEventListener('cut', handleCut)
+      document.removeEventListener('dragstart', handleDragStart)
+      clearInterval(sizeId)
+      clearInterval(timingId)
+      clearInterval(clearId)
     }
   }, [])
 
