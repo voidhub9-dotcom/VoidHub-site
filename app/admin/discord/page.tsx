@@ -308,16 +308,16 @@ export default function AdminDiscordPage() {
         <p className="font-gmono text-[0.58rem] uppercase tracking-[0.2em] text-[#444] mb-3">Setup</p>
         <div className="space-y-2 text-xs text-[#555] leading-relaxed">
           <p>
-            Set{' '}
-            {['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'NEXT_PUBLIC_SITE_URL'].map((v, i, a) => (
-              <span key={v}><code className="font-gmono text-[#888] bg-white/[0.04] px-1 py-px rounded">{v}</code>{i < a.length - 1 ? ', ' : ''}</span>
-            ))}{' '}
-            in your Vercel environment variables. Optionally add{' '}
-            <code className="font-gmono text-[#888] bg-white/[0.04] px-1 py-px rounded">DISCORD_VERIFIED_ROLE_ID</code>{' '}
-            to auto-assign a role when someone verifies.
+            Enter your Bot Token, Guild ID, Client ID, Client Secret and Verified Role ID in{' '}
+            <a href="/admin/settings#config" className="text-[#888] hover:text-white underline underline-offset-2 transition-colors">
+              Settings → Discord config
+            </a>
+            {' '}— saved to R2, no redeployment needed when you switch servers.
           </p>
           <p>
-            Add{' '}
+            Only{' '}
+            <code className="font-gmono text-[#888] bg-white/[0.04] px-1 py-px rounded">NEXT_PUBLIC_SITE_URL</code>{' '}
+            still needs to be a Vercel env var. Add{' '}
             <code className="font-gmono text-[#888] bg-white/[0.04] px-1 py-px rounded">/api/discord/callback</code>{' '}
             to your Discord app's redirect URIs. Verify page lives at{' '}
             <code className="font-gmono text-[#888] bg-white/[0.04] px-1 py-px rounded">/-verify</code>.
