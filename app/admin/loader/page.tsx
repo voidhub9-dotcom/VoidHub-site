@@ -232,7 +232,7 @@ export default function LoaderPage() {
               AquaHub move notice <span className="inline-flex h-6 items-center rounded-full border border-warning/40 px-2.5 font-gmono text-[0.6rem] uppercase tracking-wider text-warning">Always on</span>
             </h2>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#a3a3a3]">
-              <code className="font-gmono text-white">/api/loader</code> serves this notice from the app source on every normal request; its status and invite are not stored in Cloudflare or controlled from this page. The Join Discord button copies <code className="font-gmono text-white">https://discord.gg/Vcz9zHhTjp</code> and leaves the game. Not now continues to the configured script.
+              <code className="font-gmono text-white">/api/loader</code> serves this notice from the app source on every normal request; its status and invite are not stored in Cloudflare or controlled from this page. The Join Discord button copies <code className="font-gmono text-white">https://discord.gg/Vcz9zHhTjp</code> and leaves the game.
             </p>
           </div>
         </div>
