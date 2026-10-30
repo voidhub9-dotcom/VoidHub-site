@@ -480,28 +480,38 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* OAuth URL — only when Client ID is a real value (not masked) */}
-                  {config.discordClientId && config.discordClientId !== '••••••••' ? (
+                  {/* Verify page + Bot invite */}
+                  <div>
+                    <p className="font-gmono text-[0.6rem] uppercase tracking-wider text-[#3a3a3a] mb-1.5">Verify page — share this link with your members</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 min-w-0 text-xs text-[#777] bg-white/[0.02] border border-[#1a1a1a] rounded-lg px-3 py-2 font-gmono break-all">
+                        {origin}/-verify
+                      </code>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(`${origin}/-verify`)}
+                        className="shrink-0 h-8 px-3 rounded-lg text-xs text-[#555] hover:text-white hover:bg-white/[0.04] border border-[#1f1f1f] transition-all"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <p className="mt-1.5 text-[0.65rem] text-[#3a3a3a]">Members click Verify on that page — do not share the raw Discord OAuth URL directly.</p>
+                  </div>
+
+                  {config.discordClientId && config.discordClientId !== '••••••••' && (
                     <div>
-                      <p className="font-gmono text-[0.6rem] uppercase tracking-wider text-[#3a3a3a] mb-1.5">OAuth2 authorize URL — share with users to verify</p>
+                      <p className="font-gmono text-[0.6rem] uppercase tracking-wider text-[#3a3a3a] mb-1.5">Bot invite URL — add bot to your server first</p>
                       <div className="flex items-center gap-2">
                         <code className="flex-1 min-w-0 text-xs text-[#777] bg-white/[0.02] border border-[#1a1a1a] rounded-lg px-3 py-2 font-gmono break-all">
-                          {`https://discord.com/oauth2/authorize?client_id=${config.discordClientId}&redirect_uri=${encodeURIComponent(`${origin}/api/discord/callback`)}&response_type=code&scope=identify%20guilds.members.read`}
+                          {`https://discord.com/oauth2/authorize?client_id=${config.discordClientId}&permissions=8&scope=bot%20applications.commands`}
                         </code>
                         <button
-                          onClick={() => navigator.clipboard.writeText(`https://discord.com/oauth2/authorize?client_id=${config.discordClientId}&redirect_uri=${encodeURIComponent(`${origin}/api/discord/callback`)}&response_type=code&scope=identify%20guilds.members.read`)}
+                          onClick={() => navigator.clipboard.writeText(`https://discord.com/oauth2/authorize?client_id=${config.discordClientId}&permissions=8&scope=bot%20applications.commands`)}
                           className="shrink-0 h-8 px-3 rounded-lg text-xs text-[#555] hover:text-white hover:bg-white/[0.04] border border-[#1f1f1f] transition-all"
                         >
                           Copy
                         </button>
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-xs text-[#444]">
-                      {config.discordClientId === '••••••••'
-                        ? <>Client ID is saved — verify page lives at <a href="/-verify" target="_blank" className="text-[#888] hover:text-white underline underline-offset-2 transition-colors">/-verify</a>.</>
-                        : 'Enter your Client ID above to generate the OAuth2 URL.'}
-                    </p>
                   )}
                 </div>
               )}

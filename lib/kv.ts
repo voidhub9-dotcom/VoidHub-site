@@ -25,7 +25,6 @@ export const KV_KEYS = {
   SHOP_PRODUCTS: 'voidhub:shop_products',
   SHOP_ORDERS: 'voidhub:shop_orders',
   SHOP_EMAIL_TEMPLATE: 'voidhub:shop_email_template',
-  MIGRATION: 'voidhub:migration_mode',
   SEEDED: 'voidhub:seeded',
   // Passkeys
   PASSKEY_CREDENTIAL: 'voidhub:passkey_credential',

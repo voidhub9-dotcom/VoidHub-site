@@ -26,11 +26,13 @@ export async function GET(req: Request) {
     getConfig(),
   ])
 
-  // Mask secrets in the response — send a placeholder so the UI shows "saved"
-  // without leaking the actual token to the browser.
+  // Only mask actual secrets — client ID, guild ID, and role ID are non-sensitive
+  // and must be returned as plaintext so the UI can generate OAuth URLs.
+  const SECRET_FIELDS = new Set<keyof SiteConfig>(['discordClientSecret', 'discordBotToken'])
   const safeConfig: Record<string, string> = {}
   for (const f of CONFIG_FIELDS) {
-    safeConfig[f] = (config as Record<string, string | undefined>)[f] ? '••••••••' : ''
+    const val = (config as Record<string, string | undefined>)[f]
+    safeConfig[f] = SECRET_FIELDS.has(f) ? (val ? '••••••••' : '') : (val || '')
   }
 
   return Response.json({

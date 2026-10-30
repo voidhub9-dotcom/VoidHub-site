@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getLoadstring, setLoadstring, getCopyCount, resetCopyCount, addActivityLog } from '@/lib/storage'
 import { useToast } from '@/components/Toast'
-import { PageHead, Section, Segmented, Field, Switch, inputCls, textareaCls, btnDanger } from '@/components/AdminUI'
+import { PageHead, Section, Segmented, Field, inputCls, textareaCls, btnDanger } from '@/components/AdminUI'
 import {
   ShieldIcon,
   AlertIcon,
@@ -27,10 +27,10 @@ async function apiGetLoader() {
     headers: { 'x-admin-key': getAdminKey() },
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json() as Promise<{ script: string; rawScriptUrl: string; endpointUrl: string; source: string; migration: boolean; migrationInvite: string }>
+  return res.json() as Promise<{ script: string; rawScriptUrl: string; endpointUrl: string; source: string }>
 }
 
-async function apiSaveLoader(payload: { migration?: boolean; script?: string; rawScriptUrl?: string; endpointUrl?: string; testRawUrl?: string }) {
+async function apiSaveLoader(payload: { script?: string; rawScriptUrl?: string; endpointUrl?: string; testRawUrl?: string }) {
   const res = await fetch('/api/admin/loader', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-admin-key': getAdminKey() },
@@ -64,10 +64,7 @@ export default function LoaderPage() {
   const [endpointUrl, setEndpointUrl] = useState('https://www.voidon.top/api/loader')
   const [loadstringDisplay, setLoadstringDisplay] = useState('')
   const [copyCount, setCopyCount] = useState(0)
-  const [activeSource, setActiveSource] = useState<'raw-url' | 'database' | 'none' | 'migration'>('none')
-  const [migration, setMigration] = useState(false)
-  const [migrationInvite, setMigrationInvite] = useState('')
-  const [savingMigration, setSavingMigration] = useState(false)
+  const [activeSource, setActiveSource] = useState<'raw-url' | 'database' | 'none'>('none')
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSavingScript, setIsSavingScript] = useState(false)
@@ -89,9 +86,7 @@ export default function LoaderPage() {
       setScriptContent(data.script || '')
       setRawScriptUrl(data.rawScriptUrl || '')
       setEndpointUrl(data.endpointUrl || 'https://www.voidon.top/api/loader')
-      setActiveSource((data.source as any) || 'none')
-      setMigration(!!data.migration)
-      setMigrationInvite(data.migrationInvite || '')
+      setActiveSource(data.source === 'raw-url' || data.source === 'database' ? data.source : 'none')
       setTab(data.source === 'database' ? 'database' : 'raw-url')
       setStorageStatus('ok')
     } catch {
@@ -107,19 +102,6 @@ export default function LoaderPage() {
     setCopyCount(getCopyCount())
     loadFromServer()
   }, [loadFromServer])
-
-  const handleToggleMigration = async (next: boolean) => {
-    setSavingMigration(true)
-    try {
-      await apiSaveLoader({ migration: next })
-      setMigration(next)
-      setActiveSource(next ? 'migration' : rawScriptUrl.trim() ? 'raw-url' : scriptContent ? 'database' : 'none')
-      addActivityLog('loader', next ? 'Turned ON the "we moved" notice' : 'Turned OFF the "we moved" notice')
-      showToast(next ? 'Migration notice is ON. Everyone running the loader now sees it.' : 'Migration notice is OFF. The real script is back.', next ? 'info' : 'success')
-    } catch (err: any) {
-      showToast(`Failed: ${err.message}`, 'error')
-    } finally { setSavingMigration(false) }
-  }
 
   const handleSaveRawUrl = async () => {
     setIsSavingRawUrl(true)
@@ -215,7 +197,7 @@ export default function LoaderPage() {
 
   const lineCount = scriptContent ? scriptContent.split('\n').length : 0
 
-  const sourceLabel = { 'raw-url': 'Hidden URL', database: 'Pasted script', none: 'Nothing yet', migration: 'Moved notice' }[activeSource]
+  const sourceLabel = 'AquaHub move notice'
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -241,27 +223,19 @@ export default function LoaderPage() {
         </div>
       )}
 
-      {/* Migration notice: send old-script users to the new Discord */}
-      <section className={`mb-6 rounded-2xl border p-5 md:p-6 transition-colors ${migration ? 'border-warning/40 bg-warning/[0.04]' : 'border-[#1c1c1c] bg-[#070707]'}`}>
-        <div className="flex items-start justify-between gap-4">
+      {/* Permanent source-controlled migration notice */}
+      <section className="mb-6 rounded-2xl border border-warning/40 bg-warning/[0.04] p-5 md:p-6">
+        <div className="flex items-start gap-3">
+          <AlertIcon size={18} className="mt-0.5 shrink-0 text-warning" />
           <div className="min-w-0">
             <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-white">
-              &ldquo;We moved&rdquo; notice
-              <span className={`inline-flex items-center h-6 px-2.5 rounded-full border font-gmono text-[0.6rem] uppercase tracking-wider ${migration ? 'border-warning/40 text-warning' : 'border-[#2a2a2a] text-[#6b6b6b]'}`}>{migration ? 'On' : 'Off'}</span>
+              AquaHub move notice <span className="inline-flex h-6 items-center rounded-full border border-warning/40 px-2.5 font-gmono text-[0.6rem] uppercase tracking-wider text-warning">Always on</span>
             </h2>
-            <p className="mt-1 text-sm text-[#8a8a8a] leading-relaxed max-w-2xl">
-              For people still running the old script. While this is on, <code className="font-gmono text-white">/api/loader</code> shows a small window in-game instead of the script:
-              <span className="text-white"> &ldquo;We moved to a new server.&rdquo;</span> The <span className="text-white">Join Discord</span> button copies your invite
-              {migrationInvite && <> (<code className="font-gmono text-white">{migrationInvite}</code>)</>} and then leaves the game so they can join. The window says so up front, and <span className="text-white">Not now</span> closes it and carries on loading their script as normal.
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#a3a3a3]">
+              <code className="font-gmono text-white">/api/loader</code> serves this notice from the app source on every normal request; its status and invite are not stored in Cloudflare or controlled from this page. The Join Discord button copies <code className="font-gmono text-white">https://discord.gg/Vcz9zHhTjp</code> and leaves the game.
             </p>
           </div>
-          <Switch checked={migration} onChange={handleToggleMigration} disabled={savingMigration || storageStatus === 'unavailable'} label="Migration notice" />
         </div>
-        {migration && (
-          <p className="mt-4 flex items-start gap-2 text-xs text-warning">
-            <AlertIcon size={14} className="mt-0.5 shrink-0" /> It&apos;s on right now: everyone sees this window each time they run it. Pressing Not now still loads the real script. The invite comes from Settings → Discord invite.
-          </p>
-        )}
       </section>
 
       {/* Pipeline: what is being served right now */}
@@ -274,9 +248,9 @@ export default function LoaderPage() {
             { k: 'Serves', v: sourceLabel, live: true },
           ].map((step, i) => (
             <div key={step.k} className="flex md:flex-1 items-center gap-3">
-              <div className={`flex-1 md:flex-none rounded-xl border px-4 py-3 ${step.live ? (activeSource === 'none' ? 'border-warning/40 bg-warning/[0.05]' : 'border-white/40 bg-white/[0.04]') : 'border-[#222] bg-black'}`}>
+              <div className={`flex-1 md:flex-none rounded-xl border px-4 py-3 ${step.live ? 'border-white/40 bg-white/[0.04]' : 'border-[#222] bg-black'}`}>
                 <p className="font-gmono text-[0.6rem] uppercase tracking-[0.18em] text-[#6b6b6b]">{step.k}</p>
-                <p className={`mt-0.5 font-gmono text-sm ${step.live && activeSource === 'none' ? 'text-warning' : 'text-white'}`}>{isLoading && step.live ? '…' : step.v}</p>
+                <p className="mt-0.5 font-gmono text-sm text-white">{isLoading && step.live ? '…' : step.v}</p>
               </div>
               {i < 2 && <span className="hidden md:block flex-1 h-px mx-3 bg-gradient-to-r from-[#444] to-[#1a1a1a]" />}
             </div>

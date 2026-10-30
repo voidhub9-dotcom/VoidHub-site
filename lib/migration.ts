@@ -1,28 +1,27 @@
 /**
  * "We moved" notice for people still running the old script.
  *
- * When migration mode is on, /api/loader serves this instead of the real
- * script. It shows a small window in-game explaining that VoidHub moved,
- * with two buttons:
+ * /api/loader serves this before the real script on every normal request.
+ * It shows a small window in-game explaining that VoidHub moved to AquaHub,
+ * with one action:
  *   - Join Discord: copies the invite, then leaves the game so the player
  *     can go and join. The window says this up front, before they press.
- *   - Not now: closes the window and carries on loading their script as
- *     normal (fetches /api/loader?continue=1, which skips this notice).
- * Nothing happens until the player presses a button.
+ * Nothing happens until the player presses the button.
  */
+
+const AQUAHUB_INVITE = 'https://discord.gg/Vcz9zHhTjp'
 
 /** Keep only characters that are safe inside a Lua string literal. */
 function luaSafe(s: string) {
   return s.replace(/[^A-Za-z0-9:/._\-?=&%~#+]/g, '')
 }
 
-export function buildMigrationScript(inviteUrl: string, siteUrl = 'https://www.voidon.top'): string {
-  const invite = luaSafe(inviteUrl)
+export function buildMigrationScript(siteUrl = 'https://www.voidon.top'): string {
+  const invite = luaSafe(AQUAHUB_INVITE)
   const site = luaSafe(siteUrl)
-  return `-- VoidHub moved
+  return `-- VoidHub moved to AquaHub
 local INVITE = "${invite}"
 local SITE = "${site}"
-local CONTINUE_URL = SITE .. "/api/loader?continue=1"
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -39,16 +38,17 @@ end
 local function copy(text)
   local fn = setclipboard or toclipboard or (syn and syn.write_clipboard) or (Clipboard and Clipboard.set)
   if not fn then return false end
-  return (pcall(fn, text))
+  local ok, result = pcall(fn, text)
+  return ok and result ~= false
 end
 
 pcall(function()
-  local old = pickParent():FindFirstChild("VoidHubMoved")
+  local old = pickParent():FindFirstChild("AquaHubMoved")
   if old then old:Destroy() end
 end)
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "VoidHubMoved"
+gui.Name = "AquaHubMoved"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.DisplayOrder = 999
@@ -65,12 +65,12 @@ local card = Instance.new("Frame")
 card.AnchorPoint = Vector2.new(0.5, 0.5)
 card.Position = UDim2.fromScale(0.5, 0.5)
 card.Size = UDim2.new(0.9, 0, 0, 320)
-card.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+card.BackgroundColor3 = Color3.fromRGB(8, 17, 36)
 card.BorderSizePixel = 0
 card.Parent = gui
 Instance.new("UICorner", card).CornerRadius = UDim.new(0, 18)
 local stroke = Instance.new("UIStroke", card)
-stroke.Color = Color3.fromRGB(60, 60, 60)
+stroke.Color = Color3.fromRGB(47, 126, 255)
 stroke.Thickness = 1.5
 local limit = Instance.new("UISizeConstraint", card)
 limit.MaxSize = Vector2.new(420, 320)
@@ -92,38 +92,37 @@ local function label(text, y, h, size, color, font)
   return l
 end
 
-label("VOIDHUB", 22, 16, 13, Color3.fromRGB(120, 120, 120), Enum.Font.GothamBold)
-label("We moved to a new server", 42, 32, 24, Color3.new(1, 1, 1), Enum.Font.GothamBold)
+label("AQUAHUB", 22, 16, 13, Color3.fromRGB(104, 169, 255), Enum.Font.GothamBold)
+label("We moved to AquaHub", 42, 32, 24, Color3.new(1, 1, 1), Enum.Font.GothamBold)
 local body = label(
-  "This script is no longer updated. Join the new VoidHub Discord to get the latest one. Join copies the invite and leaves this game so you can join right away. Not now keeps loading your script.",
-  84, 112, 15, Color3.fromRGB(170, 170, 170)
+  "VoidHub has moved to AquaHub. Join the new AquaHub Discord for updates. Press below to copy the invite and leave this game so you can join.",
+  84, 112, 15, Color3.fromRGB(197, 210, 231)
 )
 
-local function button(text, x, w, primary)
+local function button(text)
   local b = Instance.new("TextButton")
   b.AutoButtonColor = false
   b.AnchorPoint = Vector2.new(0, 1)
-  b.Position = UDim2.new(x, x == 0 and 24 or 4, 1, -24)
-  b.Size = UDim2.new(w, x == 0 and -28 or -28, 0, 46)
-  b.BackgroundColor3 = primary and Color3.new(1, 1, 1) or Color3.fromRGB(24, 24, 24)
-  b.TextColor3 = primary and Color3.new(0, 0, 0) or Color3.fromRGB(200, 200, 200)
+  b.Position = UDim2.new(0, 24, 1, -24)
+  b.Size = UDim2.new(1, -48, 0, 48)
+  b.BackgroundColor3 = Color3.fromRGB(39, 117, 255)
+  b.TextColor3 = Color3.new(1, 1, 1)
   b.Font = Enum.Font.GothamBold
   b.TextSize = 15
   b.Text = text
   b.BorderSizePixel = 0
   b.Parent = card
-  Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
+  Instance.new("UICorner", b).CornerRadius = UDim.new(0, 12)
   return b
 end
 
-local join = button("Join Discord", 0, 0.62, true)
-local close = button("Not now", 0.62, 0.38, false)
+local join = button("Join Discord")
 
 local link = Instance.new("TextBox")
 link.Visible = false
 link.ClearTextOnFocus = false
 link.TextEditable = false
-link.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+link.BackgroundColor3 = Color3.fromRGB(15, 31, 58)
 link.BorderSizePixel = 0
 link.Position = UDim2.new(0, 24, 0, 200)
 link.Size = UDim2.new(1, -48, 0, 34)
@@ -142,7 +141,7 @@ join.MouseButton1Click:Connect(function()
     join.Text = "Copied! Leaving..."
     body.Text = "Invite copied: " .. INVITE .. "\\nPaste it into Discord to join."
     task.wait(1.6)
-    player:Kick("VoidHub moved. The Discord invite was copied to your clipboard: " .. INVITE .. " (new site: " .. SITE .. ")")
+    player:Kick("VoidHub moved to AquaHub. The Discord invite was copied to your clipboard: " .. INVITE .. " (site: " .. SITE .. ")")
   else
     -- No clipboard support in this executor: show the link instead of leaving.
     busy = false
@@ -150,20 +149,6 @@ join.MouseButton1Click:Connect(function()
     body.Text = "Your executor can't copy for you. Type this invite into Discord (or your browser) to join:"
     link.Visible = true
   end
-end)
-
--- Not now: close the window, then load the script they came here to run.
-close.MouseButton1Click:Connect(function()
-  if busy then return end
-  busy = true
-  gui:Destroy()
-  task.spawn(function()
-    local ok, src = pcall(function() return game:HttpGet(CONTINUE_URL) end)
-    if ok and type(src) == "string" and #src > 0 then
-      local fn = loadstring(src)
-      if fn then fn() end
-    end
-  end)
 end)
 
 card.Size = UDim2.new(0.9, 0, 0, 300)

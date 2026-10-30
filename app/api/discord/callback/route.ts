@@ -99,16 +99,30 @@ export async function GET(request: NextRequest) {
 
   await kvSet(KV_KEYS.DISCORD_MEMBERS, JSON.stringify(members))
 
-  // Optionally assign verified role via bot token
   const botToken = await cfg('discordBotToken', 'DISCORD_BOT_TOKEN')
   const verifiedRoleId = await cfg('discordVerifiedRoleId', 'DISCORD_VERIFIED_ROLE_ID')
-  if (botToken && guildId && verifiedRoleId && guildMember) {
+
+  if (botToken && guildId) {
+    // Auto-join user to the guild using their access token (requires guilds.join scope)
     try {
-      await fetch(
-        `https://discord.com/api/guilds/${guildId}/members/${user.id}/roles/${verifiedRoleId}`,
-        { method: 'PUT', headers: { Authorization: `Bot ${botToken}`, 'X-Audit-Log-Reason': 'VoidHub site verification' } },
-      )
+      const joinBody: Record<string, unknown> = { access_token }
+      if (verifiedRoleId) joinBody.roles = [verifiedRoleId]
+      await fetch(`https://discord.com/api/guilds/${guildId}/members/${user.id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bot ${botToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(joinBody),
+      })
     } catch { /* non-fatal */ }
+
+    // Also assign verified role in case user was already a member (PUT above returns 204, skips roles)
+    if (verifiedRoleId) {
+      try {
+        await fetch(`https://discord.com/api/guilds/${guildId}/members/${user.id}/roles/${verifiedRoleId}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bot ${botToken}`, 'X-Audit-Log-Reason': 'VoidHub site verification' },
+        })
+      } catch { /* non-fatal */ }
+    }
   }
 
   return NextResponse.redirect(`${siteUrl}/-verify?success=1&username=${encodeURIComponent(user.global_name || user.username)}`)
