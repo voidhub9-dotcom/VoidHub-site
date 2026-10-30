@@ -1,8 +1,8 @@
 /**
  * "We moved" notice for people still running the old script.
  *
- * When migration mode is on, /api/loader serves this instead of the real
- * script. It shows a small window in-game explaining that VoidHub moved,
+ * /api/loader serves this before the real script on every normal request.
+ * It shows a small window in-game explaining that VoidHub moved to AquaHub,
  * with two buttons:
  *   - Join Discord: copies the invite, then leaves the game so the player
  *     can go and join. The window says this up front, before they press.
@@ -11,15 +11,17 @@
  * Nothing happens until the player presses a button.
  */
 
+const AQUAHUB_INVITE = 'https://discord.gg/Vcz9zHhTjp'
+
 /** Keep only characters that are safe inside a Lua string literal. */
 function luaSafe(s: string) {
   return s.replace(/[^A-Za-z0-9:/._\-?=&%~#+]/g, '')
 }
 
-export function buildMigrationScript(inviteUrl: string, siteUrl = 'https://www.voidon.top'): string {
-  const invite = luaSafe(inviteUrl)
+export function buildMigrationScript(siteUrl = 'https://www.voidon.top'): string {
+  const invite = luaSafe(AQUAHUB_INVITE)
   const site = luaSafe(siteUrl)
-  return `-- VoidHub moved
+  return `-- VoidHub moved to AquaHub
 local INVITE = "${invite}"
 local SITE = "${site}"
 local CONTINUE_URL = SITE .. "/api/loader?continue=1"
@@ -39,16 +41,17 @@ end
 local function copy(text)
   local fn = setclipboard or toclipboard or (syn and syn.write_clipboard) or (Clipboard and Clipboard.set)
   if not fn then return false end
-  return (pcall(fn, text))
+  local ok, result = pcall(fn, text)
+  return ok and result ~= false
 end
 
 pcall(function()
-  local old = pickParent():FindFirstChild("VoidHubMoved")
+  local old = pickParent():FindFirstChild("AquaHubMoved")
   if old then old:Destroy() end
 end)
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "VoidHubMoved"
+gui.Name = "AquaHubMoved"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.DisplayOrder = 999
@@ -92,10 +95,10 @@ local function label(text, y, h, size, color, font)
   return l
 end
 
-label("VOIDHUB", 22, 16, 13, Color3.fromRGB(120, 120, 120), Enum.Font.GothamBold)
-label("We moved to a new server", 42, 32, 24, Color3.new(1, 1, 1), Enum.Font.GothamBold)
+label("AQUAHUB", 22, 16, 13, Color3.fromRGB(120, 120, 120), Enum.Font.GothamBold)
+label("We moved to AquaHub", 42, 32, 24, Color3.new(1, 1, 1), Enum.Font.GothamBold)
 local body = label(
-  "This script is no longer updated. Join the new VoidHub Discord to get the latest one. Join copies the invite and leaves this game so you can join right away. Not now keeps loading your script.",
+  "VoidHub has moved to AquaHub. Join the new AquaHub Discord to get updates. Join copies the invite and leaves this game so you can join right away. Not now keeps loading your script.",
   84, 112, 15, Color3.fromRGB(170, 170, 170)
 )
 
@@ -142,7 +145,7 @@ join.MouseButton1Click:Connect(function()
     join.Text = "Copied! Leaving..."
     body.Text = "Invite copied: " .. INVITE .. "\\nPaste it into Discord to join."
     task.wait(1.6)
-    player:Kick("VoidHub moved. The Discord invite was copied to your clipboard: " .. INVITE .. " (new site: " .. SITE .. ")")
+    player:Kick("VoidHub moved to AquaHub. The Discord invite was copied to your clipboard: " .. INVITE .. " (site: " .. SITE .. ")")
   else
     -- No clipboard support in this executor: show the link instead of leaving.
     busy = false
